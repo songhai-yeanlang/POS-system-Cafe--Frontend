@@ -5,48 +5,41 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'primary',
-    validator: (v) => [
-      'primary',
-      'secondary',
-      'crema',
-      'outline',
-      'ghost',
-      'danger'
-    ].includes(v)
+    validator: (v) => ['primary', 'secondary', 'crema', 'outline', 'ghost', 'danger'].includes(v),
   },
   size: {
     type: String,
     default: 'md',
-    validator: (v) => ['sm', 'md', 'lg'].includes(v)
+    validator: (v) => ['sm', 'md', 'lg'].includes(v),
   },
   pill: {
     type: Boolean,
-    default: false
+    default: false,
   },
   circle: {
     type: Boolean,
-    default: false
+    default: false,
   },
   block: {
     type: Boolean,
-    default: false
+    default: false,
   },
   active: {
     type: Boolean,
-    default: false
+    default: false,
   },
   loading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   disabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   type: {
     type: String,
-    default: 'button'
-  }
+    default: 'button',
+  },
 })
 
 defineEmits(['click'])
@@ -86,9 +79,10 @@ const buttonClasses = computed(() => [
     'rounded-pill': props.pill,
     'btn-circle': props.circle,
     'w-100': props.block,
-    'active': props.active,
-    'disabled': props.disabled || props.loading
-  }
+    active: props.active,
+    'btn-loading': props.loading,
+    disabled: props.disabled || props.loading,
+  },
 ])
 </script>
 
@@ -126,7 +120,10 @@ const buttonClasses = computed(() => [
   font-weight: 500;
   border-radius: 8px;
   border: 1px solid transparent;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   user-select: none;
 }
 
@@ -178,6 +175,13 @@ const buttonClasses = computed(() => [
   border-color: var(--primary-dark, #1d100b) !important;
   color: #ffffff !important;
 }
+.btn-brew-primary:disabled,
+.btn-brew-primary.disabled {
+  background-color: var(--primary, #2c1810) !important;
+  border-color: var(--primary, #2c1810) !important;
+  color: var(--on-primary, #ffffff) !important;
+  opacity: 0.85;
+}
 
 .btn-brew-secondary {
   background-color: var(--surface-container-lowest, #ffffff);
@@ -194,6 +198,13 @@ const buttonClasses = computed(() => [
   border-color: var(--primary, #2c1810);
   color: #ffffff;
 }
+.btn-brew-secondary:disabled,
+.btn-brew-secondary.disabled {
+  background-color: var(--surface-container-low, #f6f3f2) !important;
+  border-color: var(--border-subtle, #e5e7eb) !important;
+  color: var(--on-surface-variant, #827470) !important;
+  opacity: 0.85;
+}
 
 .btn-brew-crema {
   background-color: var(--secondary-fixed, #ffdcc5);
@@ -205,6 +216,13 @@ const buttonClasses = computed(() => [
   background-color: var(--secondary-container, #ffd8bf);
   color: var(--on-secondary-container, #7a5c48);
 }
+.btn-brew-crema:disabled,
+.btn-brew-crema.disabled {
+  background-color: var(--secondary-fixed, #ffdcc5) !important;
+  border-color: transparent !important;
+  color: var(--on-secondary-fixed, #2b1707) !important;
+  opacity: 0.85;
+}
 
 .btn-brew-ghost {
   background-color: transparent;
@@ -214,6 +232,13 @@ const buttonClasses = computed(() => [
 .btn-brew-ghost:hover:not(:disabled) {
   background-color: var(--border-hairline, #e6e4e0);
   color: var(--on-surface, #1c1b1b);
+}
+.btn-brew-ghost:disabled,
+.btn-brew-ghost.disabled {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: var(--outline, #827470) !important;
+  opacity: 0.6;
 }
 
 .btn-brew-danger {
@@ -225,6 +250,13 @@ const buttonClasses = computed(() => [
   background-color: #93000a;
   border-color: #93000a;
   color: #ffffff;
+}
+.btn-brew-danger:disabled,
+.btn-brew-danger.disabled {
+  background-color: var(--error, #ba1a1a) !important;
+  border-color: var(--error, #ba1a1a) !important;
+  color: #ffffff !important;
+  opacity: 0.85;
 }
 
 .font-numeric {

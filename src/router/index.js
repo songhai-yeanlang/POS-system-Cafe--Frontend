@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginView from '@/views/auth/LoginView.vue'
+import LoginPage from '@/views/auth/LoginPage.vue'
 import ForgotPassword from '@/views/auth/ForgotPassword.vue'
 import VerifyOtp from '@/views/auth/VerifyOtp.vue'
 import ResetPassword from '@/views/auth/ResetPassword.vue'
@@ -10,28 +10,28 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: LoginView
+      component: LoginPage,
     },
     {
       path: '/forgot-password',
       name: 'forgot-password',
-      component: ForgotPassword
+      component: ForgotPassword,
     },
     {
       path: '/verify-otp',
       name: 'verify-otp',
-      component: VerifyOtp
+      component: VerifyOtp,
     },
     {
       path: '/reset-password',
       name: 'reset-password',
-      component: ResetPassword
+      component: ResetPassword,
     },
     {
       path: '/',
-      redirect: '/login'
-    }
-  ]
+      redirect: '/login',
+    },
+  ],
 })
 
 export default router

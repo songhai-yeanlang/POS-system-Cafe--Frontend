@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/api/api'
+import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const router = useRouter()
@@ -9,10 +10,31 @@ const route = useRoute()
 
 const newPassword = ref('')
 const confirmPassword = ref('')
-const resetToken = ref(route.query.token || sessionStorage.getItem('resetToken') || '')
+const resetToken = ref(
+  route.query.token ||
+  sessionStorage.getItem('resetToken') ||
+  localStorage.getItem('resetToken') ||
+  ''
+)
 
 const isLoading = ref(false)
 const errorMessage = ref('')
+
+const newPasswordError = computed(() => {
+  if (!errorMessage.value) return ''
+  if (errorMessage.value.toLowerCase().includes('8 characters')) {
+    return errorMessage.value
+  }
+  return ''
+})
+
+const confirmPasswordError = computed(() => {
+  if (!errorMessage.value) return ''
+  if (errorMessage.value.toLowerCase().includes('match') || !newPasswordError.value) {
+    return errorMessage.value
+  }
+  return ''
+})
 
 watch([newPassword, confirmPassword], () => {
   if (errorMessage.value) {
@@ -50,7 +72,7 @@ const handleUpdatePassword = async () => {
   try {
     await api.post('/auth/reset-password', {
       resetToken: resetToken.value,
-      newPassword: newPassword.value
+      newPassword: newPassword.value,
     })
 
     sessionStorage.removeItem('resetToken')
@@ -67,46 +89,34 @@ const handleUpdatePassword = async () => {
 <template>
   <div class="reset-wrapper min-vh-100 d-flex align-items-center justify-content-center p-3">
     <div class="reset-card bg-white p-4 p-sm-5">
-      <div class="d-flex align-items-center justify-content-between pb-3 border-bottom mb-4">
-        <span class="step-header-text">New Credentials</span>
+      <div class="d-flex align-items-center justify-content-between pb-3 mb-4">
+        <span class="step-header-text">Reset password</span>
         <span class="step-number-text">Step 3</span>
       </div>
 
       <h3 class="title-text fw-bold mb-2">Set password</h3>
-      <p class="subtitle-text mb-4">
-        Choose a strong password with 8+ characters.
-      </p>
+      <p class="subtitle-text mb-4">Choose a strong password with 8+ characters.</p>
 
       <form @submit.prevent="handleUpdatePassword">
-        <div class="mb-3">
-          <label class="form-label small fw-medium mb-1">New password</label>
-          <input
-            v-model="newPassword"
-            type="password"
-            placeholder="••••••••••••"
-            class="form-control reset-input"
-            :class="{ 'is-invalid': !!errorMessage }"
-            required
-            autofocus
-          />
-        </div>
+        <BaseInput
+          v-model="newPassword"
+          type="password"
+          label="New password"
+          placeholder="••••••••••••"
+          :error="newPasswordError"
+          required
+          autofocus
+        />
 
-        <div class="mb-3">
-          <label class="form-label small fw-medium mb-1">Confirm password</label>
-          <input
-            v-model="confirmPassword"
-            type="password"
-            placeholder="••••••••••••"
-            class="form-control reset-input"
-            :class="{ 'is-invalid': !!errorMessage }"
-            required
-          />
-        </div>
-
-        <div v-if="errorMessage" class="error-text small mb-4">
-          {{ errorMessage }}
-        </div>
-        <div v-else class="mb-4"></div>
+        <BaseInput
+          v-model="confirmPassword"
+          type="password"
+          label="Confirm password"
+          placeholder="••••••••••••"
+          :error="confirmPasswordError"
+          class="mb-4"
+          required
+        />
 
         <BaseButton
           type="submit"
@@ -119,12 +129,6 @@ const handleUpdatePassword = async () => {
           Update Password
         </BaseButton>
       </form>
-
-      <div class="text-center pt-2 border-top">
-        <span class="status-footer-text">
-          Awaiting step completion
-        </span>
-      </div>
     </div>
   </div>
 </template>
@@ -163,49 +167,6 @@ const handleUpdatePassword = async () => {
 .subtitle-text {
   font-size: 14px;
   line-height: 1.5;
-  color: var(--on-surface-variant, #504440);
-}
-
-.form-label {
-  color: var(--on-surface, #1c1b1b);
-}
-
-.reset-input {
-  height: 48px;
-  border-radius: 8px;
-  border: 1px solid var(--border-subtle, #e5e7eb);
-  background-color: var(--surface-container-lowest, #ffffff);
-  color: var(--on-surface, #1c1b1b);
-  font-size: 14px;
-  outline: none;
-  box-shadow: none !important;
-  transition: border-color 0.15s ease;
-}
-
-.reset-input::placeholder {
-  color: var(--on-surface-variant, #827470);
-  letter-spacing: 0.15em;
-}
-
-.reset-input:focus {
-  border-color: var(--primary, #2c1810) !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-.reset-input.is-invalid {
-  border-color: var(--error, #ba1a1a) !important;
-  background-image: none !important;
-}
-
-.error-text {
-  color: var(--error, #ba1a1a);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.status-footer-text {
-  font-size: 13px;
   color: var(--on-surface-variant, #504440);
 }
 </style>

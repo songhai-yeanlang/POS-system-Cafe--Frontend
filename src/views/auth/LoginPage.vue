@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -10,17 +10,29 @@ const authStore = useAuthStore()
 
 const form = reactive({
   email: '',
-  password: ''
+  password: '',
+  rememberMe: false,
 })
 
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-watch(() => [form.email, form.password], () => {
-  if (errorMessage.value) {
-    errorMessage.value = ''
+onMounted(() => {
+  const savedEmail = localStorage.getItem('remember_email')
+  if (savedEmail) {
+    form.email = savedEmail
+    form.rememberMe = true
   }
 })
+
+watch(
+  () => [form.email, form.password],
+  () => {
+    if (errorMessage.value) {
+      errorMessage.value = ''
+    }
+  },
+)
 
 const handleLogin = async () => {
   errorMessage.value = ''
@@ -34,8 +46,15 @@ const handleLogin = async () => {
   try {
     await authStore.login({
       email: form.email,
-      password: form.password
+      password: form.password,
     })
+
+    if (form.rememberMe) {
+      localStorage.setItem('remember_email', form.email)
+    } else {
+      localStorage.removeItem('remember_email')
+    }
+
     router.push('/')
   } catch (err) {
     errorMessage.value = err.message || 'Invalid email or password'
@@ -48,8 +67,6 @@ const handleLogin = async () => {
 <template>
   <div class="login-wrapper min-vh-100 d-flex align-items-center justify-content-center p-3 p-md-4">
     <div class="login-card row g-0 rounded-4 overflow-hidden bg-white">
-
-
       <div class="col-12 col-md-12 form-side d-flex flex-column justify-content-center p-4 p-md-5">
         <div class="mb-4">
           <h3 class="fw-semibold text-dark mb-1">Welcome back</h3>
@@ -57,14 +74,42 @@ const handleLogin = async () => {
         </div>
 
         <form @submit.prevent="handleLogin">
-          <BaseInput v-model="form.email" type="email" label="Email address" placeholder="barista@brewpos.com"
-            :error="!form.email && errorMessage ? errorMessage : ''" required autofocus />
+          <BaseInput
+            v-model="form.email"
+            type="email"
+            label="Email address"
+            placeholder="barista@brewpos.com"
+            :error="!form.email && errorMessage ? errorMessage : ''"
+            required
+            autofocus
+          />
 
-          <BaseInput v-model="form.password" type="password" label="Password" placeholder="••••••••"
-            :error="errorMessage && form.email ? errorMessage : (!form.password && errorMessage ? errorMessage : '')"
-            required />
+          <BaseInput
+            v-model="form.password"
+            type="password"
+            label="Password"
+            placeholder="••••••••"
+            :error="
+              errorMessage && form.email
+                ? errorMessage
+                : !form.password && errorMessage
+                  ? errorMessage
+                  : ''
+            "
+            required
+          />
 
-          <div class="d-flex justify-content-end mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="form-check d-flex align-items-center gap-2 mb-0 ps-0">
+              <input
+                id="rememberMe"
+                v-model="form.rememberMe"
+                class="form-check-input remember-check m-0"
+                type="checkbox"
+              />
+              <label class="form-check-label remember-label" for="rememberMe"> Remember me </label>
+            </div>
+
             <router-link to="/forgot-password" class="text-decoration-none small forgot-link">
               Forgot password?
             </router-link>
@@ -121,6 +166,32 @@ const handleLogin = async () => {
 
 .form-side {
   background-color: var(--surface-container-lowest, #ffffff);
+}
+
+.remember-check {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  border-color: var(--border-subtle, #e5e7eb);
+  box-shadow: none !important;
+  border-radius: 4px;
+}
+
+.remember-check:checked {
+  background-color: var(--primary, #2c1810);
+  border-color: var(--primary, #2c1810);
+}
+
+.remember-check:focus {
+  border-color: var(--primary, #2c1810);
+  box-shadow: 0 0 0 2px rgba(44, 24, 16, 0.15) !important;
+}
+
+.remember-label {
+  font-size: 13px;
+  color: var(--on-surface-variant, #504440);
+  cursor: pointer;
+  user-select: none;
 }
 
 .forgot-link {
