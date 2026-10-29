@@ -10,28 +10,28 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: LoginPage
+      component: LoginPage,
     },
     {
       path: '/forgot-password',
       name: 'forgot-password',
-      component: ForgotPassword
+      component: ForgotPassword,
     },
     {
       path: '/verify-otp',
       name: 'verify-otp',
-      component: VerifyOtp
+      component: VerifyOtp,
     },
     {
       path: '/reset-password',
       name: 'reset-password',
-      component: ResetPassword
+      component: ResetPassword,
     },
     {
       path: '/',
-      redirect: '/login'
-    }
-  ]
+      redirect: '/login',
+    },
+  ],
 })
 
 export default router

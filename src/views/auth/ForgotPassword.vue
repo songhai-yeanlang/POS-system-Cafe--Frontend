@@ -28,9 +28,11 @@ const handleSendCode = async () => {
   try {
     await api.post('/auth/forgot-password', { email: email.value })
     sessionStorage.setItem('resetEmail', email.value)
+    localStorage.setItem('resetEmail', email.value)
     router.push({ path: '/verify-otp', query: { email: email.value } })
   } catch (err) {
-    errorMessage.value = err.response?.data?.message || err.message || 'Failed to send verification code'
+    errorMessage.value =
+      err.response?.data?.message || err.message || 'Failed to send verification code'
   } finally {
     isLoading.value = false
   }
@@ -41,8 +43,21 @@ const handleSendCode = async () => {
   <div class="forgot-wrapper min-vh-100 d-flex align-items-center justify-content-center p-3">
     <div class="forgot-card bg-white p-4 p-sm-5">
       <div class="d-flex align-items-center justify-content-between mb-4">
-        <router-link to="/login" class="back-link d-inline-flex align-items-center text-decoration-none">
-          <svg class="me-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <router-link
+          to="/login"
+          class="back-link d-inline-flex align-items-center text-decoration-none"
+        >
+          <svg
+            class="me-2"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
@@ -68,25 +83,20 @@ const handleSendCode = async () => {
             autofocus
           >
             <template #suffix>
-              <span class="at-icon d-inline-flex align-items-center justify-content-center" :class="{ 'text-danger': !!errorMessage }">
+              <span
+                class="at-icon d-inline-flex align-items-center justify-content-center"
+                :class="{ 'text-danger': !!errorMessage }"
+              >
                 @
               </span>
             </template>
           </BaseInput>
         </div>
 
-        <BaseButton
-          type="submit"
-          variant="primary"
-          size="lg"
-          block
-          :loading="isLoading"
-        >
+        <BaseButton type="submit" variant="primary" size="lg" block :loading="isLoading">
           Send Code
         </BaseButton>
       </form>
-
-      
     </div>
   </div>
 </template>
