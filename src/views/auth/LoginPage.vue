@@ -1,10 +1,11 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
+const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -55,7 +56,12 @@ const handleLogin = async () => {
       localStorage.removeItem('remember_email')
     }
 
-    router.push('/')
+    const redirectPath =
+      typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
+        ? route.query.redirect
+        : authStore.defaultRoute
+
+    router.push(redirectPath)
   } catch (err) {
     errorMessage.value = err.message || 'Invalid email or password'
   } finally {

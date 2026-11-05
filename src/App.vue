@@ -1,7 +1,10 @@
 <template>
   <router-view />
+  <BaseToast />
 </template>
 
-<script setup></script>
+<script setup>
+import BaseToast from '@/components/base/BaseToast.vue'
+</script>
 
 <style scoped></style>
