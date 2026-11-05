@@ -13,6 +13,8 @@ import ShiftsPage from '@/views/shifts/ShiftsPage.vue'
 import PosPage from '@/views/pos/PosPage.vue'
 import OrdersPage from '@/views/orders/OrdersPage.vue'
 import InventoryPage from '@/views/inventory/InventoryPage.vue'
+import RecipesPage from '@/views/recipes/RecipesPage.vue'
+import ExpensesPage from '@/views/expenses/ExpensesPage.vue'
 import ModulePlaceholder from '@/views/common/ModulePlaceholder.vue'
 import NotFoundPage from '@/views/common/NotFoundPage.vue'
 
@@ -141,13 +143,10 @@ const router = createRouter({
         {
           path: 'recipes',
           name: 'recipes',
-          component: ModulePlaceholder,
+          component: RecipesPage,
           meta: {
             title: 'Drink Recipes (BOM)',
             icon: 'bi-journal-text',
-            phase: 'Phase 4 • Page 8',
-            description:
-              'Map product variants to ingredient quantities for automatic stock deduction on every paid order.',
             roles: ['OWNER', 'STAFF'],
           },
         },
@@ -155,13 +154,10 @@ const router = createRouter({
         {
           path: 'expenses',
           name: 'expenses',
-          component: ModulePlaceholder,
+          component: ExpensesPage,
           meta: {
             title: 'Daily Expenses',
             icon: 'bi-wallet2',
-            phase: 'Phase 5 • Page 9',
-            description:
-              'Record shop expenses in USD or KHR via Cash, KHQR, or Bank Transfer, with automatic shift drawer deduction for cash expenses.',
             roles: ['OWNER', 'STAFF'],
           },
         },
