@@ -1,0 +1,27 @@
+import dayjs from 'dayjs'
+
+export function useFormatDate() {
+  const formatDateTime = (dateVal, pattern = 'MMM D, YYYY • h:mm A') => {
+    if (!dateVal) return '—'
+    const d = dayjs(dateVal)
+    return d.isValid() ? d.format(pattern) : '—'
+  }
+
+  const formatDate = (dateVal, pattern = 'MMM D, YYYY') => {
+    if (!dateVal) return '—'
+    const d = dayjs(dateVal)
+    return d.isValid() ? d.format(pattern) : '—'
+  }
+
+  const formatTime = (dateVal, pattern = 'h:mm A') => {
+    if (!dateVal) return '—'
+    const d = dayjs(dateVal)
+    return d.isValid() ? d.format(pattern) : '—'
+  }
+
+  return {
+    formatDateTime,
+    formatDate,
+    formatTime,
+  }
+}
