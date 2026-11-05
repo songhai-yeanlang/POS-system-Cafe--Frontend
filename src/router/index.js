@@ -12,6 +12,7 @@ import ProfilePage from '@/views/profile/ProfilePage.vue'
 import ShiftsPage from '@/views/shifts/ShiftsPage.vue'
 import PosPage from '@/views/pos/PosPage.vue'
 import OrdersPage from '@/views/orders/OrdersPage.vue'
+import InventoryPage from '@/views/inventory/InventoryPage.vue'
 import ModulePlaceholder from '@/views/common/ModulePlaceholder.vue'
 import NotFoundPage from '@/views/common/NotFoundPage.vue'
 
@@ -130,13 +131,10 @@ const router = createRouter({
         {
           path: 'inventory',
           name: 'inventory',
-          component: ModulePlaceholder,
+          component: InventoryPage,
           meta: {
             title: 'Inventory & Stock Movements',
             icon: 'bi-boxes',
-            phase: 'Phase 4 • Page 7',
-            description:
-              'Track raw ingredients (G, ML, PCS), low-stock alerts, stock purchases, and waste/adjustment ledgers.',
             roles: ['OWNER', 'STAFF'],
           },
         },
