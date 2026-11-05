@@ -467,48 +467,85 @@ const handleConfirmDelete = async () => {
 
 <template>
   <div class="products-page mx-auto">
-    <!-- Top Bar: Tabs & Action Button -->
-    <div
-      class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4"
-    >
-      <div class="tab-switcher d-inline-flex p-1 rounded-3 bg-white border">
-        <button
-          type="button"
-          class="tab-btn px-3 py-1 rounded-2"
-          :class="{ active: activeTab === 'products' }"
-          @click="activeTab = 'products'"
-        >
-          Products ({{ pagination.total || products.length }})
-        </button>
-        <button
-          type="button"
-          class="tab-btn px-3 py-1 rounded-2"
-          :class="{ active: activeTab === 'categories' }"
-          @click="activeTab = 'categories'"
-        >
-          Categories ({{ categories.length }})
-        </button>
-      </div>
+    <!-- Single-Row Toolbar: Tabs, Filters & Primary Action -->
+    <div class="clean-card bg-white p-3 mb-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center flex-wrap gap-2 flex-grow-1">
+          <div class="tab-switcher d-inline-flex p-1 rounded-3 bg-light border">
+            <button
+              type="button"
+              class="tab-btn px-3 py-1 rounded-2"
+              :class="{ active: activeTab === 'products' }"
+              @click="activeTab = 'products'"
+            >
+              Products ({{ pagination.total || products.length }})
+            </button>
+            <button
+              type="button"
+              class="tab-btn px-3 py-1 rounded-2"
+              :class="{ active: activeTab === 'categories' }"
+              @click="activeTab = 'categories'"
+            >
+              Categories ({{ categories.length }})
+            </button>
+          </div>
 
-      <div v-if="isOwner">
-        <BaseButton
-          v-if="activeTab === 'products'"
-          variant="primary"
-          size="md"
-          @click="openCreateProduct"
-        >
-          <template #prefix><i class="bi bi-plus-lg"></i></template>
-          Add Product
-        </BaseButton>
-        <BaseButton
-          v-else
-          variant="primary"
-          size="md"
-          @click="openCreateCategory"
-        >
-          <template #prefix><i class="bi bi-plus-lg"></i></template>
-          Add Category
-        </BaseButton>
+          <template v-if="activeTab === 'products'">
+            <div style="min-width: 210px; max-width: 280px" class="flex-grow-1">
+              <BaseInput
+                v-model="searchQuery"
+                type="search"
+                placeholder="Search product..."
+                size="sm"
+                clearable
+                class="mb-0"
+              />
+            </div>
+
+            <select
+              v-model="selectedCategoryId"
+              class="form-select form-select-sm clean-select"
+              style="width: auto; min-width: 155px"
+            >
+              <option value="">All Categories</option>
+              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                {{ cat.name }} ({{ cat.total_products }})
+              </option>
+            </select>
+
+            <select
+              v-model="selectedProductType"
+              class="form-select form-select-sm clean-select"
+              style="width: auto; min-width: 120px"
+            >
+              <option value="">All Types</option>
+              <option value="DRINK">Drink</option>
+              <option value="FOOD">Food</option>
+              <option value="ADDON">Add-on</option>
+            </select>
+          </template>
+        </div>
+
+        <div v-if="isOwner">
+          <BaseButton
+            v-if="activeTab === 'products'"
+            variant="primary"
+            size="sm"
+            @click="openCreateProduct"
+          >
+            <template #prefix><i class="bi bi-plus-lg"></i></template>
+            Add Product
+          </BaseButton>
+          <BaseButton
+            v-else
+            variant="primary"
+            size="sm"
+            @click="openCreateCategory"
+          >
+            <template #prefix><i class="bi bi-plus-lg"></i></template>
+            Add Category
+          </BaseButton>
+        </div>
       </div>
     </div>
 
@@ -516,40 +553,6 @@ const handleConfirmDelete = async () => {
     <!-- TAB 1: PRODUCTS VIEW                       -->
     <!-- ========================================== -->
     <div v-if="activeTab === 'products'">
-      <!-- Filters Card -->
-      <div class="clean-card bg-white p-3 mb-3">
-        <div class="row g-2 align-items-center">
-          <div class="col-12 col-md-5">
-            <BaseInput
-              v-model="searchQuery"
-              type="search"
-              placeholder="Search product name..."
-              size="sm"
-              clearable
-              class="mb-0"
-            />
-          </div>
-
-          <div class="col-6 col-md-4">
-            <select v-model="selectedCategoryId" class="form-select form-select-sm clean-select">
-              <option value="">All Categories</option>
-              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                {{ cat.name }} ({{ cat.total_products }})
-              </option>
-            </select>
-          </div>
-
-          <div class="col-6 col-md-3">
-            <select v-model="selectedProductType" class="form-select form-select-sm clean-select">
-              <option value="">All Types</option>
-              <option value="DRINK">Drink</option>
-              <option value="FOOD">Food</option>
-              <option value="ADDON">Add-on</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
       <!-- Products Table Card -->
       <div class="clean-card bg-white overflow-hidden">
         <div v-if="isLoadingProducts" class="text-center py-5 text-muted small">

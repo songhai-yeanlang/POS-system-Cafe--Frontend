@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 
+const MAX_VISIBLE_TOASTS = 3
 const toasts = ref([])
 let nextId = 1
 
@@ -13,6 +14,12 @@ export function useToast() {
 
   const show = ({ message, type = 'success', duration = 3500 }) => {
     if (!message) return
+
+    // Keep only the latest 3 toasts: if already at limit, remove oldest first
+    while (toasts.value.length >= MAX_VISIBLE_TOASTS) {
+      toasts.value.shift()
+    }
+
     const id = nextId++
     toasts.value.push({ id, message, type })
 

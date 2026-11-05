@@ -3,7 +3,6 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
-import BaseButton from '@/components/base/BaseButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -112,12 +111,6 @@ const navGroups = computed(() => {
           icon: 'bi-shield-check',
           roles: ['OWNER'],
         },
-        {
-          name: 'Shop Settings',
-          path: '/settings',
-          icon: 'bi-gear',
-          roles: ['OWNER'],
-        },
       ],
     },
   ]
@@ -128,16 +121,6 @@ const navGroups = computed(() => {
       items: group.items.filter((item) => item.roles.includes(role)),
     }))
     .filter((group) => group.items.length > 0)
-})
-
-const userInitials = computed(() => {
-  const name = authStore.user?.name || 'User'
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
 })
 
 const formattedRate = computed(() => {
@@ -180,108 +163,102 @@ const handleLogout = async () => {
 
     <!-- Sidebar -->
     <aside
-      class="app-sidebar d-flex flex-column justify-content-between"
+      class="app-sidebar d-flex flex-column"
       :class="{
         'sidebar-collapsed': isSidebarCollapsed,
         'sidebar-mobile-open': isMobileSidebarOpen,
       }"
     >
-      <div>
-        <!-- Brand Header -->
-        <div class="sidebar-brand d-flex align-items-center justify-content-between px-3">
-          <router-link
-            :to="authStore.defaultRoute"
-            class="d-flex align-items-center gap-2 text-decoration-none overflow-hidden"
-          >
-            <div class="brand-avatar d-flex align-items-center justify-content-center flex-shrink-0">
-              <img
-                v-if="appStore.shopLogoUrl"
-                :src="appStore.shopLogoUrl"
-                alt="Shop logo"
-                class="w-100 h-100 object-fit-cover rounded-3"
-              />
-              <i v-else class="bi bi-cup-hot-fill fs-5"></i>
-            </div>
-            <div v-if="!isSidebarCollapsed" class="text-truncate">
-              <div class="brand-name text-truncate">{{ appStore.shopName }}</div>
-              <div class="brand-role-sub d-flex align-items-center gap-1">
-                <span class="role-dot"></span>
-                <span>{{ authStore.user?.role || 'STAFF' }} PORTAL</span>
-              </div>
-            </div>
-          </router-link>
-
-          <button
-            type="button"
-            class="btn btn-sm btn-link text-muted d-lg-none p-1"
-            @click="isMobileSidebarOpen = false"
-          >
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-
-        <!-- Navigation Menu -->
-        <nav class="sidebar-nav px-2 py-3">
-          <div v-for="group in navGroups" :key="group.label" class="nav-group mb-3">
-            <div v-if="!isSidebarCollapsed" class="nav-group-label px-2 mb-1">
-              {{ group.label }}
-            </div>
-            <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
-              <li v-for="item in group.items" :key="item.path">
-                <router-link
-                  :to="item.path"
-                  class="nav-item-link d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
-                  :class="{ active: isActiveRoute(item.path) }"
-                  :title="isSidebarCollapsed ? item.name : ''"
-                >
-                  <div class="d-flex align-items-center gap-3 text-truncate">
-                    <i :class="['bi', item.icon, 'nav-icon']"></i>
-                    <span v-if="!isSidebarCollapsed" class="text-truncate">{{ item.name }}</span>
-                  </div>
-                  <span
-                    v-if="!isSidebarCollapsed && item.badge"
-                    class="nav-badge badge rounded-pill"
-                  >
-                    {{ item.badge }}
-                  </span>
-                </router-link>
-              </li>
-            </ul>
+      <!-- Brand Header -->
+      <div class="sidebar-brand d-flex align-items-center justify-content-between px-3">
+        <router-link
+          :to="authStore.defaultRoute"
+          class="d-flex align-items-center gap-2 text-decoration-none overflow-hidden"
+        >
+          <div class="brand-avatar d-flex align-items-center justify-content-center flex-shrink-0">
+            <img
+              v-if="appStore.shopLogoUrl"
+              :src="appStore.shopLogoUrl"
+              alt="Shop logo"
+              class="w-100 h-100 object-fit-cover rounded-3"
+            />
+            <i v-else class="bi bi-cup-hot-fill fs-5"></i>
           </div>
-        </nav>
+          <div v-if="!isSidebarCollapsed" class="text-truncate">
+            <div class="brand-name text-truncate">{{ appStore.shopName }}</div>
+            <div class="brand-role-sub d-flex align-items-center gap-1">
+              <span class="role-dot"></span>
+              <span>{{ authStore.user?.role || 'STAFF' }} PORTAL</span>
+            </div>
+          </div>
+        </router-link>
+
+        <button
+          type="button"
+          class="btn btn-sm btn-link text-muted d-lg-none p-1"
+          @click="isMobileSidebarOpen = false"
+        >
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
 
-      <!-- Sidebar Footer: Account & Logout -->
-      <div class="sidebar-footer p-2 border-top">
-        <div
-          class="user-card d-flex align-items-center justify-content-between p-2 rounded-3"
-          :class="{ 'justify-content-center': isSidebarCollapsed }"
-        >
-          <router-link
-            to="/profile"
-            class="d-flex align-items-center gap-2 text-decoration-none text-truncate"
-            :title="authStore.user?.name"
-          >
-            <div class="user-avatar d-flex align-items-center justify-content-center flex-shrink-0">
-              {{ userInitials }}
-            </div>
-            <div v-if="!isSidebarCollapsed" class="text-truncate">
-              <div class="user-name text-truncate">{{ authStore.user?.name || 'Staff' }}</div>
-              <div class="user-email text-truncate">{{ authStore.user?.email }}</div>
-            </div>
-          </router-link>
-
-          <button
-            v-if="!isSidebarCollapsed"
-            type="button"
-            class="btn btn-sm btn-logout d-flex align-items-center justify-content-center flex-shrink-0"
-            title="Sign out"
-            :disabled="isLoggingOut"
-            @click="handleLogout"
-          >
-            <i class="bi bi-box-arrow-right"></i>
-          </button>
+      <!-- Navigation Menu -->
+      <nav class="sidebar-nav px-2 py-3 flex-grow-1">
+        <div v-for="group in navGroups" :key="group.label" class="nav-group mb-3">
+          <div v-if="!isSidebarCollapsed" class="nav-group-label px-2 mb-1">
+            {{ group.label }}
+          </div>
+          <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
+            <li v-for="item in group.items" :key="item.path">
+              <router-link
+                :to="item.path"
+                class="nav-item-link d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
+                :class="{ active: isActiveRoute(item.path) }"
+                :title="isSidebarCollapsed ? item.name : ''"
+              >
+                <div class="d-flex align-items-center gap-3 text-truncate">
+                  <i :class="['bi', item.icon, 'nav-icon']"></i>
+                  <span v-if="!isSidebarCollapsed" class="text-truncate">{{ item.name }}</span>
+                </div>
+                <span
+                  v-if="!isSidebarCollapsed && item.badge"
+                  class="nav-badge badge rounded-pill"
+                >
+                  {{ item.badge }}
+                </span>
+              </router-link>
+            </li>
+          </ul>
         </div>
+      </nav>
+
+      <!-- Bottom Pinned Link (Shop Settings for Owner, My Profile for Staff) -->
+      <div class="sidebar-bottom p-2">
+        <router-link
+          v-if="authStore.isOwner"
+          to="/settings"
+          class="nav-item-link d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
+          :class="{ active: isActiveRoute('/settings') }"
+          :title="isSidebarCollapsed ? 'Shop Settings' : ''"
+        >
+          <div class="d-flex align-items-center gap-3 text-truncate">
+            <i class="bi bi-gear nav-icon"></i>
+            <span v-if="!isSidebarCollapsed" class="text-truncate">Shop Settings</span>
+          </div>
+        </router-link>
+
+        <router-link
+          v-else
+          to="/profile"
+          class="nav-item-link d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
+          :class="{ active: isActiveRoute('/profile') }"
+          :title="isSidebarCollapsed ? 'My Profile' : ''"
+        >
+          <div class="d-flex align-items-center gap-3 text-truncate">
+            <i class="bi bi-person-badge nav-icon"></i>
+            <span v-if="!isSidebarCollapsed" class="text-truncate">My Profile</span>
+          </div>
+        </router-link>
       </div>
     </aside>
 
@@ -307,43 +284,46 @@ const handleLogout = async () => {
         </div>
 
         <!-- Topbar Right Indicators & Quick Actions -->
-        <div class="d-flex align-items-center gap-2 gap-md-3">
-          <!-- Exchange Rate Pill -->
+        <div class="d-flex align-items-center gap-3">
+          <!-- Exchange Rate -->
           <div
-            class="info-pill d-none d-sm-inline-flex align-items-center gap-2"
+            class="topbar-rate d-none d-sm-inline-flex align-items-center gap-2"
             title="Current Shop Exchange Rate"
           >
             <i class="bi bi-currency-exchange text-muted"></i>
-            <span class="numeric-tabular">$1 = {{ formattedRate }} ៛</span>
+            <span class="numeric-tabular fw-semibold text-dark">$1 = {{ formattedRate }} ៛</span>
           </div>
 
-          <!-- Active Shift Status Pill -->
+          <span class="topbar-divider d-none d-sm-inline"></span>
+
+          <!-- Active Shift Status Link -->
           <router-link
             to="/shifts"
-            class="shift-pill d-inline-flex align-items-center gap-2 text-decoration-none"
-            :class="appStore.hasOpenShift ? 'shift-pill--open' : 'shift-pill--closed'"
+            class="topbar-shift-link d-inline-flex align-items-center gap-2 text-decoration-none"
+            :class="appStore.hasOpenShift ? 'shift-open' : 'shift-closed'"
             title="Click to manage shift & cash drawer"
           >
             <span class="shift-dot"></span>
-            <span v-if="appStore.hasOpenShift" class="numeric-tabular">
+            <span v-if="appStore.hasOpenShift" class="numeric-tabular fw-semibold">
               Shift #{{ appStore.currentShift?.id }} Open
             </span>
-            <span v-else>Shift Closed</span>
+            <span v-else class="fw-semibold">Shift Closed</span>
           </router-link>
 
-          <!-- Quick Jump to POS -->
-          <BaseButton
-            v-if="route.path !== '/pos'"
-            variant="primary"
-            size="sm"
-            class="d-none d-md-inline-flex"
-            @click="router.push('/pos')"
+          <span class="topbar-divider"></span>
+
+          <!-- Topbar Logout Button -->
+          <button
+            type="button"
+            class="btn-topbar-logout d-inline-flex align-items-center gap-2"
+            title="Sign out"
+            :disabled="isLoggingOut"
+            @click="handleLogout"
           >
-            <template #prefix>
-              <i class="bi bi-calculator"></i>
-            </template>
-            POS Screen
-          </BaseButton>
+            <span v-if="isLoggingOut" class="spinner-border spinner-border-sm"></span>
+            <i v-else class="bi bi-box-arrow-right"></i>
+            <span>Logout</span>
+          </button>
         </div>
       </header>
 
@@ -369,6 +349,9 @@ const handleLogout = async () => {
   border-right: 1px solid var(--border-hairline, #e6e4e0);
   transition: width 0.2s ease, transform 0.2s ease;
   z-index: 1040;
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
 .app-sidebar.sidebar-collapsed {
@@ -377,6 +360,7 @@ const handleLogout = async () => {
 
 .sidebar-brand {
   height: 64px;
+  flex-shrink: 0;
   border-bottom: 1px solid var(--border-hairline, #e6e4e0);
 }
 
@@ -411,7 +395,23 @@ const handleLogout = async () => {
 
 .sidebar-nav {
   overflow-y: auto;
-  max-height: calc(100vh - 140px);
+  min-height: 0;
+}
+
+.sidebar-bottom {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-hairline, #e6e4e0);
+  background-color: var(--surface-container-lowest, #ffffff);
+}
+
+.app-sidebar.sidebar-collapsed .nav-item-link {
+  justify-content: center !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+.app-sidebar.sidebar-collapsed .nav-item-link > div {
+  justify-content: center;
 }
 
 .nav-group-label {
@@ -459,47 +459,20 @@ const handleLogout = async () => {
   color: var(--on-secondary-fixed, #2b1707);
 }
 
-/* Sidebar Footer */
-.sidebar-footer {
-  border-color: var(--border-hairline, #e6e4e0) !important;
-}
-
-.user-card {
-  background-color: var(--surface-container-low, #f6f3f2);
-}
-
-.user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background-color: var(--secondary-fixed, #ffdcc5);
-  color: var(--on-secondary-fixed, #2b1707);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.user-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--on-surface, #1c1b1b);
-}
-
-.user-email {
-  font-size: 11px;
-  color: var(--on-surface-variant, #504440);
-}
-
-.btn-logout {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  color: var(--on-surface-variant, #504440);
+/* Topbar Logout Text Link */
+.btn-topbar-logout {
   border: none;
   background: transparent;
+  padding: 0 4px;
+  color: var(--on-surface-variant, #504440);
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.15s ease;
+  cursor: pointer;
+  line-height: 1;
 }
 
-.btn-logout:hover {
-  background-color: var(--error-container, #ffdad6);
+.btn-topbar-logout:hover {
   color: var(--error, #ba1a1a);
 }
 
@@ -533,53 +506,45 @@ const handleLogout = async () => {
   color: var(--on-surface, #1c1b1b);
 }
 
-.info-pill {
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 9999px;
-  background-color: var(--surface-container-low, #f6f3f2);
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--on-surface, #1c1b1b);
+.topbar-rate {
+  font-size: 13px;
 }
 
-.shift-pill {
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
+.topbar-divider {
+  width: 1px;
+  height: 16px;
+  background-color: var(--border-hairline, #e6e4e0);
+}
+
+.topbar-shift-link {
+  font-size: 13px;
   transition: opacity 0.15s ease;
 }
 
-.shift-pill:hover {
-  opacity: 0.9;
+.topbar-shift-link:hover {
+  opacity: 0.8;
 }
 
-.shift-pill--open {
-  background-color: #dcfce7;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-
-.shift-pill--open .shift-dot {
-  width: 7px;
-  height: 7px;
+.shift-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.shift-open {
+  color: #16a34a;
+}
+
+.shift-open .shift-dot {
   background-color: #16a34a;
 }
 
-.shift-pill--closed {
-  background-color: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fde68a;
+.shift-closed {
+  color: #d97706;
 }
 
-.shift-pill--closed .shift-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+.shift-closed .shift-dot {
   background-color: #d97706;
 }
 

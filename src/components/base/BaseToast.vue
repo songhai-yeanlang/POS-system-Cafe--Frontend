@@ -21,23 +21,16 @@ const getIconClass = (type) => {
   <Teleport to="body">
     <div class="toast-stack position-fixed bottom-0 end-0 p-3">
       <TransitionGroup name="toast-fade">
-        <div
-          v-for="item in toasts"
-          :key="item.id"
+        <div v-for="item in toasts.slice(-3)" :key="item.id"
           class="toast-card d-flex align-items-center justify-content-between gap-3 bg-white px-3 py-2 mt-2"
-          role="status"
-        >
+          role="status">
           <div class="d-flex align-items-center gap-2">
             <i :class="['bi', getIconClass(item.type), 'fs-6']"></i>
             <span class="toast-message">{{ item.message }}</span>
           </div>
 
-          <button
-            type="button"
-            class="btn-close-toast d-flex align-items-center justify-content-center"
-            aria-label="Close"
-            @click="remove(item.id)"
-          >
+          <button type="button" class="btn-close-toast d-flex align-items-center justify-content-center"
+            aria-label="Close" @click="remove(item.id)">
             <i class="bi bi-x"></i>
           </button>
         </div>

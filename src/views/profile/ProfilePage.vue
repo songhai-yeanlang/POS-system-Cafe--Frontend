@@ -5,7 +5,6 @@ import api from '@/api/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useToast } from '@/composables/useToast'
-import { useFormatDate } from '@/composables/useFormatDate'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
@@ -13,9 +12,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 const toast = useToast()
-const { formatDateTime } = useFormatDate()
 
-const profileData = ref(null)
 const name = ref('')
 const nameError = ref('')
 const isSavingProfile = ref(false)
@@ -40,6 +37,7 @@ const userInitials = computed(() => {
   const n = name.value || authStore.user?.name || 'U'
   return n
     .split(' ')
+    .filter(Boolean)
     .map((p) => p[0])
     .slice(0, 2)
     .join('')
@@ -54,12 +52,11 @@ onMounted(async () => {
   name.value = authStore.user?.name || ''
   try {
     const data = await authStore.fetchMe()
-    if (data) {
-      profileData.value = data
-      name.value = data.name || ''
+    if (data?.name) {
+      name.value = data.name
     }
   } catch {
-    // Ignore if offline
+    // Ignore
   }
 })
 
@@ -80,7 +77,6 @@ const handleUpdateProfile = async () => {
   try {
     const res = await api.patch('/auth/profile', { name: cleanName })
     if (res.data?.data) {
-      profileData.value = res.data.data
       authStore.setUser({
         ...authStore.user,
         name: res.data.data.name,
@@ -151,7 +147,8 @@ const handleChangePassword = async () => {
 }
 
 const handleLogoutAllDevices = async () => {
-  if (isLoggingOutAll.value) return
+  if (!confirm('Sign out from all devices and terminals?')) return
+
   isLoggingOutAll.value = true
   try {
     await authStore.logoutAll()
@@ -159,7 +156,7 @@ const handleLogoutAllDevices = async () => {
     toast.success('Signed out from all devices')
     router.push('/login')
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Failed to sign out of all sessions')
+    toast.error(err.response?.data?.message || 'Failed to sign out')
   } finally {
     isLoggingOutAll.value = false
   }
@@ -167,148 +164,174 @@ const handleLogoutAllDevices = async () => {
 </script>
 
 <template>
-  <div class="profile-wrapper mx-auto">
-    <!-- 1. Personal Information Card -->
-    <form class="clean-card bg-white p-4 p-md-5 mb-4" @submit.prevent="handleUpdateProfile">
-      <div class="d-flex align-items-center justify-content-between pb-4 mb-4 border-bottom">
-        <div class="d-flex align-items-center gap-3">
-          <div class="avatar-box d-flex align-items-center justify-content-center">
-            {{ userInitials }}
+  <div class="profile-container mx-auto">
+    <div class="profile-sheet bg-white p-4 p-md-5">
+      <!-- User Overview Header -->
+      <div class="d-flex align-items-center gap-3 pb-4 mb-4 border-bottom">
+        <div class="user-avatar-circle flex-shrink-0">
+          {{ userInitials }}
+        </div>
+        <div>
+          <h5 class="fw-bold text-dark mb-1">{{ authStore.user?.name || 'Staff' }}</h5>
+          <div class="text-muted small">
+            {{ authStore.user?.email }} •
+            <span class="text-dark fw-medium">
+              {{ authStore.user?.role === 'OWNER' ? 'Shop Owner' : 'Staff Cashier' }}
+            </span>
           </div>
+        </div>
+      </div>
+
+      <!-- SECTION 1: Personal Information -->
+      <form class="mb-5" @submit.prevent="handleUpdateProfile">
+        <div class="mb-3">
+          <h6 class="section-title mb-1">Personal Details</h6>
+          <p class="section-desc mb-3">Your display name appears on receipts and orders.</p>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <BaseInput
+              v-model="name"
+              label="Full name"
+              placeholder="Your full name"
+              :error="nameError"
+              required
+            />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <BaseInput
+              :model-value="authStore.user?.email || ''"
+              label="Email address"
+              disabled
+            />
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-2">
+          <BaseButton
+            type="submit"
+            variant="primary"
+            size="sm"
+            :disabled="!isProfileDirty || isSavingProfile"
+            :loading="isSavingProfile"
+          >
+            Save Changes
+          </BaseButton>
+        </div>
+      </form>
+
+      <!-- SECTION 2: Change Password -->
+      <form class="pt-4 border-top mb-5" @submit.prevent="handleChangePassword">
+        <div class="mb-3">
+          <h6 class="section-title mb-1">Password</h6>
+          <p class="section-desc mb-3">Change your password to keep your account safe.</p>
+        </div>
+
+        <div class="mb-3">
+          <BaseInput
+            v-model="passwordForm.currentPassword"
+            type="password"
+            label="Current password"
+            placeholder="••••••••"
+            :error="passwordErrors.currentPassword"
+            required
+          />
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <BaseInput
+              v-model="passwordForm.newPassword"
+              type="password"
+              label="New password"
+              placeholder="At least 6 characters"
+              :error="passwordErrors.newPassword"
+              required
+            />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <BaseInput
+              v-model="passwordForm.confirmPassword"
+              type="password"
+              label="Confirm new password"
+              placeholder="••••••••"
+              :error="passwordErrors.confirmPassword"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-2">
+          <BaseButton
+            type="submit"
+            variant="secondary"
+            size="sm"
+            :loading="isChangingPassword"
+          >
+            Update Password
+          </BaseButton>
+        </div>
+      </form>
+
+      <!-- SECTION 3: Sessions -->
+      <div class="pt-4 border-top">
+        <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
           <div>
-            <h5 class="fw-semibold mb-1 text-dark">{{ authStore.user?.name }}</h5>
-            <div class="text-muted small">{{ authStore.user?.email }}</div>
+            <h6 class="section-title mb-1">Active Sessions</h6>
+            <p class="section-desc mb-0">Log out of your account from all browsers and POS terminals.</p>
           </div>
-        </div>
-        <span class="badge-tag-crema">{{ authStore.user?.role }}</span>
-      </div>
 
-      <div class="row g-3 mb-2">
-        <div class="col-12 col-md-7">
-          <BaseInput
-            v-model="name"
-            label="Display name"
-            placeholder="Your full name"
-            :error="nameError"
-            required
-          />
-        </div>
-
-        <div class="col-12 col-md-5">
-          <BaseInput
-            :model-value="authStore.user?.email || ''"
-            label="Work email"
-            disabled
-          />
+          <BaseButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            class="text-danger flex-shrink-0"
+            :loading="isLoggingOutAll"
+            @click="handleLogoutAllDevices"
+          >
+            Sign out everywhere
+          </BaseButton>
         </div>
       </div>
-
-      <div class="d-flex align-items-center justify-content-between pt-3 border-top">
-        <span class="text-muted small">
-          Last login: {{ formatDateTime(profileData?.last_login_at) }}
-        </span>
-
-        <BaseButton
-          type="submit"
-          variant="primary"
-          :disabled="!isProfileDirty"
-          :loading="isSavingProfile"
-        >
-          Save Name
-        </BaseButton>
-      </div>
-    </form>
-
-    <!-- 2. Change Password Card -->
-    <form class="clean-card bg-white p-4 p-md-5 mb-4" @submit.prevent="handleChangePassword">
-      <div class="mb-4 pb-3 border-bottom">
-        <h5 class="fw-semibold mb-1 text-dark">Change Password</h5>
-        <p class="text-muted small mb-0">
-          Use a strong password of at least 6 characters.
-        </p>
-      </div>
-
-      <BaseInput
-        v-model="passwordForm.currentPassword"
-        type="password"
-        label="Current password"
-        placeholder="••••••••"
-        :error="passwordErrors.currentPassword"
-        required
-      />
-
-      <div class="row g-3">
-        <div class="col-12 col-md-6">
-          <BaseInput
-            v-model="passwordForm.newPassword"
-            type="password"
-            label="New password"
-            placeholder="••••••••"
-            :error="passwordErrors.newPassword"
-            required
-          />
-        </div>
-
-        <div class="col-12 col-md-6">
-          <BaseInput
-            v-model="passwordForm.confirmPassword"
-            type="password"
-            label="Confirm new password"
-            placeholder="••••••••"
-            :error="passwordErrors.confirmPassword"
-            required
-          />
-        </div>
-      </div>
-
-      <div class="d-flex justify-content-end pt-3 border-top">
-        <BaseButton type="submit" variant="primary" :loading="isChangingPassword">
-          Update Password
-        </BaseButton>
-      </div>
-    </form>
-
-    <!-- 3. Active Sessions Card -->
-    <div class="clean-card bg-white p-4 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
-      <div>
-        <div class="fw-semibold text-dark mb-1">Active Sessions</div>
-        <div class="text-muted small">
-          Sign out your account from all browsers and POS terminals.
-        </div>
-      </div>
-
-      <BaseButton
-        type="button"
-        variant="secondary"
-        size="sm"
-        class="text-danger flex-shrink-0"
-        :loading="isLoggingOutAll"
-        @click="handleLogoutAllDevices"
-      >
-        Sign Out All Devices
-      </BaseButton>
     </div>
   </div>
 </template>
 
 <style scoped>
-.profile-wrapper {
-  max-width: 680px;
+.profile-container {
+  max-width: 640px;
 }
 
-.clean-card {
+.profile-sheet {
   border-radius: 16px;
   border: 1px solid var(--border-hairline, #e6e4e0);
 }
 
-.avatar-box {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  background-color: var(--secondary-fixed, #ffdcc5);
-  color: var(--on-secondary-fixed, #2b1707);
-  font-size: 16px;
+.user-avatar-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--surface-container-low, #f6f3f2);
+  border: 1px solid var(--border-hairline, #e6e4e0);
+  color: var(--primary, #2c1810);
+  font-size: 15px;
   font-weight: 700;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--on-surface, #1c1b1b);
+}
+
+.section-desc {
+  font-size: 13px;
+  color: var(--on-surface-variant, #504440);
 }
 </style>
