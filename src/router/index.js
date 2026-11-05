@@ -15,7 +15,9 @@ import OrdersPage from '@/views/orders/OrdersPage.vue'
 import InventoryPage from '@/views/inventory/InventoryPage.vue'
 import RecipesPage from '@/views/recipes/RecipesPage.vue'
 import ExpensesPage from '@/views/expenses/ExpensesPage.vue'
-import ModulePlaceholder from '@/views/common/ModulePlaceholder.vue'
+import DashboardPage from '@/views/dashboard/DashboardPage.vue'
+import ReportsPage from '@/views/reports/ReportsPage.vue'
+import AuditLogsPage from '@/views/audit-logs/AuditLogsPage.vue'
 import NotFoundPage from '@/views/common/NotFoundPage.vue'
 
 const router = createRouter({
@@ -165,39 +167,30 @@ const router = createRouter({
         {
           path: 'dashboard',
           name: 'dashboard',
-          component: ModulePlaceholder,
+          component: DashboardPage,
           meta: {
             title: 'Executive Dashboard',
             icon: 'bi-grid-1x2',
-            phase: 'Phase 6 • Page 10',
-            description:
-              'Overview of gross sales, net sales, operating profit, payment breakdown, and daily sales trend.',
             roles: ['OWNER'],
           },
         },
         {
           path: 'reports',
           name: 'reports',
-          component: ModulePlaceholder,
+          component: ReportsPage,
           meta: {
             title: 'Reports & Analytics',
             icon: 'bi-bar-chart-line',
-            phase: 'Phase 6 • Page 10',
-            description:
-              'Detailed reports on top-selling products, categories, payment methods, staff performance, and ingredient usage.',
             roles: ['OWNER', 'STAFF'],
           },
         },
         {
           path: 'audit-logs',
           name: 'audit-logs',
-          component: ModulePlaceholder,
+          component: AuditLogsPage,
           meta: {
             title: 'System Audit Logs',
             icon: 'bi-shield-check',
-            phase: 'Phase 6 • Page 11',
-            description:
-              'Complete security and activity trail of logins, orders, payments, refunds, stock changes, and settings updates.',
             roles: ['OWNER'],
           },
         },

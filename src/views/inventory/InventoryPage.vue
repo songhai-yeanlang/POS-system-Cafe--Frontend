@@ -1,90 +1,44 @@
 <template>
   <div class="inventory-page">
-    <!-- Top Header & Clean Tab Switcher -->
-    <div class="page-header-bar mb-3">
-      <div>
-        <h5 class="fw-bold mb-1 text-dark">Inventory & Stock Movements</h5>
-        <p class="text-muted small mb-0">
-          Manage raw ingredients (G, ML, PCS), monitor low-stock alerts, and record purchases or waste.
-        </p>
+    <!-- Clean Tab Switcher & Primary Actions -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <div class="tab-pills">
+        <button
+          type="button"
+          class="tab-pill"
+          :class="{ active: activeTab === 'INGREDIENTS' }"
+          @click="switchTab('INGREDIENTS')"
+        >
+          <i class="bi bi-boxes me-1"></i>Ingredients
+          <span v-if="lowStockCount > 0" class="low-stock-count-pill">
+            {{ lowStockCount }} Low
+          </span>
+        </button>
+        <button
+          type="button"
+          class="tab-pill"
+          :class="{ active: activeTab === 'MOVEMENTS' }"
+          @click="switchTab('MOVEMENTS')"
+        >
+          <i class="bi bi-arrow-left-right me-1"></i>Stock Movements
+        </button>
       </div>
 
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <div class="tab-pills">
-          <button
-            type="button"
-            class="tab-pill"
-            :class="{ active: activeTab === 'INGREDIENTS' }"
-            @click="switchTab('INGREDIENTS')"
-          >
-            <i class="bi bi-boxes me-1"></i>Ingredients
-            <span v-if="lowStockCount > 0" class="low-stock-count-pill">
-              {{ lowStockCount }} Low
-            </span>
-          </button>
-          <button
-            type="button"
-            class="tab-pill"
-            :class="{ active: activeTab === 'MOVEMENTS' }"
-            @click="switchTab('MOVEMENTS')"
-          >
-            <i class="bi bi-arrow-left-right me-1"></i>Stock Movements
-          </button>
-        </div>
-
-        <template v-if="authStore.isOwner">
-          <button
-            type="button"
-            class="btn btn-outline-coffee btn-sm"
-            @click="openStockMovementModal()"
-          >
-            <i class="bi bi-plus-slash-minus me-1"></i>Record Movement
-          </button>
-          <button
-            type="button"
-            class="btn btn-coffee btn-sm"
-            @click="openCreateIngredientModal"
-          >
-            <i class="bi bi-plus-lg me-1"></i>Add Ingredient
-          </button>
-        </template>
-      </div>
-    </div>
-
-    <!-- Summary KPI Strip -->
-    <div class="kpi-strip mb-3">
-      <div class="kpi-card">
-        <div class="kpi-icon bg-coffee-soft">
-          <i class="bi bi-box-seam"></i>
-        </div>
-        <div>
-          <div class="kpi-label">Total Ingredients</div>
-          <div class="kpi-value">{{ ingredientsSummary.total }}</div>
-        </div>
-      </div>
-
-      <div class="kpi-card">
-        <div class="kpi-icon bg-success-soft">
-          <i class="bi bi-check2-circle"></i>
-        </div>
-        <div>
-          <div class="kpi-label">Healthy Stock</div>
-          <div class="kpi-value text-success">{{ ingredientsSummary.healthy }}</div>
-        </div>
-      </div>
-
-      <div
-        class="kpi-card clickable"
-        :class="{ 'border-warning': lowStockCount > 0 }"
-        @click="toggleLowStockQuickFilter"
-      >
-        <div class="kpi-icon bg-warning-soft">
-          <i class="bi bi-exclamation-triangle"></i>
-        </div>
-        <div>
-          <div class="kpi-label">Low / Out of Stock</div>
-          <div class="kpi-value text-warning">{{ lowStockCount }}</div>
-        </div>
+      <div v-if="authStore.isOwner" class="d-flex align-items-center gap-2">
+        <button
+          type="button"
+          class="btn btn-outline-coffee btn-sm"
+          @click="openStockMovementModal()"
+        >
+          <i class="bi bi-plus-slash-minus me-1"></i>Record Movement
+        </button>
+        <button
+          type="button"
+          class="btn btn-coffee btn-sm"
+          @click="openCreateIngredientModal"
+        >
+          <i class="bi bi-plus-lg me-1"></i>Add Ingredient
+        </button>
       </div>
     </div>
 
@@ -159,12 +113,11 @@
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Ingredient Name</th>
-              <th>Unit</th>
+              <th>Ingredient</th>
               <th>Current Stock</th>
-              <th>Minimum Alert</th>
+              <th>Min Alert</th>
               <th>Stock Health</th>
-              <th>Used In</th>
+              <th>Recipes</th>
               <th>Status</th>
               <th class="text-end">Actions</th>
             </tr>
@@ -172,15 +125,11 @@
           <tbody>
             <tr v-for="ing in ingredientsList" :key="ing.id">
               <td>
-                <div class="fw-bold text-dark">{{ ing.name }}</div>
-                <div class="small text-muted">ID #{{ ing.id }}</div>
-              </td>
-              <td>
-                <span class="unit-badge">{{ ing.unit }}</span>
+                <div class="fw-semibold text-dark">{{ ing.name }}</div>
               </td>
               <td>
                 <span
-                  class="fw-bold fs-6"
+                  class="fw-bold"
                   :class="ing.is_low_stock ? 'text-danger' : 'text-dark'"
                 >
                   {{ formatStockQty(ing.current_stock) }}
@@ -188,7 +137,7 @@
                 <span class="small text-muted ms-1">{{ ing.unit }}</span>
               </td>
               <td>
-                <span class="text-muted">
+                <span class="text-muted small">
                   {{ formatStockQty(ing.minimum_stock) }} {{ ing.unit }}
                 </span>
               </td>
@@ -210,8 +159,8 @@
                 </span>
               </td>
               <td>
-                <span class="badge bg-light text-dark border">
-                  {{ ing.total_recipes || 0 }} recipe(s)
+                <span class="text-muted small">
+                  {{ ing.total_recipes || 0 }}
                 </span>
               </td>
               <td>
@@ -791,7 +740,7 @@ const switchTab = (tab) => {
 // ================= METHODS: FETCH INGREDIENTS =================
 const fetchAllIngredientsSummary = async () => {
   try {
-    const res = await api.get('/ingredients')
+    const res = await api.get('/inventory/ingredients')
     allIngredientsDropdown.value = res.data?.data || []
     lowStockCount.value = allIngredientsDropdown.value.filter(
       (i) => i.is_active && i.is_low_stock
@@ -813,7 +762,7 @@ const fetchIngredients = async (page = 1) => {
     if (ingredientFilters.is_active !== '') params.is_active = ingredientFilters.is_active
     if (ingredientFilters.low_stock) params.low_stock = true
 
-    const res = await api.get('/ingredients', { params })
+    const res = await api.get('/inventory/ingredients', { params })
     ingredientsList.value = res.data?.data || []
     if (res.data?.pagination) {
       Object.assign(ingredientPagination, res.data.pagination)
@@ -852,7 +801,7 @@ const fetchMovements = async (page = 1) => {
     if (movementFilters.start_date) params.start_date = movementFilters.start_date
     if (movementFilters.end_date) params.end_date = movementFilters.end_date
 
-    const res = await api.get('/stock-movements', { params })
+    const res = await api.get('/inventory/stock-movements', { params })
     movementsList.value = res.data?.data || []
     if (res.data?.pagination) {
       Object.assign(movementPagination, res.data.pagination)
@@ -915,10 +864,10 @@ const handleSaveIngredient = async () => {
     }
 
     if (editingIngredient.value) {
-      await api.put(`/ingredients/${editingIngredient.value.id}`, payload)
+      await api.put(`/inventory/ingredients/${editingIngredient.value.id}`, payload)
       toast.success(`Ingredient '${payload.name}' updated`)
     } else {
-      await api.post('/ingredients', payload)
+      await api.post('/inventory/ingredients', payload)
       toast.success(`Ingredient '${payload.name}' created`)
     }
 
@@ -934,7 +883,7 @@ const handleSaveIngredient = async () => {
 const confirmDeleteIngredient = async (ing) => {
   if (!window.confirm(`Delete ingredient "${ing.name}"?`)) return
   try {
-    await api.delete(`/ingredients/${ing.id}`)
+    await api.delete(`/inventory/ingredients/${ing.id}`)
     toast.success(`Ingredient '${ing.name}' deleted`)
     await Promise.all([fetchIngredients(ingredientPagination.page), fetchAllIngredientsSummary()])
   } catch (err) {
@@ -982,7 +931,7 @@ const handleSaveMovement = async () => {
       payload.unit_cost = Number(movementForm.unit_cost)
     }
 
-    await api.post('/stock-movements', payload)
+    await api.post('/inventory/stock-movements', payload)
     toast.success('Stock movement recorded successfully')
     showMovementModal.value = false
 

@@ -239,52 +239,46 @@ const handleConfirmDelete = async () => {
 
 <template>
   <div class="users-page mx-auto">
-    <!-- Top Bar -->
-    <div
-      class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4"
-    >
-      <div>
-        <h4 class="title-text fw-semibold mb-1">Staff & Users</h4>
-        <p class="subtitle-text mb-0">
-          Manage owner and cashier accounts ({{ pagination.total || users.length }} total)
-        </p>
-      </div>
-
-      <BaseButton variant="primary" @click="openCreateUser">
-        <template #prefix><i class="bi bi-plus-lg"></i></template>
-        Add Staff
-      </BaseButton>
-    </div>
-
-    <!-- Filters Bar -->
+    <!-- Single Compact Filter & Action Bar -->
     <div class="clean-card bg-white p-3 mb-3">
-      <div class="row g-2 align-items-center">
-        <div class="col-12 col-md-6">
-          <BaseInput
-            v-model="searchQuery"
-            type="search"
-            placeholder="Search by name or email..."
-            size="sm"
-            clearable
-            class="mb-0"
-          />
-        </div>
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center flex-wrap gap-2 flex-grow-1">
+          <div style="min-width: 240px; max-width: 340px" class="flex-grow-1">
+            <BaseInput
+              v-model="searchQuery"
+              type="search"
+              placeholder="Search name or email..."
+              size="sm"
+              clearable
+              class="mb-0"
+            />
+          </div>
 
-        <div class="col-6 col-md-3">
-          <select v-model="selectedRole" class="form-select form-select-sm clean-select">
+          <select
+            v-model="selectedRole"
+            class="form-select form-select-sm clean-select"
+            style="width: auto; min-width: 140px"
+          >
             <option value="">All Roles</option>
             <option value="OWNER">Owner</option>
-            <option value="STAFF">Staff (Cashier)</option>
+            <option value="STAFF">Staff</option>
           </select>
-        </div>
 
-        <div class="col-6 col-md-3">
-          <select v-model="selectedStatus" class="form-select form-select-sm clean-select">
+          <select
+            v-model="selectedStatus"
+            class="form-select form-select-sm clean-select"
+            style="width: auto; min-width: 130px"
+          >
             <option value="">All Status</option>
             <option value="true">Active</option>
             <option value="false">Inactive</option>
           </select>
         </div>
+
+        <BaseButton variant="primary" size="sm" @click="openCreateUser">
+          <template #prefix><i class="bi bi-plus-lg"></i></template>
+          Add Staff
+        </BaseButton>
       </div>
     </div>
 

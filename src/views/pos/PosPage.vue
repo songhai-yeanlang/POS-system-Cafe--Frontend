@@ -118,23 +118,15 @@
                   :class="product.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot-fill'"
                 ></i>
               </div>
-              <span class="type-tag" :class="product.product_type.toLowerCase()">
-                {{ product.product_type }}
-              </span>
             </div>
 
             <div class="product-body">
-              <div class="product-cat">{{ product.category_name }}</div>
               <div class="product-title" :title="product.name">{{ product.name }}</div>
 
               <div class="product-footer">
-                <div>
-                  <div class="price-usd">{{ formatUsd(getStartingPrice(product)) }}</div>
-                  <div class="price-khr">{{ formatKhr(usdToKhr(getStartingPrice(product))) }}</div>
-                </div>
-                <span class="variant-count-pill">
-                  {{ getActiveVariants(product).length }}
-                  {{ getActiveVariants(product).length > 1 ? 'sizes' : 'size' }}
+                <div class="price-usd">{{ formatUsd(getStartingPrice(product)) }}</div>
+                <span v-if="getActiveVariants(product).length > 1" class="variant-count-pill">
+                  {{ getActiveVariants(product).length }} sizes
                 </span>
               </div>
             </div>

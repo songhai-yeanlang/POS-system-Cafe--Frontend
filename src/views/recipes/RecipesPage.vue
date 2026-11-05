@@ -1,19 +1,5 @@
 <template>
   <div class="recipes-page">
-    <!-- Top Header -->
-    <div class="page-header-bar mb-3">
-      <div>
-        <h5 class="fw-bold mb-1 text-dark">Drink Recipes & Bill of Materials (BOM)</h5>
-        <p class="text-muted small mb-0">
-          Define exact ingredient quantities per product variant for automatic stock deduction on every paid order.
-        </p>
-      </div>
-
-      <router-link to="/inventory" class="btn btn-light-coffee btn-sm">
-        <i class="bi bi-boxes me-1"></i>Manage Ingredients
-      </router-link>
-    </div>
-
     <div class="recipes-layout">
       <!-- ================= LEFT PANEL: PRODUCT LIST ================= -->
       <div class="products-sidebar-card">
@@ -83,9 +69,7 @@
 
             <div class="flex-grow-1 text-start overflow-hidden">
               <div class="prod-name-sm text-truncate">{{ prod.name }}</div>
-              <div class="prod-meta-sm">
-                {{ prod.category_name }} • {{ prod.product_type }}
-              </div>
+              <div class="prod-meta-sm">{{ prod.category_name }}</div>
             </div>
 
             <span class="variant-pill-sm">
@@ -132,14 +116,19 @@
               </div>
             </div>
 
-            <button
-              type="button"
-              class="btn btn-light-coffee btn-sm"
-              :disabled="isLoadingProductRecipes"
-              @click="fetchProductRecipes(selectedProduct.id)"
-            >
-              <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-            </button>
+            <div class="d-flex align-items-center gap-2">
+              <router-link to="/inventory" class="btn btn-light-coffee btn-sm">
+                <i class="bi bi-boxes me-1"></i>Ingredients
+              </router-link>
+              <button
+                type="button"
+                class="btn btn-light-coffee btn-sm"
+                :disabled="isLoadingProductRecipes"
+                @click="fetchProductRecipes(selectedProduct.id)"
+              >
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
+            </div>
           </div>
 
           <!-- Variants Loading -->
@@ -464,7 +453,7 @@ const fetchInitialData = async () => {
     const [catRes, prodRes, ingRes] = await Promise.all([
       api.get('/categories'),
       api.get('/products', { params: { limit: 200 } }),
-      api.get('/ingredients'),
+      api.get('/inventory/ingredients'),
     ])
     categories.value = catRes.data?.data || []
     products.value = prodRes.data?.data || []
@@ -488,7 +477,7 @@ const selectProduct = async (prod) => {
 const fetchProductRecipes = async (productId) => {
   isLoadingProductRecipes.value = true
   try {
-    const res = await api.get(`/recipes/product/${productId}`)
+    const res = await api.get(`/inventory/recipes/product/${productId}`)
     productVariantsRecipes.value = res.data?.data?.variants || []
   } catch {
     productVariantsRecipes.value = []
@@ -567,7 +556,7 @@ const handleSaveRecipe = async () => {
       })),
     }
 
-    await api.put(`/recipes/variant/${editingVariant.value.id}`, payload)
+    await api.put(`/inventory/recipes/variant/${editingVariant.value.id}`, payload)
     toast.success(`Recipe saved for ${editingVariant.value.variant_name}`)
     showBuilderModal.value = false
 
@@ -582,7 +571,7 @@ const handleSaveRecipe = async () => {
 const handleDeleteVariantRecipe = async (variant) => {
   if (!window.confirm(`Clear all recipe ingredients for "${variant.variant_name}"?`)) return
   try {
-    await api.delete(`/recipes/variant/${variant.id}`)
+    await api.delete(`/inventory/recipes/variant/${variant.id}`)
     toast.success(`Recipe cleared for ${variant.variant_name}`)
     await fetchProductRecipes(selectedProduct.value.id)
   } catch (err) {

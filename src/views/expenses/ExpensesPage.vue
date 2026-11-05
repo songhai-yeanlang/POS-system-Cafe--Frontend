@@ -1,71 +1,8 @@
 <template>
   <div class="expenses-page">
-    <!-- Top Header -->
-    <div class="page-header-bar mb-3">
-      <div>
-        <h5 class="fw-bold mb-1 text-dark">Daily Shop Expenses</h5>
-        <p class="text-muted small mb-0">
-          Record shop expenses in USD or KHR. Cash expenses automatically deduct from the active shift drawer.
-        </p>
-      </div>
-
-      <button type="button" class="btn btn-coffee btn-sm" @click="openCreateModal">
-        <i class="bi bi-plus-lg me-1"></i>Record Expense
-      </button>
-    </div>
-
-    <!-- KPI Summary Strip -->
-    <div class="kpi-strip mb-3">
-      <div class="kpi-card">
-        <div class="kpi-icon bg-coffee-soft">
-          <i class="bi bi-wallet2"></i>
-        </div>
-        <div>
-          <div class="kpi-label">Total Active Expenses (USD Equiv.)</div>
-          <div class="kpi-value">{{ formatUsd(summaryTotals.total_equivalent_usd) }}</div>
-          <div class="kpi-sub">{{ formatKhr(usdToKhr(summaryTotals.total_equivalent_usd)) }}</div>
-        </div>
-      </div>
-
-      <div class="kpi-card">
-        <div class="kpi-icon bg-warning-soft">
-          <i class="bi bi-cash-stack"></i>
-        </div>
-        <div>
-          <div class="kpi-label">Cash Drawer Out (USD)</div>
-          <div class="kpi-value text-dark">{{ formatUsd(summaryTotals.cash_usd) }}</div>
-          <div class="kpi-sub">Deducted from USD drawer</div>
-        </div>
-      </div>
-
-      <div class="kpi-card">
-        <div class="kpi-icon bg-warning-soft">
-          <i class="bi bi-cash"></i>
-        </div>
-        <div>
-          <div class="kpi-label">Cash Drawer Out (KHR)</div>
-          <div class="kpi-value text-dark">{{ formatKhr(summaryTotals.cash_khr) }}</div>
-          <div class="kpi-sub">Deducted from KHR drawer</div>
-        </div>
-      </div>
-
-      <div class="kpi-card">
-        <div class="kpi-icon bg-info-soft">
-          <i class="bi bi-qr-code-scan"></i>
-        </div>
-        <div>
-          <div class="kpi-label">Total Paid in USD / KHR</div>
-          <div class="kpi-value fs-6">
-            {{ formatUsd(summaryTotals.total_usd) }} + {{ formatKhr(summaryTotals.total_khr) }}
-          </div>
-          <div class="kpi-sub">All active payment methods</div>
-        </div>
-      </div>
-    </div>
-
     <!-- Main Expenses Card -->
     <div class="clean-card">
-      <!-- Filter Bar -->
+      <!-- Single-Row Filter & Action Bar -->
       <div class="filter-bar">
         <div class="d-flex flex-wrap gap-2 align-items-center">
           <div class="search-wrap">
@@ -102,16 +39,6 @@
           </select>
 
           <select
-            v-model="filters.currency"
-            class="form-select form-select-sm filter-select"
-            @change="applyFilters"
-          >
-            <option value="">All Currencies</option>
-            <option value="USD">USD ($)</option>
-            <option value="KHR">KHR (៛)</option>
-          </select>
-
-          <select
             v-model="filters.status"
             class="form-select form-select-sm filter-select"
             @change="applyFilters"
@@ -143,13 +70,27 @@
             :class="filters.currentShiftOnly ? 'btn-coffee' : 'btn-light-coffee'"
             @click="toggleCurrentShiftOnly"
           >
-            <i class="bi bi-clock-history me-1"></i>Current Shift
+            Current Shift
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-light-coffee btn-sm"
+            title="Reset Filters"
+            @click="resetFilters"
+          >
+            <i class="bi bi-arrow-counterclockwise"></i>
           </button>
         </div>
 
-        <button type="button" class="btn btn-light-coffee btn-sm" @click="resetFilters">
-          <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
-        </button>
+        <div class="d-flex align-items-center gap-2">
+          <div class="px-2 py-1 rounded-2 bg-light border small fw-semibold text-dark">
+            Total: {{ formatUsd(summaryTotals.total_equivalent_usd) }}
+          </div>
+          <button type="button" class="btn btn-coffee btn-sm" @click="openCreateModal">
+            <i class="bi bi-plus-lg me-1"></i>Record Expense
+          </button>
+        </div>
       </div>
 
       <!-- Loading / Empty / Table -->
@@ -186,10 +127,6 @@
             >
               <td>
                 <div class="small text-dark fw-semibold">{{ formatDateTime(exp.incurred_at) }}</div>
-                <div class="small text-muted">
-                  #{{ exp.id }}
-                  <span v-if="exp.shift_id">• Shift #{{ exp.shift_id }}</span>
-                </div>
               </td>
               <td>
                 <span class="cat-badge">{{ exp.category }}</span>
@@ -197,7 +134,7 @@
               <td>
                 <div class="text-dark" style="max-width: 280px">{{ exp.description }}</div>
                 <div v-if="exp.status === 'VOIDED' && exp.void_reason" class="small text-danger mt-1">
-                  Voided by {{ exp.voided_by_name || 'User' }}: {{ exp.void_reason }}
+                  Voided: {{ exp.void_reason }}
                 </div>
               </td>
               <td>
@@ -206,9 +143,6 @@
               <td>
                 <div class="fw-bold" :class="exp.status === 'VOIDED' ? 'text-decoration-line-through text-muted' : 'text-dark'">
                   {{ exp.currency === 'USD' ? formatUsd(exp.amount) : formatKhr(exp.amount) }}
-                </div>
-                <div v-if="exp.currency === 'KHR'" class="small text-muted">
-                  ≈ {{ formatUsd(exp.amount_usd) }}
                 </div>
               </td>
               <td>

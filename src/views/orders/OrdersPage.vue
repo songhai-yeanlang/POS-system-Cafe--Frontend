@@ -1,14 +1,7 @@
 <template>
   <div class="orders-page">
-    <!-- Top Header & Clean Tab Switcher -->
-    <div class="page-header-bar mb-3">
-      <div>
-        <h5 class="fw-bold mb-1 text-dark">Orders, Payments & Refunds</h5>
-        <p class="text-muted small mb-0">
-          View order receipts, resume unpaid orders, cancel open bills, or process refunds.
-        </p>
-      </div>
-
+    <!-- Clean Tab Switcher -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="tab-pills">
         <button
           type="button"
@@ -142,7 +135,7 @@
             <tr v-for="ord in ordersList" :key="ord.id">
               <td>
                 <div class="fw-bold text-dark">{{ ord.receipt_no }}</div>
-                <div class="small text-muted">Queue #{{ ord.queue_no }} • Shift #{{ ord.shift_id }}</div>
+                <div class="small text-muted">Queue #{{ ord.queue_no }}</div>
               </td>
               <td>
                 <span
@@ -150,20 +143,17 @@
                   :class="ord.order_type === 'DINE_IN' ? 'dine-in' : 'takeaway'"
                 >
                   {{ ord.order_type === 'DINE_IN' ? 'Dine-In' : 'Takeaway' }}
+                  <template v-if="ord.table_no"> • #{{ ord.table_no }}</template>
                 </span>
-                <div v-if="ord.table_no" class="small text-muted mt-1">
-                  Table: <strong>{{ ord.table_no }}</strong>
-                </div>
               </td>
               <td>
                 <div class="fw-semibold small text-dark">{{ ord.cashier?.name || '—' }}</div>
               </td>
               <td>
-                <span class="badge bg-light text-dark border">{{ ord.total_items }} item(s)</span>
+                <span class="text-muted small">{{ ord.total_items }} item(s)</span>
               </td>
               <td>
                 <div class="fw-bold text-dark">{{ formatUsd(ord.total) }}</div>
-                <div class="small text-muted">{{ formatKhr(usdToKhr(ord.total)) }}</div>
               </td>
               <td>
                 <span class="status-badge" :class="ord.status.toLowerCase()">
@@ -326,17 +316,15 @@
             <tr v-for="pay in paymentsList" :key="pay.id">
               <td>
                 <div class="fw-bold text-dark">{{ pay.receipt_no }}</div>
-                <div class="small text-muted">Queue #{{ pay.queue_no }}</div>
               </td>
               <td>
                 <span class="method-pill">{{ pay.method }}</span>
-                <div v-if="pay.bank_name" class="small text-muted">{{ pay.bank_name }}</div>
+                <span v-if="pay.bank_name" class="small text-muted ms-1">({{ pay.bank_name }})</span>
               </td>
               <td>
                 <div class="fw-bold text-dark">
                   {{ pay.currency === 'USD' ? formatUsd(pay.amount) : formatKhr(pay.amount) }}
                 </div>
-                <div class="small text-muted">{{ formatUsd(pay.amount_usd) }} equiv.</div>
               </td>
               <td>
                 <span class="fw-semibold">

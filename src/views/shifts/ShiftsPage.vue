@@ -410,52 +410,51 @@ const openShiftDetails = async (shiftId) => {
     <!-- ========================================== -->
     <!-- 2. SHIFTS HISTORY TABLE                    -->
     <!-- ========================================== -->
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <h5 class="fw-semibold text-dark mb-0">Shifts History</h5>
-    </div>
+    <div class="clean-card bg-white overflow-hidden">
+      <div class="p-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h6 class="fw-bold text-dark mb-0">Shifts History</h6>
 
-    <!-- Filters Bar -->
-    <div class="clean-card bg-white p-3 mb-3">
-      <div class="row g-2 align-items-center">
-        <div class="col-6 col-md-3">
-          <select v-model="filterStatus" class="form-select form-select-sm clean-select">
+        <div class="d-flex align-items-center flex-wrap gap-2">
+          <select
+            v-model="filterStatus"
+            class="form-select form-select-sm clean-select"
+            style="width: auto; min-width: 120px"
+          >
             <option value="">All Status</option>
             <option value="OPEN">Open</option>
             <option value="CLOSED">Closed</option>
           </select>
-        </div>
 
-        <div v-if="isOwner" class="col-6 col-md-3">
-          <select v-model="filterUserId" class="form-select form-select-sm clean-select">
+          <select
+            v-if="isOwner"
+            v-model="filterUserId"
+            class="form-select form-select-sm clean-select"
+            style="width: auto; min-width: 140px"
+          >
             <option value="">All Staff</option>
             <option v-for="s in staffList" :key="s.id" :value="s.id">
-              {{ s.name }} ({{ s.role }})
+              {{ s.name }}
             </option>
           </select>
-        </div>
 
-        <div class="col-6 col-md-3">
           <input
             v-model="filterStartDate"
             type="date"
             class="form-control form-control-sm clean-select"
+            style="width: auto"
             title="Start Date"
           />
-        </div>
 
-        <div class="col-6 col-md-3">
           <input
             v-model="filterEndDate"
             type="date"
             class="form-control form-control-sm clean-select"
+            style="width: auto"
             title="End Date"
           />
         </div>
       </div>
-    </div>
 
-    <!-- Table Card -->
-    <div class="clean-card bg-white overflow-hidden">
       <div v-if="isLoadingHistory" class="text-center py-5 text-muted small">
         <span class="spinner-border spinner-border-sm me-2"></span>
         Loading shifts...
