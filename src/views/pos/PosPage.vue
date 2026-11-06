@@ -1,21 +1,37 @@
 <template>
   <div class="pos-page">
-    <!-- Warning Banner if No Active Shift -->
-    <div v-if="!appStore.hasOpenShift && !appStore.isLoadingShift" class="shift-warning-banner mb-3">
-      <div class="d-flex align-items-center gap-3">
-        <div class="warning-icon">
-          <i class="bi bi-exclamation-triangle-fill"></i>
+    <!-- Clean Notice Banner if No Active Shift -->
+    <div v-if="!appStore.hasOpenShift && !appStore.isLoadingShift" class="shift-closed-banner mb-3">
+      <div class="d-flex align-items-center gap-3 min-w-0">
+        <div class="shift-closed-icon">
+          <i class="bi bi-safe2"></i>
         </div>
-        <div>
-          <div class="fw-bold text-dark">No Active Cashier Shift</div>
-          <div class="small text-muted">
-            You must open a shift before creating orders or accepting payments.
+        <div class="min-w-0">
+          <div class="fw-semibold text-dark">No Active Cashier Shift</div>
+          <div class="text-muted small text-truncate">
+            Open a shift before creating orders or accepting payments.
           </div>
         </div>
       </div>
-      <router-link to="/shifts" class="btn btn-coffee btn-sm">
-        <i class="bi bi-unlock me-1"></i>Open Shift in Shifts Page
-      </router-link>
+
+      <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <router-link
+          to="/shifts"
+          class="btn-shift-link text-decoration-none d-none d-sm-inline-flex align-items-center gap-1"
+          title="Go to full Shifts & Drawer page"
+        >
+          <span>Shifts & Drawer</span>
+          <i class="bi bi-arrow-right"></i>
+        </router-link>
+        <button
+          type="button"
+          class="btn btn-coffee btn-sm d-inline-flex align-items-center gap-1 px-3 py-1.5"
+          @click="openQuickShiftModal"
+        >
+          <i class="bi bi-unlock me-1"></i>
+          <span>Open Shift</span>
+        </button>
+      </div>
     </div>
 
     <div class="pos-layout">
@@ -1188,6 +1204,98 @@
         </div>
       </div>
     </div>
+
+    <!-- Quick Open Shift Modal -->
+    <div
+      v-if="showQuickShiftModal"
+      class="modal-backdrop-custom"
+      @click.self="showQuickShiftModal = false"
+    >
+      <div class="modal-card-custom modal-sm-custom">
+        <div class="modal-header-custom">
+          <div>
+            <h6 class="mb-0 fw-bold">Open Cashier Shift</h6>
+            <div class="small text-muted">Enter starting cash in drawer to begin</div>
+          </div>
+          <button type="button" class="btn-close-custom" @click="showQuickShiftModal = false">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="submitQuickOpenShift">
+          <div class="modal-body-custom">
+            <!-- Opening Cash USD -->
+            <div class="mb-3">
+              <label class="form-label-clean">Opening Cash (USD)</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 fw-bold text-muted">$</span>
+                <input
+                  v-model.number="quickShiftForm.opening_cash_usd"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="form-control border-start-0"
+                  placeholder="0.00"
+                  required
+                  autofocus
+                />
+              </div>
+            </div>
+
+            <!-- Opening Cash KHR -->
+            <div class="mb-3">
+              <label class="form-label-clean">Opening Cash (KHR)</label>
+              <div class="input-group">
+                <input
+                  v-model.number="quickShiftForm.opening_cash_khr"
+                  type="number"
+                  step="100"
+                  min="0"
+                  class="form-control border-end-0"
+                  placeholder="0"
+                  required
+                />
+                <span class="input-group-text bg-light border-start-0 fw-bold text-muted">៛</span>
+              </div>
+            </div>
+
+            <!-- Note (Optional) -->
+            <div class="mb-2">
+              <label class="form-label-clean">Shift Note (optional)</label>
+              <input
+                v-model="quickShiftForm.note"
+                type="text"
+                class="form-control"
+                placeholder="e.g. Morning opening"
+              />
+            </div>
+          </div>
+
+          <div class="modal-footer-custom">
+            <button
+              type="button"
+              class="btn btn-light-coffee"
+              :disabled="quickShiftForm.isSubmitting"
+              @click="showQuickShiftModal = false"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="btn btn-coffee flex-grow-1"
+              :disabled="quickShiftForm.isSubmitting"
+            >
+              <span
+                v-if="quickShiftForm.isSubmitting"
+                class="spinner-border spinner-border-sm me-1"
+              ></span>
+              <i v-else class="bi bi-unlock me-1"></i>
+              Start Shift
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1208,6 +1316,48 @@ const authStore = useAuthStore()
 const toast = useToast()
 const { exchangeRate, formatUsd, formatKhr, usdToKhr, khrToUsd } = useCurrency()
 const { formatDateTime } = useFormatDate()
+
+// ================= STATE: QUICK OPEN SHIFT =================
+const showQuickShiftModal = ref(false)
+const quickShiftForm = reactive({
+  opening_cash_usd: 0,
+  opening_cash_khr: 0,
+  note: '',
+  isSubmitting: false,
+})
+
+const openQuickShiftModal = () => {
+  quickShiftForm.opening_cash_usd = 0
+  quickShiftForm.opening_cash_khr = 0
+  quickShiftForm.note = ''
+  showQuickShiftModal.value = true
+}
+
+const submitQuickOpenShift = async () => {
+  const usd = Number(quickShiftForm.opening_cash_usd)
+  const khr = Number(quickShiftForm.opening_cash_khr)
+
+  if (isNaN(usd) || usd < 0 || isNaN(khr) || khr < 0) {
+    toast.error('Opening cash amounts cannot be negative.')
+    return
+  }
+
+  quickShiftForm.isSubmitting = true
+  try {
+    const res = await api.post('/shifts/open', {
+      opening_cash_usd: Number(usd.toFixed(2)),
+      opening_cash_khr: Math.round(khr),
+      note: quickShiftForm.note?.trim() || null,
+    })
+    toast.success(res.data?.message || 'Shift opened successfully')
+    showQuickShiftModal.value = false
+    await appStore.fetchCurrentShift()
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Failed to open shift')
+  } finally {
+    quickShiftForm.isSubmitting = false
+  }
+}
 
 // ================= STATE: CATALOG =================
 const categories = ref([])
@@ -1998,28 +2148,44 @@ onMounted(async () => {
   min-height: 580px;
 }
 
-/* Shift Warning Banner */
-.shift-warning-banner {
-  background: #fff8ec;
-  border: 1px solid #f5d491;
+/* Clean Shift Closed Banner */
+.shift-closed-banner {
+  background: var(--surface-container-lowest, #ffffff);
+  border: 1px solid var(--border-hairline, #e6e4e0);
   border-radius: 14px;
-  padding: 0.75rem 1.1rem;
+  padding: 0.85rem 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-.warning-icon {
-  width: 36px;
-  height: 36px;
+.shift-closed-icon {
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
-  background: #fef0d6;
-  color: #b45309;
+  background: var(--surface-container-low, #f6f3f2);
+  color: var(--on-surface-variant, #504440);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.btn-shift-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--on-surface-variant, #504440);
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.btn-shift-link:hover {
+  color: var(--on-surface, #1c1b1b);
+  background-color: var(--surface-container-low, #f6f3f2);
 }
 
 /* Main 2-Column Layout */

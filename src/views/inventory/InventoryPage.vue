@@ -1,30 +1,32 @@
 <template>
   <div class="inventory-page">
     <!-- Clean Tab Switcher & Primary Actions -->
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-      <div class="tab-pills">
+    <div class="inventory-nav-tabs d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <div class="d-flex align-items-center gap-4">
         <button
           type="button"
-          class="tab-pill"
+          class="nav-tab-btn"
           :class="{ active: activeTab === 'INGREDIENTS' }"
           @click="switchTab('INGREDIENTS')"
         >
-          <i class="bi bi-boxes me-1"></i>Ingredients
-          <span v-if="lowStockCount > 0" class="low-stock-count-pill">
+          <i class="bi bi-boxes"></i>
+          <span>Ingredients</span>
+          <span v-if="lowStockCount > 0" class="low-stock-count-pill ms-1">
             {{ lowStockCount }} Low
           </span>
         </button>
         <button
           type="button"
-          class="tab-pill"
+          class="nav-tab-btn"
           :class="{ active: activeTab === 'MOVEMENTS' }"
           @click="switchTab('MOVEMENTS')"
         >
-          <i class="bi bi-arrow-left-right me-1"></i>Stock Movements
+          <i class="bi bi-arrow-left-right"></i>
+          <span>Stock Movements</span>
         </button>
       </div>
 
-      <div v-if="authStore.isOwner" class="d-flex align-items-center gap-2">
+      <div v-if="authStore.isOwner" class="d-flex align-items-center gap-2 pb-2">
         <button
           type="button"
           class="btn btn-outline-coffee btn-sm"
@@ -961,30 +963,38 @@ onMounted(async () => {
   gap: 1rem;
 }
 
-.tab-pills {
-  display: inline-flex;
-  background: #f2efeb;
-  padding: 4px;
-  border-radius: 12px;
-  border: 1px solid #e6e2dc;
+.inventory-nav-tabs {
+  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
 }
 
-.tab-pill {
+.nav-tab-btn {
   border: none;
   background: transparent;
-  color: #574c45;
-  font-size: 0.84rem;
-  font-weight: 700;
-  padding: 0.45rem 1rem;
-  border-radius: 9px;
+  padding: 0.65rem 0.25rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--on-surface-variant, #716762);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
 }
 
-.tab-pill.active {
-  background: #2c1810;
-  color: #ffffff;
+.nav-tab-btn:hover {
+  color: var(--on-surface, #1c1b1b);
+}
+
+.nav-tab-btn.active {
+  color: var(--primary, #2c1810);
+  font-weight: 600;
+  border-bottom-color: var(--primary, #2c1810);
+}
+
+.nav-tab-btn i {
+  font-size: 15px;
 }
 
 .low-stock-count-pill {

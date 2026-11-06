@@ -463,89 +463,60 @@ const handleConfirmDelete = async () => {
     deleteModal.isDeleting = false
   }
 }
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  selectedCategoryId.value = ''
+  selectedProductType.value = ''
+}
 </script>
 
 <template>
   <div class="products-page mx-auto">
-    <!-- Single-Row Toolbar: Tabs, Filters & Primary Action -->
-    <div class="clean-card bg-white p-3 mb-3">
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <div class="d-flex align-items-center flex-wrap gap-2 flex-grow-1">
-          <div class="tab-switcher d-inline-flex p-1 rounded-3 bg-light border">
-            <button
-              type="button"
-              class="tab-btn px-3 py-1 rounded-2"
-              :class="{ active: activeTab === 'products' }"
-              @click="activeTab = 'products'"
-            >
-              Products ({{ pagination.total || products.length }})
-            </button>
-            <button
-              type="button"
-              class="tab-btn px-3 py-1 rounded-2"
-              :class="{ active: activeTab === 'categories' }"
-              @click="activeTab = 'categories'"
-            >
-              Categories ({{ categories.length }})
-            </button>
-          </div>
+    <!-- Clean Page Tabs & Action Bar -->
+    <div class="products-nav-tabs d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <div class="d-flex align-items-center gap-4">
+        <button
+          type="button"
+          class="nav-tab-btn"
+          :class="{ active: activeTab === 'products' }"
+          @click="activeTab = 'products'"
+        >
+          <i class="bi bi-cup-hot"></i>
+          <span>Products</span>
+          <span class="tab-badge">{{ pagination.total || products.length }}</span>
+        </button>
+        <button
+          type="button"
+          class="nav-tab-btn"
+          :class="{ active: activeTab === 'categories' }"
+          @click="activeTab = 'categories'"
+        >
+          <i class="bi bi-tags"></i>
+          <span>Categories</span>
+          <span class="tab-badge">{{ categories.length }}</span>
+        </button>
+      </div>
 
-          <template v-if="activeTab === 'products'">
-            <div style="min-width: 210px; max-width: 280px" class="flex-grow-1">
-              <BaseInput
-                v-model="searchQuery"
-                type="search"
-                placeholder="Search product..."
-                size="sm"
-                clearable
-                class="mb-0"
-              />
-            </div>
-
-            <select
-              v-model="selectedCategoryId"
-              class="form-select form-select-sm clean-select"
-              style="width: auto; min-width: 155px"
-            >
-              <option value="">All Categories</option>
-              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                {{ cat.name }} ({{ cat.total_products }})
-              </option>
-            </select>
-
-            <select
-              v-model="selectedProductType"
-              class="form-select form-select-sm clean-select"
-              style="width: auto; min-width: 120px"
-            >
-              <option value="">All Types</option>
-              <option value="DRINK">Drink</option>
-              <option value="FOOD">Food</option>
-              <option value="ADDON">Add-on</option>
-            </select>
-          </template>
-        </div>
-
-        <div v-if="isOwner">
-          <BaseButton
-            v-if="activeTab === 'products'"
-            variant="primary"
-            size="sm"
-            @click="openCreateProduct"
-          >
-            <template #prefix><i class="bi bi-plus-lg"></i></template>
-            Add Product
-          </BaseButton>
-          <BaseButton
-            v-else
-            variant="primary"
-            size="sm"
-            @click="openCreateCategory"
-          >
-            <template #prefix><i class="bi bi-plus-lg"></i></template>
-            Add Category
-          </BaseButton>
-        </div>
+      <div v-if="isOwner" class="pb-2">
+        <BaseButton
+          v-if="activeTab === 'products'"
+          variant="primary"
+          size="sm"
+          @click="openCreateProduct"
+        >
+          <template #prefix><i class="bi bi-plus-lg"></i></template>
+          Add Product
+        </BaseButton>
+        <BaseButton
+          v-else
+          variant="primary"
+          size="sm"
+          @click="openCreateCategory"
+        >
+          <template #prefix><i class="bi bi-plus-lg"></i></template>
+          Add Category
+        </BaseButton>
       </div>
     </div>
 
@@ -555,6 +526,52 @@ const handleConfirmDelete = async () => {
     <div v-if="activeTab === 'products'">
       <!-- Products Table Card -->
       <div class="clean-card bg-white overflow-hidden">
+        <!-- Single-Row Filter Toolbar -->
+        <div class="filter-bar d-flex align-items-center flex-wrap gap-2">
+          <div style="min-width: 220px; max-width: 320px" class="flex-grow-1">
+            <BaseInput
+              v-model="searchQuery"
+              type="search"
+              placeholder="Search product..."
+              size="sm"
+              clearable
+              class="mb-0"
+            />
+          </div>
+
+          <select
+            v-model="selectedCategoryId"
+            class="form-select form-select-sm clean-select"
+            style="width: auto; min-width: 155px"
+          >
+            <option value="">All Categories</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+              {{ cat.name }} ({{ cat.total_products }})
+            </option>
+          </select>
+
+          <select
+            v-model="selectedProductType"
+            class="form-select form-select-sm clean-select"
+            style="width: auto; min-width: 120px"
+          >
+            <option value="">All Types</option>
+            <option value="DRINK">Drink</option>
+            <option value="FOOD">Food</option>
+            <option value="ADDON">Add-on</option>
+          </select>
+
+          <button
+            v-if="searchQuery || selectedCategoryId || selectedProductType"
+            type="button"
+            class="btn btn-light-coffee btn-sm d-inline-flex align-items-center gap-1 ms-auto"
+            title="Clear filters"
+            @click="clearFilters"
+          >
+            <i class="bi bi-x-circle"></i>
+            <span>Clear</span>
+          </button>
+        </div>
         <div v-if="isLoadingProducts" class="text-center py-5 text-muted small">
           <span class="spinner-border spinner-border-sm me-2"></span>
           Loading products...
@@ -628,17 +645,21 @@ const handleConfirmDelete = async () => {
                 </td>
 
                 <td>
-                  <div class="d-flex flex-wrap gap-1">
-                    <span
-                      v-for="v in prod.variants"
-                      :key="v.id"
-                      class="variant-chip numeric-tabular"
-                      :class="{ 'opacity-50': !v.is_active }"
+                  <div v-if="prod.variants && prod.variants.length > 0" class="d-inline-block">
+                    <select
+                      class="form-select form-select-sm variant-select numeric-tabular"
+                      title="Select variant to view price"
                     >
-                      <span>{{ v.name }}</span>
-                      <strong class="ms-1">{{ formatUsd(v.price) }}</strong>
-                    </span>
+                      <option
+                        v-for="v in prod.variants"
+                        :key="v.id"
+                        :value="v.id"
+                      >
+                        {{ v.name }} — {{ formatUsd(v.price) }}{{ !v.is_active ? ' (Inactive)' : '' }}
+                      </option>
+                    </select>
                   </div>
+                  <span v-else class="text-muted small">—</span>
                 </td>
 
                 <td>
@@ -1103,24 +1124,70 @@ const handleConfirmDelete = async () => {
   border: 1px solid var(--border-hairline, #e6e4e0);
 }
 
-/* Tab Switcher */
-.tab-switcher {
-  border-color: var(--border-hairline, #e6e4e0) !important;
+/* Page Tabs */
+.products-nav-tabs {
+  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
 }
 
-.tab-btn {
+.nav-tab-btn {
   border: none;
   background: transparent;
-  font-size: 13px;
+  padding: 0.65rem 0.25rem;
+  font-size: 14px;
   font-weight: 500;
+  color: var(--on-surface-variant, #716762);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.nav-tab-btn:hover {
+  color: var(--on-surface, #1c1b1b);
+}
+
+.nav-tab-btn.active {
+  color: var(--primary, #2c1810);
+  font-weight: 600;
+  border-bottom-color: var(--primary, #2c1810);
+}
+
+.tab-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background-color: var(--surface-container-low, #f6f3f2);
   color: var(--on-surface-variant, #504440);
+}
+
+.nav-tab-btn.active .tab-badge {
+  background-color: var(--primary, #2c1810);
+  color: #ffffff;
+}
+
+.filter-bar {
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
+  background: #fcfbfa;
+}
+
+.btn-light-coffee {
+  background: #f4f1ed;
+  color: #2c1810;
+  border: 1px solid #e6e1da;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 0.35rem 0.65rem;
   transition: all 0.15s ease;
 }
 
-.tab-btn.active {
-  background-color: var(--primary, #2c1810);
-  color: #ffffff;
-  font-weight: 600;
+.btn-light-coffee:hover {
+  background: #eae5de;
 }
 
 /* Filter Select */
@@ -1201,15 +1268,31 @@ const handleConfirmDelete = async () => {
   color: var(--on-surface-variant, #504440);
 }
 
-.variant-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.18rem 0.55rem;
-  border-radius: 6px;
-  background-color: var(--surface-container-low, #f6f3f2);
+.variant-select {
+  max-width: 210px;
+  min-width: 165px;
+  height: 32px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
   border: 1px solid var(--border-hairline, #e6e4e0);
-  font-size: 12px;
+  background-color: var(--surface-container-low, #fcfbfa);
   color: var(--on-surface, #1c1b1b);
+  cursor: pointer;
+  padding: 0.25rem 1.75rem 0.25rem 0.65rem;
+  background-position: right 0.5rem center;
+  transition: all 0.15s ease;
+}
+
+.variant-select:hover {
+  background-color: #ffffff;
+  border-color: #d1cdc7;
+}
+
+.variant-select:focus {
+  border-color: var(--primary, #2c1810);
+  box-shadow: none;
+  background-color: #ffffff;
 }
 
 .status-dot-badge {

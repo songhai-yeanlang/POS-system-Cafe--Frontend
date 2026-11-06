@@ -1,33 +1,34 @@
 <template>
   <div class="orders-page">
-    <!-- Clean Tab Switcher -->
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <div class="tab-pills">
-        <button
-          type="button"
-          class="tab-pill"
-          :class="{ active: activeTab === 'ORDERS' }"
-          @click="switchTab('ORDERS')"
-        >
-          <i class="bi bi-receipt me-1"></i>Orders
-        </button>
-        <button
-          type="button"
-          class="tab-pill"
-          :class="{ active: activeTab === 'PAYMENTS' }"
-          @click="switchTab('PAYMENTS')"
-        >
-          <i class="bi bi-credit-card-2-front me-1"></i>Payments
-        </button>
-        <button
-          type="button"
-          class="tab-pill"
-          :class="{ active: activeTab === 'REFUNDS' }"
-          @click="switchTab('REFUNDS')"
-        >
-          <i class="bi bi-arrow-counterclockwise me-1"></i>Refunds
-        </button>
-      </div>
+    <!-- Clean Tab Switcher Navigation -->
+    <div class="orders-nav-tabs d-flex align-items-center gap-4 mb-3">
+      <button
+        type="button"
+        class="nav-tab-btn"
+        :class="{ active: activeTab === 'ORDERS' }"
+        @click="switchTab('ORDERS')"
+      >
+        <i class="bi bi-receipt"></i>
+        <span>Orders</span>
+      </button>
+      <button
+        type="button"
+        class="nav-tab-btn"
+        :class="{ active: activeTab === 'PAYMENTS' }"
+        @click="switchTab('PAYMENTS')"
+      >
+        <i class="bi bi-credit-card-2-front"></i>
+        <span>Payments</span>
+      </button>
+      <button
+        type="button"
+        class="nav-tab-btn"
+        :class="{ active: activeTab === 'REFUNDS' }"
+        @click="switchTab('REFUNDS')"
+      >
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>Refunds</span>
+      </button>
     </div>
 
     <!-- ================= TAB 1: ORDERS ================= -->
@@ -1129,28 +1130,39 @@ onMounted(async () => {
   gap: 1rem;
 }
 
-.tab-pills {
-  display: inline-flex;
-  background: #f2efeb;
-  padding: 4px;
-  border-radius: 12px;
-  border: 1px solid #e6e2dc;
+.orders-nav-tabs {
+  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
+  gap: 1.5rem;
 }
 
-.tab-pill {
+.nav-tab-btn {
   border: none;
   background: transparent;
-  color: #574c45;
-  font-size: 0.84rem;
-  font-weight: 700;
-  padding: 0.45rem 1rem;
-  border-radius: 9px;
+  padding: 0.65rem 0.25rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--on-surface-variant, #716762);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   transition: all 0.15s ease;
+  cursor: pointer;
 }
 
-.tab-pill.active {
-  background: #2c1810;
-  color: #ffffff;
+.nav-tab-btn:hover {
+  color: var(--on-surface, #1c1b1b);
+}
+
+.nav-tab-btn.active {
+  color: var(--primary, #2c1810);
+  font-weight: 600;
+  border-bottom-color: var(--primary, #2c1810);
+}
+
+.nav-tab-btn i {
+  font-size: 15px;
 }
 
 .clean-card {
