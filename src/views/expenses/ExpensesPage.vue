@@ -1,10 +1,64 @@
 <template>
   <div class="expenses-page">
+    <!-- Clean Tab & Action Header Bar -->
+    <div class="expenses-nav-tabs d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <!-- Status Tabs -->
+      <div class="d-flex align-items-center gap-4">
+        <button
+          type="button"
+          class="nav-tab-btn"
+          :class="{ active: filters.status === '' }"
+          @click="setStatusFilter('')"
+        >
+          <span>All Expenses</span>
+          <span v-if="filters.status === '' && pagination.total_items > 0" class="tab-badge">
+            {{ pagination.total_items }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="nav-tab-btn"
+          :class="{ active: filters.status === 'ACTIVE' }"
+          @click="setStatusFilter('ACTIVE')"
+        >
+          <span>Active</span>
+        </button>
+        <button
+          type="button"
+          class="nav-tab-btn"
+          :class="{ active: filters.status === 'VOIDED' }"
+          @click="setStatusFilter('VOIDED')"
+        >
+          <span>Voided</span>
+        </button>
+      </div>
+
+      <!-- Right Action & Summary -->
+      <div class="d-flex align-items-center gap-3 pb-2">
+        <div class="total-summary-tag d-none d-sm-inline-flex align-items-center gap-1.5">
+          <span class="text-muted small">Total:</span>
+          <span class="fw-bold text-dark numeric-tabular">{{ formatUsd(summaryTotals.total_equivalent_usd) }}</span>
+          <span v-if="summaryTotals.total_khr > 0" class="text-muted small numeric-tabular">
+            ({{ Number(summaryTotals.total_khr).toLocaleString() }} ៛)
+          </span>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-coffee btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-1.5"
+          @click="openCreateModal"
+        >
+          <i class="bi bi-plus-lg"></i>
+          <span>Record Expense</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Main Expenses Card -->
     <div class="clean-card">
-      <!-- Single-Row Filter & Action Bar -->
-      <div class="filter-bar">
-        <div class="d-flex flex-wrap gap-2 align-items-center">
+      <!-- Single-Row Filter Toolbar -->
+      <div class="filter-bar d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center flex-wrap gap-2 flex-grow-1">
           <div class="search-wrap">
             <i class="bi bi-search search-icon"></i>
             <input
@@ -38,59 +92,45 @@
             <option value="BANK_TRANSFER">Bank Transfer</option>
           </select>
 
-          <select
-            v-model="filters.status"
-            class="form-select form-select-sm filter-select"
-            @change="applyFilters"
-          >
-            <option value="">All Status</option>
-            <option value="ACTIVE">Active</option>
-            <option value="VOIDED">Voided</option>
-          </select>
-
-          <input
-            v-model="filters.start_date"
-            type="date"
-            class="form-control form-control-sm filter-date"
-            title="Start Date"
-            @change="applyFilters"
-          />
-          <input
-            v-model="filters.end_date"
-            type="date"
-            class="form-control form-control-sm filter-date"
-            title="End Date"
-            @change="applyFilters"
-          />
+          <div class="d-flex align-items-center gap-1">
+            <input
+              v-model="filters.start_date"
+              type="date"
+              class="form-control form-control-sm filter-date"
+              title="Start Date"
+              @change="applyFilters"
+            />
+            <span class="text-muted small">to</span>
+            <input
+              v-model="filters.end_date"
+              type="date"
+              class="form-control form-control-sm filter-date"
+              title="End Date"
+              @change="applyFilters"
+            />
+          </div>
 
           <button
             v-if="appStore.currentShift?.id"
             type="button"
             class="btn btn-sm"
             :class="filters.currentShiftOnly ? 'btn-coffee' : 'btn-light-coffee'"
+            title="Show only expenses from current open shift"
             @click="toggleCurrentShiftOnly"
           >
             Current Shift
           </button>
-
-          <button
-            type="button"
-            class="btn btn-light-coffee btn-sm"
-            title="Reset Filters"
-            @click="resetFilters"
-          >
-            <i class="bi bi-arrow-counterclockwise"></i>
-          </button>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
-          <div class="px-2 py-1 rounded-2 bg-light border small fw-semibold text-dark">
-            Total: {{ formatUsd(summaryTotals.total_equivalent_usd) }}
-          </div>
-          <button type="button" class="btn btn-coffee btn-sm" @click="openCreateModal">
-            <i class="bi bi-plus-lg me-1"></i>Record Expense
-          </button>
-        </div>
+        <button
+          type="button"
+          class="btn btn-light-coffee btn-sm d-inline-flex align-items-center gap-1"
+          title="Reset Filters"
+          @click="resetFilters"
+        >
+          <i class="bi bi-arrow-counterclockwise"></i>
+          <span>Reset</span>
+        </button>
       </div>
 
       <!-- Loading / Empty / Table -->
@@ -465,6 +505,11 @@ const canManageExpense = (exp) => {
   return Number(exp.created_by) === Number(authStore.user?.id)
 }
 
+const setStatusFilter = (status) => {
+  filters.status = status
+  applyFilters()
+}
+
 const fetchCategories = async () => {
   try {
     const res = await api.get('/expenses/categories')
@@ -721,6 +766,58 @@ onMounted(async () => {
 .kpi-sub {
   font-size: 0.7rem;
   color: #8a7f78;
+}
+
+.expenses-nav-tabs {
+  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
+}
+
+.nav-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.65rem 0.25rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--on-surface-variant, #716762);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.nav-tab-btn:hover {
+  color: var(--on-surface, #1c1b1b);
+}
+
+.nav-tab-btn.active {
+  color: var(--primary, #2c1810);
+  font-weight: 600;
+  border-bottom-color: var(--primary, #2c1810);
+}
+
+.tab-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background-color: var(--surface-container-low, #f6f3f2);
+  color: var(--on-surface-variant, #504440);
+}
+
+.nav-tab-btn.active .tab-badge {
+  background-color: var(--primary, #2c1810);
+  color: #ffffff;
+}
+
+.total-summary-tag {
+  font-size: 13px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  background-color: var(--surface-container-low, #f6f3f2);
+  border: 1px solid var(--border-hairline, #e6e4e0);
 }
 
 .clean-card {
