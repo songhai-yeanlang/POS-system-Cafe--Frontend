@@ -67,6 +67,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  noMargin: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'input', 'focus', 'blur', 'clear', 'enter'])
@@ -112,7 +116,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="mb-3">
+  <div :class="noMargin ? '' : 'mb-3'">
     <div v-if="label || $slots.label || $slots.action" class="d-flex justify-content-between align-items-center mb-1">
       <label :for="inputId" class="form-label mb-0 fw-medium small text-label">
         <slot name="label">{{ label }}</slot>
@@ -282,7 +286,7 @@ defineExpose({
 .form-control:focus,
 .input-group:focus-within .input-group-text,
 .input-group:focus-within .form-control {
-  border-color: var(--primary, #2c1810) !important;
+  border-color: var(--primary, #2d5a43) !important;
   box-shadow: none !important;
 }
 

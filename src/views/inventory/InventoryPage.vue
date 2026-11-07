@@ -10,9 +10,9 @@
           @click="switchTab('INGREDIENTS')"
         >
           <i class="bi bi-boxes"></i>
-          <span>Ingredients</span>
+          <span>{{ $t('inventory.tabIngredients') }}</span>
           <span v-if="lowStockCount > 0" class="low-stock-count-pill ms-1">
-            {{ lowStockCount }} Low
+            {{ $t('inventory.lowCount', { count: lowStockCount }) }}
           </span>
         </button>
         <button
@@ -22,7 +22,7 @@
           @click="switchTab('MOVEMENTS')"
         >
           <i class="bi bi-arrow-left-right"></i>
-          <span>Stock Movements</span>
+          <span>{{ $t('inventory.tabMovements') }}</span>
         </button>
       </div>
 
@@ -32,14 +32,14 @@
           class="btn btn-outline-coffee btn-sm"
           @click="openStockMovementModal()"
         >
-          <i class="bi bi-plus-slash-minus me-1"></i>Record Movement
+          <i class="bi bi-plus-slash-minus me-1"></i>{{ $t('inventory.recordMovement') }}
         </button>
         <button
           type="button"
           class="btn btn-coffee btn-sm"
           @click="openCreateIngredientModal"
         >
-          <i class="bi bi-plus-lg me-1"></i>Add Ingredient
+          <i class="bi bi-plus-lg me-1"></i>{{ $t('inventory.addIngredient') }}
         </button>
       </div>
     </div>
@@ -54,7 +54,7 @@
               v-model="ingredientFilters.search"
               type="text"
               class="form-control form-control-sm search-input"
-              placeholder="Search ingredient name..."
+              :placeholder="$t('inventory.searchIngredientPlaceholder')"
               @keyup.enter="fetchIngredients(1)"
             />
           </div>
@@ -64,10 +64,10 @@
             class="form-select form-select-sm filter-select"
             @change="fetchIngredients(1)"
           >
-            <option value="">All Units</option>
-            <option value="G">Grams (G)</option>
-            <option value="ML">Milliliters (ML)</option>
-            <option value="PCS">Pieces (PCS)</option>
+            <option value="">{{ $t('inventory.allUnits') }}</option>
+            <option value="G">{{ $t('inventory.grams') }}</option>
+            <option value="ML">{{ $t('inventory.milliliters') }}</option>
+            <option value="PCS">{{ $t('inventory.pieces') }}</option>
           </select>
 
           <select
@@ -75,9 +75,9 @@
             class="form-select form-select-sm filter-select"
             @change="fetchIngredients(1)"
           >
-            <option value="">All Status</option>
-            <option value="true">Active Only</option>
-            <option value="false">Inactive</option>
+            <option value="">{{ $t('common.allStatus') }}</option>
+            <option value="true">{{ $t('inventory.activeOnly') }}</option>
+            <option value="false">{{ $t('common.inactive') }}</option>
           </select>
 
           <button
@@ -86,7 +86,7 @@
             :class="ingredientFilters.low_stock ? 'btn-warning text-dark fw-bold' : 'btn-light-coffee'"
             @click="toggleLowStockQuickFilter"
           >
-            <i class="bi bi-exclamation-circle me-1"></i>Low Stock Only
+            <i class="bi bi-exclamation-circle me-1"></i>{{ $t('inventory.lowStockOnly') }}
           </button>
         </div>
 
@@ -95,33 +95,33 @@
           class="btn btn-light-coffee btn-sm"
           @click="resetIngredientFilters"
         >
-          <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+          <i class="bi bi-arrow-counterclockwise me-1"></i>{{ $t('common.reset') }}
         </button>
       </div>
 
       <!-- Loading / Empty / Table -->
       <div v-if="isLoadingIngredients" class="empty-box">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-        <div class="small text-muted">Loading ingredients...</div>
+        <div class="small text-muted">{{ $t('inventory.loadingIngredients') }}</div>
       </div>
 
       <div v-else-if="ingredientsList.length === 0" class="empty-box">
         <i class="bi bi-boxes fs-2 text-muted mb-2 d-block"></i>
-        <div class="fw-semibold text-dark">No Ingredients Found</div>
-        <div class="small text-muted">Add raw ingredients to track stock and build drink recipes.</div>
+        <div class="fw-semibold text-dark">{{ $t('inventory.noIngredientsFound') }}</div>
+        <div class="small text-muted">{{ $t('inventory.noIngredientsFoundDesc') }}</div>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Ingredient</th>
-              <th>Current Stock</th>
-              <th>Min Alert</th>
-              <th>Stock Health</th>
-              <th>Recipes</th>
-              <th>Status</th>
-              <th class="text-end">Actions</th>
+              <th>{{ $t('inventory.colIngredient') }}</th>
+              <th>{{ $t('inventory.colCurrentStock') }}</th>
+              <th>{{ $t('inventory.colMinAlert') }}</th>
+              <th>{{ $t('inventory.colStockHealth') }}</th>
+              <th>{{ $t('inventory.colRecipes') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th class="text-end">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -148,16 +148,16 @@
                   v-if="Number(ing.current_stock) <= 0"
                   class="stock-pill out"
                 >
-                  Out of Stock
+                  {{ $t('inventory.outOfStock') }}
                 </span>
                 <span
                   v-else-if="ing.is_low_stock"
                   class="stock-pill low"
                 >
-                  Low Stock
+                  {{ $t('inventory.lowStock') }}
                 </span>
                 <span v-else class="stock-pill ok">
-                  In Stock
+                  {{ $t('inventory.inStock') }}
                 </span>
               </td>
               <td>
@@ -170,7 +170,7 @@
                   class="status-dot-badge"
                   :class="ing.is_active ? 'active' : 'inactive'"
                 >
-                  {{ ing.is_active ? 'Active' : 'Inactive' }}
+                  {{ ing.is_active ? $t('common.active') : $t('common.inactive') }}
                 </span>
               </td>
               <td class="text-end">
@@ -197,7 +197,7 @@
                     <button
                       type="button"
                       class="btn btn-action-icon text-primary"
-                      title="Edit Ingredient"
+                      :title="$t('inventory.editIngredient')"
                       @click="openEditIngredientModal(ing)"
                     >
                       <i class="bi bi-pencil"></i>
@@ -205,7 +205,7 @@
                     <button
                       type="button"
                       class="btn btn-action-icon text-danger"
-                      title="Delete Ingredient"
+                      :title="$t('common.delete')"
                       @click="confirmDeleteIngredient(ing)"
                     >
                       <i class="bi bi-trash3"></i>
@@ -221,7 +221,7 @@
       <!-- Pagination -->
       <div v-if="ingredientPagination.totalPages > 1" class="pagination-bar">
         <div class="small text-muted">
-          Page {{ ingredientPagination.page }} of {{ ingredientPagination.totalPages }}
+          {{ $t('common.pageOf', { page: ingredientPagination.page, total: ingredientPagination.totalPages }) }}
         </div>
         <div class="d-flex gap-1">
           <button
@@ -230,7 +230,7 @@
             :disabled="ingredientPagination.page <= 1"
             @click="fetchIngredients(ingredientPagination.page - 1)"
           >
-            Prev
+            {{ $t('common.prev') }}
           </button>
           <button
             type="button"
@@ -238,7 +238,7 @@
             :disabled="ingredientPagination.page >= ingredientPagination.totalPages"
             @click="fetchIngredients(ingredientPagination.page + 1)"
           >
-            Next
+            {{ $t('common.next') }}
           </button>
         </div>
       </div>
@@ -253,7 +253,7 @@
             class="form-select form-select-sm filter-select"
             @change="fetchMovements(1)"
           >
-            <option value="">All Ingredients</option>
+            <option value="">{{ $t('inventory.allIngredients') }}</option>
             <option v-for="ing in allIngredientsDropdown" :key="ing.id" :value="ing.id">
               {{ ing.name }} ({{ ing.unit }})
             </option>
@@ -264,12 +264,12 @@
             class="form-select form-select-sm filter-select"
             @change="fetchMovements(1)"
           >
-            <option value="">All Movement Types</option>
-            <option value="PURCHASE">Purchase (+)</option>
-            <option value="SALE">Order Sale (-)</option>
-            <option value="WASTE">Waste (-)</option>
-            <option value="ADJUSTMENT">Adjustment (+/-)</option>
-            <option value="RETURN">Refund Return (+)</option>
+            <option value="">{{ $t('inventory.allMovementTypes') }}</option>
+            <option value="PURCHASE">{{ $t('inventory.purchasePlus') }}</option>
+            <option value="SALE">{{ $t('inventory.saleMinus') }}</option>
+            <option value="WASTE">{{ $t('inventory.wasteMinus') }}</option>
+            <option value="ADJUSTMENT">{{ $t('inventory.adjustmentPlusMinus') }}</option>
+            <option value="RETURN">{{ $t('inventory.returnPlus') }}</option>
           </select>
 
           <input
@@ -291,32 +291,32 @@
           class="btn btn-light-coffee btn-sm"
           @click="resetMovementFilters"
         >
-          <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+          <i class="bi bi-arrow-counterclockwise me-1"></i>{{ $t('common.reset') }}
         </button>
       </div>
 
       <div v-if="isLoadingMovements" class="empty-box">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-        <div class="small text-muted">Loading stock movements...</div>
+        <div class="small text-muted">{{ $t('inventory.loadingMovements') }}</div>
       </div>
 
       <div v-else-if="movementsList.length === 0" class="empty-box">
         <i class="bi bi-journal-x fs-2 text-muted mb-2 d-block"></i>
-        <div class="fw-semibold text-dark">No Stock Movements Found</div>
-        <div class="small text-muted">Stock additions, sales deductions, and adjustments appear here.</div>
+        <div class="fw-semibold text-dark">{{ $t('inventory.noMovementsFound') }}</div>
+        <div class="small text-muted">{{ $t('inventory.noMovementsFoundDesc') }}</div>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Date / Time</th>
-              <th>Ingredient</th>
-              <th>Movement Type</th>
-              <th>Quantity Change</th>
-              <th>Unit Cost / Total</th>
-              <th>Reason / Order</th>
-              <th>Recorded By</th>
+              <th>{{ $t('orders.colDateTime') }}</th>
+              <th>{{ $t('inventory.colIngredient') }}</th>
+              <th>{{ $t('inventory.colMovementType') }}</th>
+              <th>{{ $t('inventory.colQuantityChange') }}</th>
+              <th>{{ $t('inventory.colUnitCostTotal') }}</th>
+              <th>{{ $t('inventory.colReasonOrder') }}</th>
+              <th>{{ $t('inventory.colRecordedBy') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -344,7 +344,7 @@
               </td>
               <td>
                 <div v-if="mov.unit_cost !== null && mov.unit_cost !== undefined" class="small">
-                  <div class="fw-semibold">{{ formatUsd(mov.total_cost) }} total</div>
+                  <div class="fw-semibold">{{ formatUsd(mov.total_cost) }}</div>
                   <div class="text-muted">{{ formatUsd(mov.unit_cost) }} / {{ mov.ingredient_unit }}</div>
                 </div>
                 <span v-else class="small text-muted">—</span>
@@ -352,7 +352,7 @@
               <td>
                 <div v-if="mov.order_receipt_no" class="small">
                   <span class="badge bg-light text-dark border">
-                    Order {{ mov.order_receipt_no }}
+                    {{ $t('orders.colOrder') }} {{ mov.order_receipt_no }}
                   </span>
                 </div>
                 <div v-if="mov.reason" class="small text-muted">
@@ -361,7 +361,7 @@
                 <span v-if="!mov.order_receipt_no && !mov.reason" class="small text-muted">—</span>
               </td>
               <td>
-                <span class="small fw-semibold">{{ mov.created_by_name || 'System' }}</span>
+                <span class="small fw-semibold">{{ mov.created_by_name || $t('common.system') }}</span>
               </td>
             </tr>
           </tbody>
@@ -370,8 +370,8 @@
 
       <div v-if="movementPagination.totalPages > 1" class="pagination-bar">
         <div class="small text-muted">
-          Page {{ movementPagination.page }} of {{ movementPagination.totalPages }}
-          ({{ movementPagination.total }} records)
+          {{ $t('common.pageOf', { page: movementPagination.page, total: movementPagination.totalPages }) }}
+          ({{ movementPagination.total }})
         </div>
         <div class="d-flex gap-1">
           <button
@@ -380,7 +380,7 @@
             :disabled="movementPagination.page <= 1"
             @click="fetchMovements(movementPagination.page - 1)"
           >
-            Prev
+            {{ $t('common.prev') }}
           </button>
           <button
             type="button"
@@ -388,7 +388,7 @@
             :disabled="movementPagination.page >= movementPagination.totalPages"
             @click="fetchMovements(movementPagination.page + 1)"
           >
-            Next
+            {{ $t('common.next') }}
           </button>
         </div>
       </div>
@@ -399,7 +399,7 @@
       <div class="modal-card-custom modal-sm-custom">
         <div class="modal-header-custom">
           <h6 class="mb-0 fw-bold">
-            {{ editingIngredient ? 'Edit Ingredient' : 'Add New Ingredient' }}
+            {{ editingIngredient ? $t('inventory.editIngredient') : $t('inventory.addNewIngredient') }}
           </h6>
           <button type="button" class="btn-close-custom" @click="showIngredientModal = false">
             <i class="bi bi-x-lg"></i>
@@ -409,19 +409,19 @@
         <form @submit.prevent="handleSaveIngredient">
           <div class="modal-body-custom">
             <div class="mb-3">
-              <label class="form-label-clean">Ingredient Name <span class="text-danger">*</span></label>
+              <label class="form-label-clean">{{ $t('inventory.ingredientNameLabel') }} <span class="text-danger">*</span></label>
               <input
                 v-model="ingredientForm.name"
                 type="text"
                 class="form-control form-control-clean"
-                placeholder="e.g. Espresso Beans, Fresh Milk, Paper Cup 16oz"
+                :placeholder="$t('inventory.ingredientNamePlaceholder')"
                 maxlength="150"
                 required
               />
             </div>
 
             <div class="mb-3">
-              <label class="form-label-clean">Measurement Unit <span class="text-danger">*</span></label>
+              <label class="form-label-clean">{{ $t('inventory.measurementUnitLabel') }} <span class="text-danger">*</span></label>
               <div class="option-pills">
                 <button
                   v-for="u in ['G', 'ML', 'PCS']"
@@ -432,7 +432,7 @@
                   :disabled="editingIngredient && editingIngredient.total_recipes > 0 && editingIngredient.unit !== u"
                   @click="ingredientForm.unit = u"
                 >
-                  {{ u === 'G' ? 'Grams (G)' : u === 'ML' ? 'Milliliters (ML)' : 'Pieces (PCS)' }}
+                  {{ u === 'G' ? $t('inventory.grams') : u === 'ML' ? $t('inventory.milliliters') : $t('inventory.pieces') }}
                 </button>
               </div>
               <div
@@ -446,7 +446,7 @@
             <div class="row g-2 mb-3">
               <div class="col-6">
                 <label class="form-label-clean">
-                  {{ editingIngredient ? 'Current Stock' : 'Initial Stock' }}
+                  {{ editingIngredient ? $t('inventory.colCurrentStock') : $t('inventory.initialStock') }}
                 </label>
                 <div class="input-group input-group-sm">
                   <input
@@ -462,7 +462,7 @@
               </div>
 
               <div class="col-6">
-                <label class="form-label-clean">Low-Stock Alert At</label>
+                <label class="form-label-clean">{{ $t('inventory.lowStockAlertAt') }}</label>
                 <div class="input-group input-group-sm">
                   <input
                     v-model.number="ingredientForm.minimum_stock"
@@ -485,18 +485,18 @@
                 type="checkbox"
               />
               <label class="form-check-label small fw-semibold" for="ingActiveSwitch">
-                Active (Available for Recipes & Stock Movements)
+                {{ $t('inventory.activeIngredientCheck') }}
               </label>
             </div>
           </div>
 
           <div class="modal-footer-custom">
             <button type="button" class="btn btn-light-coffee" @click="showIngredientModal = false">
-              Cancel
+              {{ $t('common.cancel') }}
             </button>
             <button type="submit" class="btn btn-coffee flex-grow-1" :disabled="isSavingIngredient">
               <span v-if="isSavingIngredient" class="spinner-border spinner-border-sm me-1"></span>
-              {{ editingIngredient ? 'Save Changes' : 'Create Ingredient' }}
+              {{ editingIngredient ? $t('common.saveChanges') : $t('inventory.createIngredient') }}
             </button>
           </div>
         </form>
@@ -507,7 +507,7 @@
     <div v-if="showMovementModal" class="modal-backdrop-custom" @click.self="showMovementModal = false">
       <div class="modal-card-custom modal-sm-custom">
         <div class="modal-header-custom">
-          <h6 class="mb-0 fw-bold">Record Stock Movement</h6>
+          <h6 class="mb-0 fw-bold">{{ $t('inventory.recordStockMovementTitle') }}</h6>
           <button type="button" class="btn-close-custom" @click="showMovementModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
@@ -516,25 +516,25 @@
         <form @submit.prevent="handleSaveMovement">
           <div class="modal-body-custom">
             <div class="mb-3">
-              <label class="form-label-clean">Ingredient <span class="text-danger">*</span></label>
+              <label class="form-label-clean">{{ $t('inventory.colIngredient') }} <span class="text-danger">*</span></label>
               <select
                 v-model.number="movementForm.ingredient_id"
                 class="form-select form-control-clean"
                 required
               >
-                <option :value="null" disabled>Select an active ingredient...</option>
+                <option :value="null" disabled>{{ $t('inventory.selectActiveIngredient') }}</option>
                 <option
                   v-for="ing in activeIngredientsDropdown"
                   :key="ing.id"
                   :value="ing.id"
                 >
-                  {{ ing.name }} (Current: {{ formatStockQty(ing.current_stock) }} {{ ing.unit }})
+                  {{ ing.name }} ({{ formatStockQty(ing.current_stock) }} {{ ing.unit }})
                 </option>
               </select>
             </div>
 
             <div class="mb-3">
-              <label class="form-label-clean">Movement Type <span class="text-danger">*</span></label>
+              <label class="form-label-clean">{{ $t('inventory.colMovementType') }} <span class="text-danger">*</span></label>
               <div class="option-pills">
                 <button
                   type="button"
@@ -542,7 +542,7 @@
                   :class="{ active: movementForm.movement_type === 'PURCHASE' }"
                   @click="movementForm.movement_type = 'PURCHASE'"
                 >
-                  Purchase (+)
+                  {{ $t('inventory.purchasePlus') }}
                 </button>
                 <button
                   type="button"
@@ -550,7 +550,7 @@
                   :class="{ active: movementForm.movement_type === 'WASTE' }"
                   @click="movementForm.movement_type = 'WASTE'"
                 >
-                  Waste (-)
+                  {{ $t('inventory.wasteMinus') }}
                 </button>
                 <button
                   type="button"
@@ -558,7 +558,7 @@
                   :class="{ active: movementForm.movement_type === 'ADJUSTMENT' }"
                   @click="movementForm.movement_type = 'ADJUSTMENT'"
                 >
-                  Adjust (+/-)
+                  {{ $t('inventory.adjustmentPlusMinus') }}
                 </button>
               </div>
             </div>
@@ -566,7 +566,7 @@
             <div class="row g-2 mb-3">
               <div :class="movementForm.movement_type === 'PURCHASE' ? 'col-6' : 'col-12'">
                 <label class="form-label-clean">
-                  Quantity
+                  {{ $t('receipt.colQty') }}
                   <span v-if="selectedMovementIngredient">
                     ({{ selectedMovementIngredient.unit }})
                   </span>
@@ -581,13 +581,10 @@
                   :placeholder="movementForm.movement_type === 'ADJUSTMENT' ? 'e.g. 500 or -200' : 'e.g. 1000'"
                   required
                 />
-                <div v-if="movementForm.movement_type === 'ADJUSTMENT'" class="form-text small">
-                  Use positive number to add stock or negative (e.g. -100) to deduct.
-                </div>
               </div>
 
               <div v-if="movementForm.movement_type === 'PURCHASE'" class="col-6">
-                <label class="form-label-clean">Unit Cost ($ Optional)</label>
+                <label class="form-label-clean">{{ $t('inventory.unitCostOptional') }}</label>
                 <input
                   v-model.number="movementForm.unit_cost"
                   type="number"
@@ -601,7 +598,7 @@
 
             <div class="mb-1">
               <label class="form-label-clean">
-                Reason / Note
+                {{ $t('inventory.reasonNoteLabel') }}
                 <span v-if="movementForm.movement_type !== 'PURCHASE'" class="text-danger">*</span>
               </label>
               <textarea
@@ -621,11 +618,11 @@
 
           <div class="modal-footer-custom">
             <button type="button" class="btn btn-light-coffee" @click="showMovementModal = false">
-              Cancel
+              {{ $t('common.cancel') }}
             </button>
             <button type="submit" class="btn btn-coffee flex-grow-1" :disabled="isSavingMovement">
               <span v-if="isSavingMovement" class="spinner-border spinner-border-sm me-1"></span>
-              Save Stock Movement
+              {{ $t('inventory.saveStockMovement') }}
             </button>
           </div>
         </form>
@@ -988,9 +985,9 @@ onMounted(async () => {
 }
 
 .nav-tab-btn.active {
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   font-weight: 600;
-  border-bottom-color: var(--primary, #2c1810);
+  border-bottom-color: var(--primary, #2d5a43);
 }
 
 .nav-tab-btn i {
@@ -1039,7 +1036,7 @@ onMounted(async () => {
 
 .bg-coffee-soft {
   background: #f4eee8;
-  color: #2c1810;
+  color: #2d5a43;
 }
 
 .bg-success-soft {
@@ -1130,7 +1127,7 @@ onMounted(async () => {
 
 .unit-badge {
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   font-weight: 700;
   font-size: 0.74rem;
   padding: 0.2rem 0.55rem;
@@ -1233,7 +1230,7 @@ onMounted(async () => {
 }
 
 .btn-coffee {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
   border: none;
   border-radius: 9px;
@@ -1242,15 +1239,15 @@ onMounted(async () => {
 
 .btn-outline-coffee {
   background: #ffffff;
-  color: #2c1810;
-  border: 1px solid #2c1810;
+  color: #2d5a43;
+  border: 1px solid #2d5a43;
   border-radius: 9px;
   font-weight: 600;
 }
 
 .btn-light-coffee {
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   border: 1px solid #e6e1da;
   border-radius: 9px;
   font-weight: 600;
@@ -1345,8 +1342,8 @@ onMounted(async () => {
 }
 
 .opt-pill.active {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
-  border-color: #2c1810;
+  border-color: #2d5a43;
 }
 </style>

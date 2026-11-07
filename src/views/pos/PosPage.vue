@@ -7,9 +7,9 @@
           <i class="bi bi-safe2"></i>
         </div>
         <div class="min-w-0">
-          <div class="fw-semibold text-dark">No Active Cashier Shift</div>
+          <div class="fw-semibold text-dark">{{ $t('pos.noActiveShift') }}</div>
           <div class="text-muted small text-truncate">
-            Open a shift before creating orders or accepting payments.
+            {{ $t('pos.noActiveShiftDesc') }}
           </div>
         </div>
       </div>
@@ -18,9 +18,9 @@
         <router-link
           to="/shifts"
           class="btn-shift-link text-decoration-none d-none d-sm-inline-flex align-items-center gap-1"
-          title="Go to full Shifts & Drawer page"
+          :title="$t('pos.shiftsAndDrawer')"
         >
-          <span>Shifts & Drawer</span>
+          <span>{{ $t('pos.shiftsAndDrawer') }}</span>
           <i class="bi bi-arrow-right"></i>
         </router-link>
         <button
@@ -29,7 +29,7 @@
           @click="openQuickShiftModal"
         >
           <i class="bi bi-unlock me-1"></i>
-          <span>Open Shift</span>
+          <span>{{ $t('pos.openShift') }}</span>
         </button>
       </div>
     </div>
@@ -45,7 +45,7 @@
               v-model="searchQuery"
               type="text"
               class="form-control search-input"
-              placeholder="Search drinks, food, or items..."
+              :placeholder="$t('pos.searchPlaceholder')"
             />
             <button
               v-if="searchQuery"
@@ -63,7 +63,7 @@
             @click="openPendingOrdersModal"
           >
             <i class="bi bi-clock-history me-1"></i>
-            Open Orders
+            {{ $t('pos.openOrders') }}
             <span v-if="openOrdersCount > 0" class="open-orders-badge">
               {{ openOrdersCount }}
             </span>
@@ -72,7 +72,7 @@
           <button
             type="button"
             class="btn btn-light-coffee"
-            title="Refresh Menu"
+            :title="$t('pos.refreshMenu')"
             :disabled="isLoadingCatalog"
             @click="fetchCatalog"
           >
@@ -88,7 +88,7 @@
             :class="{ active: selectedCategoryId === 'ALL' }"
             @click="selectedCategoryId = 'ALL'"
           >
-            <i class="bi bi-grid-fill me-1"></i>All Items
+            <i class="bi bi-grid-fill me-1"></i>{{ $t('pos.allItems') }}
           </button>
           <button
             v-for="cat in activeCategories"
@@ -105,13 +105,13 @@
         <!-- Product Grid -->
         <div v-if="isLoadingCatalog" class="catalog-empty-state">
           <div class="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
-          <div class="small text-muted">Loading menu items...</div>
+          <div class="small text-muted">{{ $t('pos.loadingMenu') }}</div>
         </div>
 
         <div v-else-if="filteredProducts.length === 0" class="catalog-empty-state">
           <i class="bi bi-cup-hot fs-2 text-muted mb-2 d-block"></i>
-          <div class="fw-semibold text-dark">No Products Found</div>
-          <div class="small text-muted">Try another category or clear your search filter.</div>
+          <div class="fw-semibold text-dark">{{ $t('pos.noProductsFound') }}</div>
+          <div class="small text-muted">{{ $t('pos.noProductsFoundDesc') }}</div>
         </div>
 
         <div v-else class="product-grid">
@@ -142,7 +142,7 @@
               <div class="product-footer">
                 <div class="price-usd">{{ formatUsd(getStartingPrice(product)) }}</div>
                 <span v-if="getActiveVariants(product).length > 1" class="variant-count-pill">
-                  {{ getActiveVariants(product).length }} sizes
+                  {{ $t('pos.sizesCount', { count: getActiveVariants(product).length }) }}
                 </span>
               </div>
             </div>
@@ -157,7 +157,7 @@
           <div class="d-flex justify-content-between align-items-center mb-2">
             <div class="d-flex align-items-center gap-2">
               <span class="cart-title">
-                {{ editingOrder ? `Order #${editingOrder.queue_no}` : 'Current Order' }}
+                {{ editingOrder ? $t('pos.orderQueueTitle', { no: editingOrder.queue_no }) : $t('pos.currentOrder') }}
               </span>
               <span v-if="editingOrder" class="badge-editing">
                 {{ editingOrder.receipt_no }}
@@ -169,7 +169,7 @@
               class="btn-reset-cart"
               @click="resetCart"
             >
-              <i class="bi bi-trash3 me-1"></i>Clear
+              <i class="bi bi-trash3 me-1"></i>{{ $t('common.clear') }}
             </button>
           </div>
 
@@ -182,7 +182,7 @@
                 :class="{ active: orderForm.order_type === 'TAKEAWAY' }"
                 @click="setOrderType('TAKEAWAY')"
               >
-                <i class="bi bi-bag-check me-1"></i>Takeaway
+                <i class="bi bi-bag-check me-1"></i>{{ $t('common.takeaway') }}
               </button>
               <button
                 type="button"
@@ -190,7 +190,7 @@
                 :class="{ active: orderForm.order_type === 'DINE_IN' }"
                 @click="setOrderType('DINE_IN')"
               >
-                <i class="bi bi-shop me-1"></i>Dine-In
+                <i class="bi bi-shop me-1"></i>{{ $t('common.dineIn') }}
               </button>
             </div>
 
@@ -199,7 +199,7 @@
                 v-model="orderForm.table_no"
                 type="text"
                 class="form-control form-control-sm table-input"
-                placeholder="Table #"
+                :placeholder="$t('pos.tablePlaceholder')"
                 maxlength="20"
               />
             </div>
@@ -212,8 +212,8 @@
             <div class="empty-cart-icon">
               <i class="bi bi-basket2"></i>
             </div>
-            <div class="fw-semibold text-dark">Cart is Empty</div>
-            <div class="small text-muted">Tap any product on the left to add it to this order.</div>
+            <div class="fw-semibold text-dark">{{ $t('pos.cartEmpty') }}</div>
+            <div class="small text-muted">{{ $t('pos.cartEmptyDesc') }}</div>
           </div>
 
           <div v-else class="cart-list">
@@ -235,10 +235,10 @@
                     class="cart-item-specs"
                   >
                     <span v-if="item.sugar_level !== null" class="spec-chip">
-                      Sugar {{ item.sugar_level }}%
+                      {{ $t('pos.sugarPct', { pct: item.sugar_level }) }}
                     </span>
                     <span v-if="item.ice_level" class="spec-chip">
-                      Ice: {{ formatIceLabel(item.ice_level) }}
+                      {{ $t('pos.iceLabel', { ice: formatIceLabel(item.ice_level) }) }}
                     </span>
                   </div>
 
@@ -263,7 +263,7 @@
                 <div class="text-end">
                   <div class="cart-item-total">{{ formatUsd(calculateCartItemTotal(item)) }}</div>
                   <div class="cart-item-unit text-muted">
-                    {{ formatUsd(item.unit_price) }} ea
+                    {{ formatUsd(item.unit_price) }} {{ $t('pos.each') }}
                   </div>
                 </div>
               </div>
@@ -274,7 +274,7 @@
                   class="btn-edit-item"
                   @click="openEditCartItem(item, index)"
                 >
-                  <i class="bi bi-sliders me-1"></i>Customize
+                  <i class="bi bi-sliders me-1"></i>{{ $t('pos.customize') }}
                 </button>
 
                 <div class="qty-stepper">
@@ -311,14 +311,16 @@
             >
               <i class="bi bi-tag me-1"></i>
               <span v-if="orderForm.discount_type === 'NONE' || !orderForm.discount_value">
-                Add Discount
+                {{ $t('pos.addDiscount') }}
               </span>
               <span v-else>
-                Discount:
                 {{
-                  orderForm.discount_type === 'PERCENT'
-                    ? `${orderForm.discount_value}%`
-                    : formatUsd(orderForm.discount_value)
+                  $t('pos.discountApplied', {
+                    val:
+                      orderForm.discount_type === 'PERCENT'
+                        ? `${orderForm.discount_value}%`
+                        : formatUsd(orderForm.discount_value),
+                  })
                 }}
               </span>
             </button>
@@ -330,19 +332,19 @@
               @click="showNoteModal = true"
             >
               <i class="bi bi-journal-text me-1"></i>
-              {{ orderForm.note ? 'Note Added' : 'Order Note' }}
+              {{ orderForm.note ? $t('pos.noteAdded') : $t('pos.orderNote') }}
             </button>
           </div>
 
           <!-- Totals Box -->
           <div class="totals-box">
             <div class="totals-row">
-              <span>Subtotal ({{ totalCartUnits }} items)</span>
+              <span>{{ $t('pos.subtotalItems', { count: totalCartUnits }) }}</span>
               <span class="fw-semibold">{{ formatUsd(cartSubtotal) }}</span>
             </div>
             <div v-if="cartDiscountAmount > 0" class="totals-row text-danger">
               <span>
-                Discount
+                {{ $t('common.discount') }}
                 <small v-if="orderForm.discount_type === 'PERCENT'">
                   ({{ orderForm.discount_value }}%)
                 </small>
@@ -352,8 +354,8 @@
             <div class="totals-divider"></div>
             <div class="totals-grand">
               <div>
-                <div class="grand-label">Total Payable</div>
-                <div class="grand-rate">Rate: $1 = {{ exchangeRate.toLocaleString() }} ៛</div>
+                <div class="grand-label">{{ $t('pos.totalPayable') }}</div>
+                <div class="grand-rate">{{ $t('pos.rateLabel', { rate: exchangeRate.toLocaleString() }) }}</div>
               </div>
               <div class="text-end">
                 <div class="grand-usd">{{ formatUsd(cartGrandTotal) }}</div>
@@ -375,7 +377,7 @@
                 class="spinner-border spinner-border-sm me-1"
               ></span>
               <i v-else class="bi bi-bookmark-check me-1"></i>
-              {{ editingOrder ? 'Update Open' : 'Hold Order' }}
+              {{ editingOrder ? $t('pos.updateOpen') : $t('pos.holdOrder') }}
             </button>
 
             <button
@@ -385,7 +387,7 @@
               @click="openCheckoutModal"
             >
               <i class="bi bi-cash-coin me-1"></i>
-              Pay Now • {{ formatUsd(cartGrandTotal) }}
+              {{ $t('pos.payNow', { amount: formatUsd(cartGrandTotal) }) }}
             </button>
           </div>
         </div>
@@ -394,11 +396,30 @@
 
     <!-- ================= MODAL 1: ITEM CUSTOMIZATION ================= -->
     <div v-if="showCustomizeModal && customizingProduct" class="modal-backdrop-custom" @click.self="closeCustomizeModal">
-      <div class="modal-card-custom">
+      <div class="modal-card-custom modal-customize-card">
         <div class="modal-header-custom">
-          <div>
-            <h6 class="mb-0 fw-bold">{{ customizingProduct.name }}</h6>
-            <div class="small text-muted">{{ customizingProduct.category_name }}</div>
+          <div class="d-flex align-items-center gap-3">
+            <div class="customize-prod-thumb">
+              <img
+                v-if="customizingProduct.image"
+                :src="getAssetUrl(customizingProduct.image)"
+                :alt="customizingProduct.name"
+              />
+              <i
+                v-else
+                class="bi"
+                :class="customizingProduct.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot'"
+              ></i>
+            </div>
+            <div>
+              <div class="d-flex align-items-center gap-2">
+                <h5 class="mb-0 fw-bold text-dark">{{ customizingProduct.name }}</h5>
+                <span class="badge-type-pill" :class="customizingProduct.product_type?.toLowerCase()">
+                  {{ customizingProduct.product_type }}
+                </span>
+              </div>
+              <div class="small text-muted">{{ customizingProduct.category_name }}</div>
+            </div>
           </div>
           <button type="button" class="btn-close-custom" @click="closeCustomizeModal">
             <i class="bi bi-x-lg"></i>
@@ -408,21 +429,32 @@
         <div class="modal-body-custom">
           <!-- 1. Select Variant (Size / Temperature) -->
           <div class="mb-3">
-            <label class="form-label-clean">1. Choose Size / Variant</label>
-            <div class="variant-grid">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <label class="section-label-modern">{{ $t('pos.chooseSizeVariant') }}</label>
+              <span class="small text-muted">{{ $t('pos.availableCount', { count: getActiveVariants(customizingProduct).length }) }}</span>
+            </div>
+            <div class="variant-grid-modern">
               <button
                 v-for="v in getActiveVariants(customizingProduct)"
                 :key="v.id"
                 type="button"
-                class="variant-choice-btn"
+                class="variant-card-modern"
                 :class="{ active: customForm.variant_id === v.id }"
                 @click="selectVariantInModal(v)"
               >
-                <div class="fw-bold">{{ v.name }}</div>
-                <div class="small text-muted" v-if="v.temperature && v.temperature !== 'NONE'">
-                  {{ v.temperature }}
+                <div class="d-flex align-items-start justify-content-between gap-1 mb-1">
+                  <span class="variant-name">{{ v.name }}</span>
+                  <div class="variant-radio-indicator">
+                    <i class="bi bi-check2"></i>
+                  </div>
                 </div>
-                <div class="variant-price mt-1">{{ formatUsd(v.price) }}</div>
+                <div class="variant-specs">
+                  <span v-if="v.temperature && v.temperature !== 'NONE'" class="spec-pill" :class="v.temperature.toLowerCase()">
+                    {{ v.temperature }}
+                  </span>
+                  <span v-if="v.size" class="spec-pill size">{{ v.size }}</span>
+                </div>
+                <div class="variant-price-modern">{{ formatUsd(v.price) }}</div>
               </button>
             </div>
           </div>
@@ -430,13 +462,13 @@
           <!-- 2. Drink Customizations: Sugar & Ice -->
           <template v-if="customizingProduct.product_type === 'DRINK'">
             <div class="mb-3">
-              <label class="form-label-clean">2. Sugar Level</label>
-              <div class="option-pills">
+              <label class="section-label-modern">{{ $t('pos.sugarLevelTitle') }}</label>
+              <div class="option-pills-modern">
                 <button
                   v-for="s in sugarOptions"
                   :key="s"
                   type="button"
-                  class="opt-pill"
+                  class="opt-pill-modern"
                   :class="{ active: customForm.sugar_level === s }"
                   @click="customForm.sugar_level = s"
                 >
@@ -446,13 +478,13 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label-clean">3. Ice Level</label>
-              <div class="option-pills">
+              <label class="section-label-modern">{{ $t('pos.iceLevelTitle') }}</label>
+              <div class="option-pills-modern">
                 <button
                   v-for="ice in iceOptions"
                   :key="ice.value"
                   type="button"
-                  class="opt-pill"
+                  class="opt-pill-modern"
                   :class="{ active: customForm.ice_level === ice.value }"
                   @click="customForm.ice_level = ice.value"
                 >
@@ -463,19 +495,17 @@
 
             <!-- 4. Add-ons (for Drinks) -->
             <div v-if="availableAddons.length > 0" class="mb-3">
-              <label class="form-label-clean">4. Extra Add-ons (Optional)</label>
-              <div class="addons-list">
+              <label class="section-label-modern">{{ $t('pos.extraAddons') }}</label>
+              <div class="addons-grid-modern">
                 <div
                   v-for="addon in availableAddons"
                   :key="addon.variant_id"
-                  class="addon-row"
+                  class="addon-card-modern"
                   :class="{ selected: getAddonQty(addon.variant_id) > 0 }"
                 >
-                  <div>
-                    <div class="fw-semibold small text-dark">{{ addon.display_name }}</div>
-                    <div class="text-muted" style="font-size: 0.75rem">
-                      +{{ formatUsd(addon.price) }}
-                    </div>
+                  <div class="addon-info">
+                    <div class="fw-semibold text-dark small">{{ addon.display_name }}</div>
+                    <div class="addon-price">+{{ formatUsd(addon.price) }}</div>
                   </div>
 
                   <div class="qty-stepper-sm">
@@ -504,49 +534,53 @@
           </template>
 
           <!-- Quantity & Item Note -->
-          <div class="row g-2 align-items-end">
-            <div class="col-5">
-              <label class="form-label-clean">Quantity</label>
-              <div class="qty-stepper-lg">
+          <div class="row g-2 align-items-end pt-1">
+            <div class="col-sm-5">
+              <label class="section-label-modern">{{ $t('pos.quantity') }}</label>
+              <div class="qty-stepper-modern">
                 <button
                   type="button"
-                  class="qty-btn-lg"
+                  class="qty-btn-modern"
                   :disabled="customForm.quantity <= 1"
                   @click="customForm.quantity = Math.max(1, customForm.quantity - 1)"
                 >
-                  <i class="bi bi-dash"></i>
+                  <i class="bi bi-dash-lg"></i>
                 </button>
-                <span class="qty-val-lg">{{ customForm.quantity }}</span>
+                <span class="qty-val-modern">{{ customForm.quantity }}</span>
                 <button
                   type="button"
-                  class="qty-btn-lg"
+                  class="qty-btn-modern"
                   @click="customForm.quantity++"
                 >
-                  <i class="bi bi-plus"></i>
+                  <i class="bi bi-plus-lg"></i>
                 </button>
               </div>
             </div>
-            <div class="col-7">
-              <label class="form-label-clean">Special Instruction</label>
-              <input
-                v-model="customForm.note"
-                type="text"
-                class="form-control form-control-clean"
-                placeholder="e.g. Less sweet, oat milk..."
-                maxlength="200"
-              />
+            <div class="col-sm-7">
+              <label class="section-label-modern">{{ $t('pos.specialInstruction') }}</label>
+              <div class="note-input-wrap">
+                <i class="bi bi-pencil note-input-icon"></i>
+                <input
+                  v-model="customForm.note"
+                  type="text"
+                  class="form-control form-control-clean note-input"
+                  :placeholder="$t('pos.specialInstructionPlaceholder')"
+                  maxlength="200"
+                />
+              </div>
             </div>
           </div>
         </div>
 
         <div class="modal-footer-custom">
-          <button type="button" class="btn btn-light-coffee" @click="closeCustomizeModal">
-            Cancel
+          <button type="button" class="btn btn-ghost-cancel" @click="closeCustomizeModal">
+            {{ $t('common.cancel') }}
           </button>
-          <button type="button" class="btn btn-coffee flex-grow-1" @click="confirmCustomizedItem">
-            <i class="bi bi-cart-plus me-1"></i>
-            {{ editingCartIndex !== null ? 'Update Item' : 'Add to Order' }} •
-            {{ formatUsd(customizedPreviewTotal) }}
+          <button type="button" class="btn btn-add-order flex-grow-1" @click="confirmCustomizedItem">
+            <i class="bi bi-cart-plus me-1.5"></i>
+            <span>{{ editingCartIndex !== null ? $t('pos.updateItem') : $t('pos.addToOrder') }}</span>
+            <span class="footer-btn-divider">•</span>
+            <span class="footer-btn-price">{{ formatUsd(customizedPreviewTotal) }}</span>
           </button>
         </div>
       </div>
@@ -556,7 +590,7 @@
     <div v-if="showDiscountModal" class="modal-backdrop-custom" @click.self="showDiscountModal = false">
       <div class="modal-card-custom modal-sm-custom">
         <div class="modal-header-custom">
-          <h6 class="mb-0 fw-bold">Order Discount</h6>
+          <h6 class="mb-0 fw-bold">{{ $t('pos.orderDiscountTitle') }}</h6>
           <button type="button" class="btn-close-custom" @click="showDiscountModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
@@ -564,7 +598,7 @@
 
         <div class="modal-body-custom">
           <div class="mb-3">
-            <label class="form-label-clean">Discount Type</label>
+            <label class="form-label-clean">{{ $t('pos.discountType') }}</label>
             <div class="option-pills">
               <button
                 type="button"
@@ -572,7 +606,7 @@
                 :class="{ active: discountDraft.type === 'NONE' }"
                 @click="discountDraft.type = 'NONE'"
               >
-                None
+                {{ $t('pos.none') }}
               </button>
               <button
                 type="button"
@@ -580,7 +614,7 @@
                 :class="{ active: discountDraft.type === 'PERCENT' }"
                 @click="discountDraft.type = 'PERCENT'"
               >
-                Percent (%)
+                {{ $t('pos.percent') }}
               </button>
               <button
                 type="button"
@@ -588,7 +622,7 @@
                 :class="{ active: discountDraft.type === 'FIXED' }"
                 @click="discountDraft.type = 'FIXED'"
               >
-                Fixed ($)
+                {{ $t('pos.fixed') }}
               </button>
             </div>
           </div>
@@ -596,7 +630,7 @@
           <template v-if="discountDraft.type !== 'NONE'">
             <div class="mb-3">
               <label class="form-label-clean">
-                {{ discountDraft.type === 'PERCENT' ? 'Percentage (1% - 100%)' : 'Amount in USD ($)' }}
+                {{ discountDraft.type === 'PERCENT' ? $t('pos.percentageRange') : $t('pos.amountInUsd') }}
               </label>
               <input
                 v-model.number="discountDraft.value"
@@ -610,19 +644,19 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label-clean">Discount Reason <span class="text-danger">*</span></label>
+              <label class="form-label-clean">{{ $t('pos.discountReason') }} <span class="text-danger">*</span></label>
               <input
                 v-model="discountDraft.reason"
                 type="text"
                 class="form-control form-control-clean"
-                placeholder="e.g. Member promo, VIP guest, Staff discount"
+                :placeholder="$t('pos.discountReasonPlaceholder')"
                 maxlength="255"
               />
             </div>
 
             <div v-if="!authStore.isOwner" class="mb-2">
               <label class="form-label-clean">
-                Approved By Owner ID <span class="text-danger">*</span>
+                {{ $t('pos.approvedByOwnerId') }} <span class="text-danger">*</span>
               </label>
               <input
                 v-model.number="discountDraft.approved_by"
@@ -632,7 +666,7 @@
                 placeholder="Owner User ID (e.g. 1)"
               />
               <div class="form-text small">
-                Discounts applied by Staff require an active Owner ID.
+                {{ $t('pos.discountOwnerHint') }}
               </div>
             </div>
           </template>
@@ -640,10 +674,10 @@
 
         <div class="modal-footer-custom">
           <button type="button" class="btn btn-light-coffee" @click="clearDiscount">
-            Remove
+            {{ $t('common.remove') }}
           </button>
           <button type="button" class="btn btn-coffee flex-grow-1" @click="applyDiscountDraft">
-            Apply Discount
+            {{ $t('pos.applyDiscount') }}
           </button>
         </div>
       </div>
@@ -653,27 +687,27 @@
     <div v-if="showNoteModal" class="modal-backdrop-custom" @click.self="showNoteModal = false">
       <div class="modal-card-custom modal-sm-custom">
         <div class="modal-header-custom">
-          <h6 class="mb-0 fw-bold">Order Note</h6>
+          <h6 class="mb-0 fw-bold">{{ $t('pos.orderNote') }}</h6>
           <button type="button" class="btn-close-custom" @click="showNoteModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
         <div class="modal-body-custom">
-          <label class="form-label-clean">General Note for Kitchen / Receipt</label>
+          <label class="form-label-clean">{{ $t('pos.generalNoteLabel') }}</label>
           <textarea
             v-model="orderForm.note"
             rows="3"
             class="form-control form-control-clean"
-            placeholder="Write any special note for this order..."
+            :placeholder="$t('pos.orderNotePlaceholder')"
             maxlength="500"
           ></textarea>
         </div>
         <div class="modal-footer-custom">
           <button type="button" class="btn btn-light-coffee" @click="orderForm.note = ''; showNoteModal = false">
-            Clear
+            {{ $t('common.clear') }}
           </button>
           <button type="button" class="btn btn-coffee flex-grow-1" @click="showNoteModal = false">
-            Save Note
+            {{ $t('pos.saveNote') }}
           </button>
         </div>
       </div>
@@ -684,9 +718,9 @@
       <div class="modal-card-custom modal-lg-custom">
         <div class="modal-header-custom">
           <div>
-            <h6 class="mb-0 fw-bold">Complete Payment</h6>
+            <h6 class="mb-0 fw-bold">{{ $t('pos.completePayment') }}</h6>
             <div class="small text-muted">
-              {{ activeCheckoutOrder ? `Order ${activeCheckoutOrder.receipt_no} (Queue #${activeCheckoutOrder.queue_no})` : 'New Order Checkout' }}
+              {{ activeCheckoutOrder ? `${activeCheckoutOrder.receipt_no} (#${activeCheckoutOrder.queue_no})` : $t('pos.newOrderCheckout') }}
             </div>
           </div>
           <button type="button" class="btn-close-custom" :disabled="isProcessingPayment" @click="closePaymentModal">
@@ -698,11 +732,11 @@
           <!-- Total Banner -->
           <div class="payment-total-banner mb-3">
             <div>
-              <div class="small text-uppercase fw-semibold opacity-75">Total Due</div>
+              <div class="small text-uppercase fw-semibold opacity-75">{{ $t('pos.totalDue') }}</div>
               <div class="fs-3 fw-bold">{{ formatUsd(checkoutTotalUsd) }}</div>
             </div>
             <div class="text-end">
-              <div class="small opacity-75">In Khmer Riel (1$ = {{ exchangeRate.toLocaleString() }} ៛)</div>
+              <div class="small opacity-75">{{ $t('pos.inKhmerRiel', { rate: exchangeRate.toLocaleString() }) }}</div>
               <div class="fs-4 fw-bold">{{ formatKhr(checkoutTotalKhr) }}</div>
             </div>
           </div>
@@ -710,7 +744,7 @@
           <div class="row g-3">
             <!-- Payment Method -->
             <div class="col-md-7">
-              <label class="form-label-clean">1. Payment Method</label>
+              <label class="form-label-clean">{{ $t('pos.step1PaymentMethod') }}</label>
               <div class="method-grid mb-3">
                 <button
                   type="button"
@@ -719,7 +753,7 @@
                   @click="selectPaymentMethod('CASH')"
                 >
                   <i class="bi bi-cash-stack fs-5"></i>
-                  <span>Cash</span>
+                  <span>{{ $t('common.cash') }}</span>
                 </button>
                 <button
                   type="button"
@@ -728,21 +762,12 @@
                   @click="selectPaymentMethod('KHQR')"
                 >
                   <i class="bi bi-qr-code-scan fs-5"></i>
-                  <span>KHQR</span>
-                </button>
-                <button
-                  type="button"
-                  class="method-btn"
-                  :class="{ active: paymentForm.method === 'BANK_TRANSFER' }"
-                  @click="selectPaymentMethod('BANK_TRANSFER')"
-                >
-                  <i class="bi bi-bank fs-5"></i>
-                  <span>Bank Transfer</span>
+                  <span>{{ $t('common.khqr') }}</span>
                 </button>
               </div>
 
               <!-- Currency Paid By Customer -->
-              <label class="form-label-clean">2. Payment Currency</label>
+              <label class="form-label-clean">{{ $t('pos.step2PaymentCurrency') }}</label>
               <div class="option-pills mb-3">
                 <button
                   type="button"
@@ -766,7 +791,7 @@
               <template v-if="paymentForm.method === 'CASH'">
                 <div class="mb-3">
                   <label class="form-label-clean">
-                    3. Cash Received ({{ paymentForm.currency }})
+                    {{ $t('pos.step3CashReceived', { currency: paymentForm.currency }) }}
                   </label>
                   <input
                     v-model.number="paymentForm.received_amount"
@@ -783,7 +808,14 @@
                       class="quick-cash-btn"
                       @click="paymentForm.received_amount = requiredBillAmount"
                     >
-                      Exact ({{ paymentForm.currency === 'USD' ? formatUsd(requiredBillAmount) : formatKhr(requiredBillAmount) }})
+                      {{
+                        $t('pos.exactAmount', {
+                          amount:
+                            paymentForm.currency === 'USD'
+                              ? formatUsd(requiredBillAmount)
+                              : formatKhr(requiredBillAmount),
+                        })
+                      }}
                     </button>
                     <button
                       v-for="preset in quickCashPresets"
@@ -799,7 +831,7 @@
 
                 <!-- Change Currency Preference -->
                 <div class="mb-2">
-                  <label class="form-label-clean">4. Give Change In</label>
+                  <label class="form-label-clean">{{ $t('pos.step4GiveChangeIn') }}</label>
                   <div class="option-pills">
                     <button
                       type="button"
@@ -824,7 +856,7 @@
               <!-- KHQR / BANK_TRANSFER Specific Inputs -->
               <template v-else>
                 <div class="mb-3">
-                  <label class="form-label-clean">Bank / Wallet Name</label>
+                  <label class="form-label-clean">{{ $t('pos.bankWalletName') }}</label>
                   <div class="quick-cash-pills mb-2">
                     <button
                       v-for="b in ['ABA KHQR', 'ACLEDA', 'Wing', 'Bakong', 'Canadia']"
@@ -841,18 +873,18 @@
                     v-model="paymentForm.bank_name"
                     type="text"
                     class="form-control form-control-clean"
-                    placeholder="e.g. ABA Bank, ACLEDA..."
+                    :placeholder="$t('pos.bankPlaceholder')"
                     maxlength="50"
                   />
                 </div>
 
                 <div class="mb-2">
-                  <label class="form-label-clean">Transaction Reference (Optional)</label>
+                  <label class="form-label-clean">{{ $t('pos.transactionRef') }}</label>
                   <input
                     v-model="paymentForm.reference"
                     type="text"
                     class="form-control form-control-clean"
-                    placeholder="Ref # or last 4 digits"
+                    :placeholder="$t('pos.transactionRefPlaceholder')"
                     maxlength="150"
                   />
                 </div>
@@ -863,15 +895,15 @@
             <div class="col-md-5">
               <div class="payment-summary-box h-100 d-flex flex-column justify-content-between">
                 <div>
-                  <div class="fw-bold text-dark mb-2 pb-2 border-bottom">Payment Breakdown</div>
+                  <div class="fw-bold text-dark mb-2 pb-2 border-bottom">{{ $t('pos.paymentBreakdown') }}</div>
 
                   <div class="d-flex justify-content-between small mb-2">
-                    <span class="text-muted">Method</span>
+                    <span class="text-muted">{{ $t('pos.method') }}</span>
                     <span class="fw-semibold">{{ paymentForm.method }}</span>
                   </div>
 
                   <div class="d-flex justify-content-between small mb-2">
-                    <span class="text-muted">Required Bill</span>
+                    <span class="text-muted">{{ $t('pos.requiredBill') }}</span>
                     <span class="fw-bold">
                       {{
                         paymentForm.currency === 'USD'
@@ -882,7 +914,7 @@
                   </div>
 
                   <div class="d-flex justify-content-between small mb-3">
-                    <span class="text-muted">Received</span>
+                    <span class="text-muted">{{ $t('pos.received') }}</span>
                     <span class="fw-bold text-primary">
                       {{
                         paymentForm.currency === 'USD'
@@ -899,7 +931,7 @@
                     :class="{ 'insufficient': !isCashSufficient }"
                   >
                     <div class="small fw-semibold mb-1">
-                      {{ isCashSufficient ? 'Change to Return' : 'Insufficient Cash' }}
+                      {{ isCashSufficient ? $t('pos.changeToReturn') : $t('pos.insufficientCash') }}
                     </div>
                     <template v-if="isCashSufficient">
                       <div class="fs-4 fw-bold text-success">
@@ -910,7 +942,7 @@
                         }}
                       </div>
                       <div class="small text-muted">
-                        Equivalent:
+                        {{ $t('pos.equivalent') }}
                         {{
                           paymentForm.change_currency === 'USD'
                             ? formatKhr(usdToKhr(calculatedChange.changeUsd))
@@ -920,35 +952,36 @@
                     </template>
                     <template v-else>
                       <div class="small text-danger">
-                        Short by
                         {{
-                          paymentForm.currency === 'USD'
-                            ? formatUsd(requiredBillAmount - effectiveReceivedAmount)
-                            : formatKhr(requiredBillAmount - effectiveReceivedAmount)
+                          $t('pos.shortBy', {
+                            amount:
+                              paymentForm.currency === 'USD'
+                                ? formatUsd(requiredBillAmount - effectiveReceivedAmount)
+                                : formatKhr(requiredBillAmount - effectiveReceivedAmount),
+                          })
                         }}
                       </div>
                     </template>
                   </div>
 
                   <div v-else class="change-callout">
-                    <div class="small fw-semibold mb-1">Exact Digital Payment</div>
+                    <div class="small fw-semibold mb-1">{{ $t('pos.exactDigitalPayment') }}</div>
                     <div class="small text-muted">
-                      Verify the customer transfer of
-                      <strong>
-                        {{
-                          paymentForm.currency === 'USD'
-                            ? formatUsd(checkoutTotalUsd)
-                            : formatKhr(checkoutTotalKhr)
-                        }}
-                      </strong>
-                      before confirming.
+                      {{
+                        $t('pos.verifyTransferHint', {
+                          amount:
+                            paymentForm.currency === 'USD'
+                              ? formatUsd(checkoutTotalUsd)
+                              : formatKhr(checkoutTotalKhr),
+                        })
+                      }}
                     </div>
                   </div>
                 </div>
 
                 <div class="mt-3 pt-2 border-top small text-muted">
                   <i class="bi bi-shield-check me-1"></i>
-                  Stock recipes & cash drawer update automatically upon payment.
+                  {{ $t('pos.autoUpdateStockNote') }}
                 </div>
               </div>
             </div>
@@ -962,7 +995,7 @@
             :disabled="isProcessingPayment"
             @click="closePaymentModal"
           >
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button
             type="button"
@@ -972,11 +1005,13 @@
           >
             <span v-if="isProcessingPayment" class="spinner-border spinner-border-sm me-2"></span>
             <i v-else class="bi bi-check2-circle me-1"></i>
-            Confirm Payment •
             {{
-              paymentForm.currency === 'USD'
-                ? formatUsd(checkoutTotalUsd)
-                : formatKhr(checkoutTotalKhr)
+              $t('pos.confirmPayment', {
+                amount:
+                  paymentForm.currency === 'USD'
+                    ? formatUsd(checkoutTotalUsd)
+                    : formatKhr(checkoutTotalKhr),
+              })
             }}
           </button>
         </div>
@@ -988,8 +1023,8 @@
       <div class="modal-card-custom modal-lg-custom">
         <div class="modal-header-custom">
           <div>
-            <h6 class="mb-0 fw-bold">Active Open Orders (Unpaid)</h6>
-            <div class="small text-muted">Resume an open order to modify items or complete payment.</div>
+            <h6 class="mb-0 fw-bold">{{ $t('pos.activeOpenOrdersTitle') }}</h6>
+            <div class="small text-muted">{{ $t('pos.activeOpenOrdersDesc') }}</div>
           </div>
           <button type="button" class="btn-close-custom" @click="showOpenOrdersModal = false">
             <i class="bi bi-x-lg"></i>
@@ -999,13 +1034,13 @@
         <div class="modal-body-custom">
           <div v-if="isLoadingOpenOrders" class="text-center py-4">
             <div class="spinner-border spinner-border-sm text-secondary me-2"></div>
-            <span class="small text-muted">Loading open orders...</span>
+            <span class="small text-muted">{{ $t('pos.loadingOpenOrders') }}</span>
           </div>
 
           <div v-else-if="openOrdersList.length === 0" class="text-center py-4">
             <i class="bi bi-check2-all fs-2 text-success d-block mb-1"></i>
-            <div class="fw-semibold">No Open Orders</div>
-            <div class="small text-muted">All orders in this shift have been settled.</div>
+            <div class="fw-semibold">{{ $t('pos.noOpenOrders') }}</div>
+            <div class="small text-muted">{{ $t('pos.noOpenOrdersDesc') }}</div>
           </div>
 
           <div v-else class="open-orders-list">
@@ -1016,14 +1051,14 @@
             >
               <div>
                 <div class="d-flex align-items-center gap-2">
-                  <span class="fw-bold text-dark">Queue #{{ ord.queue_no }}</span>
+                  <span class="fw-bold text-dark">{{ $t('receipt.queue') }} #{{ ord.queue_no }}</span>
                   <span class="badge bg-light text-dark border">{{ ord.receipt_no }}</span>
                   <span class="badge" :class="ord.order_type === 'DINE_IN' ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary'">
-                    {{ ord.order_type === 'DINE_IN' ? `Dine-In ${ord.table_no ? `(${ord.table_no})` : ''}` : 'Takeaway' }}
+                    {{ ord.order_type === 'DINE_IN' ? `${$t('common.dineIn')} ${ord.table_no ? `(${ord.table_no})` : ''}` : $t('common.takeaway') }}
                   </span>
                 </div>
                 <div class="small text-muted mt-1">
-                  {{ ord.total_items }} item(s) • Created {{ formatDateTime(ord.created_at) }}
+                  {{ $t('orders.itemsCount', { count: ord.total_items }) }} • {{ formatDateTime(ord.created_at) }}
                 </div>
               </div>
 
@@ -1037,14 +1072,14 @@
                   class="btn btn-light-coffee btn-sm"
                   @click="loadOrderIntoCart(ord.id)"
                 >
-                  <i class="bi bi-pencil-square me-1"></i>Edit
+                  <i class="bi bi-pencil-square me-1"></i>{{ $t('common.edit') }}
                 </button>
                 <button
                   type="button"
                   class="btn btn-coffee btn-sm"
                   @click="payExistingOpenOrder(ord.id)"
                 >
-                  <i class="bi bi-cash-coin me-1"></i>Pay
+                  <i class="bi bi-cash-coin me-1"></i>{{ $t('pos.pay') }}
                 </button>
               </div>
             </div>
@@ -1059,7 +1094,7 @@
         <div class="modal-header-custom no-print">
           <div class="d-flex align-items-center gap-2 text-success fw-bold">
             <i class="bi bi-check-circle-fill"></i>
-            <span>Payment Completed</span>
+            <span>{{ $t('receipt.paymentCompleted') }}</span>
           </div>
           <button type="button" class="btn-close-custom" @click="closeReceiptModal">
             <i class="bi bi-x-lg"></i>
@@ -1081,24 +1116,24 @@
                 {{ appStore.settings.address }}
               </div>
               <div v-if="appStore.settings.phone" class="receipt-sub">
-                Tel: {{ appStore.settings.phone }}
+                {{ $t('receipt.tel') }}: {{ appStore.settings.phone }}
               </div>
             </div>
 
             <div class="receipt-divider"></div>
 
             <div class="d-flex justify-content-between receipt-meta">
-              <span>Receipt: <strong>{{ completedReceipt.order.receipt_no }}</strong></span>
-              <span>Queue: <strong>#{{ completedReceipt.order.queue_no }}</strong></span>
+              <span>{{ $t('receipt.receipt') }}: <strong>{{ completedReceipt.order.receipt_no }}</strong></span>
+              <span>{{ $t('receipt.queue') }}: <strong>#{{ completedReceipt.order.queue_no }}</strong></span>
             </div>
             <div class="d-flex justify-content-between receipt-meta">
-              <span>Type: {{ completedReceipt.order.order_type }}</span>
+              <span>{{ $t('receipt.type') }}: {{ completedReceipt.order.order_type === 'DINE_IN' ? $t('common.dineIn') : $t('common.takeaway') }}</span>
               <span v-if="completedReceipt.order.table_no">
-                Table: <strong>{{ completedReceipt.order.table_no }}</strong>
+                {{ $t('receipt.table') }}: <strong>{{ completedReceipt.order.table_no }}</strong>
               </span>
             </div>
             <div class="d-flex justify-content-between receipt-meta">
-              <span>Cashier: {{ completedReceipt.order.cashier?.name || authStore.user?.name }}</span>
+              <span>{{ $t('receipt.cashier') }}: {{ completedReceipt.order.cashier?.name || authStore.user?.name }}</span>
               <span>{{ formatDateTime(completedReceipt.payment?.paid_at || completedReceipt.order.created_at) }}</span>
             </div>
 
@@ -1121,9 +1156,9 @@
                   v-if="item.sugar_level !== null || item.ice_level"
                   class="receipt-item-sub"
                 >
-                  <span v-if="item.sugar_level !== null">Sugar {{ item.sugar_level }}%</span>
+                  <span v-if="item.sugar_level !== null">{{ $t('receipt.sugar') }} {{ item.sugar_level }}%</span>
                   <span v-if="item.sugar_level !== null && item.ice_level"> • </span>
-                  <span v-if="item.ice_level">Ice {{ item.ice_level }}</span>
+                  <span v-if="item.ice_level">{{ $t('receipt.ice') }} {{ item.ice_level }}</span>
                 </div>
                 <div
                   v-for="addon in item.addons || []"
@@ -1140,29 +1175,29 @@
 
             <!-- Totals -->
             <div class="d-flex justify-content-between receipt-meta">
-              <span>Subtotal</span>
+              <span>{{ $t('receipt.subtotal') }}</span>
               <span>{{ formatUsd(completedReceipt.order.subtotal) }}</span>
             </div>
             <div
               v-if="completedReceipt.order.discount?.amount > 0"
               class="d-flex justify-content-between receipt-meta"
             >
-              <span>Discount</span>
+              <span>{{ $t('receipt.discount') }}</span>
               <span>-{{ formatUsd(completedReceipt.order.discount.amount) }}</span>
             </div>
             <div class="d-flex justify-content-between fw-bold mt-1">
-              <span>TOTAL (USD)</span>
+              <span>{{ $t('receipt.totalUsd') }}</span>
               <span>{{ formatUsd(completedReceipt.order.total) }}</span>
             </div>
             <div class="d-flex justify-content-between fw-semibold receipt-meta">
-              <span>TOTAL (KHR)</span>
+              <span>{{ $t('receipt.totalKhr') }}</span>
               <span>{{ formatKhr(usdToKhr(completedReceipt.order.total)) }}</span>
             </div>
 
             <template v-if="completedReceipt.payment">
               <div class="receipt-divider"></div>
               <div class="d-flex justify-content-between receipt-meta">
-                <span>Paid By ({{ completedReceipt.payment.method }})</span>
+                <span>{{ $t('receipt.paidBy', { method: completedReceipt.payment.method }) }}</span>
                 <span>
                   {{
                     completedReceipt.payment.currency === 'USD'
@@ -1175,31 +1210,31 @@
                 v-if="completedReceipt.payment.change_usd > 0"
                 class="d-flex justify-content-between receipt-meta"
               >
-                <span>Change (USD)</span>
+                <span>{{ $t('receipt.changeUsd') }}</span>
                 <span>{{ formatUsd(completedReceipt.payment.change_usd) }}</span>
               </div>
               <div
                 v-if="completedReceipt.payment.change_khr > 0"
                 class="d-flex justify-content-between receipt-meta"
               >
-                <span>Change (KHR)</span>
+                <span>{{ $t('receipt.changeKhr') }}</span>
                 <span>{{ formatKhr(completedReceipt.payment.change_khr) }}</span>
               </div>
             </template>
 
             <div class="receipt-divider"></div>
             <div class="text-center receipt-sub mt-1">
-              {{ appStore.settings.receipt_footer || 'Thank you for visiting!' }}
+              {{ appStore.settings.receipt_footer || $t('receipt.thankYouDefault') }}
             </div>
           </div>
         </div>
 
         <div class="modal-footer-custom no-print">
           <button type="button" class="btn btn-light-coffee" @click="printReceipt">
-            <i class="bi bi-printer me-1"></i>Print Receipt
+            <i class="bi bi-printer me-1"></i>{{ $t('receipt.printReceipt') }}
           </button>
           <button type="button" class="btn btn-coffee flex-grow-1" @click="closeReceiptModal">
-            <i class="bi bi-plus-circle me-1"></i>New Order
+            <i class="bi bi-plus-circle me-1"></i>{{ $t('receipt.newOrder') }}
           </button>
         </div>
       </div>
@@ -1214,8 +1249,8 @@
       <div class="modal-card-custom modal-sm-custom">
         <div class="modal-header-custom">
           <div>
-            <h6 class="mb-0 fw-bold">Open Cashier Shift</h6>
-            <div class="small text-muted">Enter starting cash in drawer to begin</div>
+            <h6 class="mb-0 fw-bold">{{ $t('pos.openCashierShiftTitle') }}</h6>
+            <div class="small text-muted">{{ $t('pos.openCashierShiftDesc') }}</div>
           </div>
           <button type="button" class="btn-close-custom" @click="showQuickShiftModal = false">
             <i class="bi bi-x-lg"></i>
@@ -1226,7 +1261,7 @@
           <div class="modal-body-custom">
             <!-- Opening Cash USD -->
             <div class="mb-3">
-              <label class="form-label-clean">Opening Cash (USD)</label>
+              <label class="form-label-clean">{{ $t('pos.openingCashUsd') }}</label>
               <div class="input-group">
                 <span class="input-group-text bg-light border-end-0 fw-bold text-muted">$</span>
                 <input
@@ -1244,7 +1279,7 @@
 
             <!-- Opening Cash KHR -->
             <div class="mb-3">
-              <label class="form-label-clean">Opening Cash (KHR)</label>
+              <label class="form-label-clean">{{ $t('pos.openingCashKhr') }}</label>
               <div class="input-group">
                 <input
                   v-model.number="quickShiftForm.opening_cash_khr"
@@ -1261,12 +1296,12 @@
 
             <!-- Note (Optional) -->
             <div class="mb-2">
-              <label class="form-label-clean">Shift Note (optional)</label>
+              <label class="form-label-clean">{{ $t('pos.shiftNoteOptional') }}</label>
               <input
                 v-model="quickShiftForm.note"
                 type="text"
                 class="form-control"
-                placeholder="e.g. Morning opening"
+                :placeholder="$t('pos.shiftNotePlaceholder')"
               />
             </div>
           </div>
@@ -1278,7 +1313,7 @@
               :disabled="quickShiftForm.isSubmitting"
               @click="showQuickShiftModal = false"
             >
-              Cancel
+              {{ $t('common.cancel') }}
             </button>
             <button
               type="submit"
@@ -1290,7 +1325,7 @@
                 class="spinner-border spinner-border-sm me-1"
               ></span>
               <i v-else class="bi bi-unlock me-1"></i>
-              Start Shift
+              {{ $t('pos.startShift') }}
             </button>
           </div>
         </form>
@@ -1308,6 +1343,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useCurrency } from '@/composables/useCurrency'
 import { useFormatDate } from '@/composables/useFormatDate'
+import { useI18n } from '@/i18n'
 
 const route = useRoute()
 const router = useRouter()
@@ -1316,6 +1352,7 @@ const authStore = useAuthStore()
 const toast = useToast()
 const { exchangeRate, formatUsd, formatKhr, usdToKhr, khrToUsd } = useCurrency()
 const { formatDateTime } = useFormatDate()
+const { t } = useI18n()
 
 // ================= STATE: QUICK OPEN SHIFT =================
 const showQuickShiftModal = ref(false)
@@ -1387,12 +1424,12 @@ const customizingProduct = ref(null)
 const editingCartIndex = ref(null)
 
 const sugarOptions = [0, 25, 50, 75, 100]
-const iceOptions = [
-  { value: 'NONE', label: 'No Ice' },
-  { value: 'LESS', label: 'Less Ice' },
-  { value: 'NORMAL', label: 'Normal Ice' },
-  { value: 'EXTRA', label: 'Extra Ice' },
-]
+const iceOptions = computed(() => [
+  { value: 'NONE', label: t('pos.noIce') },
+  { value: 'LESS', label: t('pos.lessIce') },
+  { value: 'NORMAL', label: t('pos.normalIce') },
+  { value: 'EXTRA', label: t('pos.extraIce') },
+])
 
 const customForm = reactive({
   variant_id: null,
@@ -1807,7 +1844,7 @@ const setOrderType = (type) => {
 }
 
 const formatIceLabel = (ice) => {
-  const found = iceOptions.find((i) => i.value === ice)
+  const found = iceOptions.value.find((i) => i.value === ice)
   return found ? found.label : ice
 }
 
@@ -2248,7 +2285,7 @@ onMounted(async () => {
 
 .search-input:focus {
   background: #ffffff;
-  border-color: #2c1810;
+  border-color: #2d5a43;
   box-shadow: none;
 }
 
@@ -2291,9 +2328,9 @@ onMounted(async () => {
 }
 
 .cat-pill.active {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
-  border-color: #2c1810;
+  border-color: #2d5a43;
 }
 
 /* Product Grid */
@@ -2320,8 +2357,8 @@ onMounted(async () => {
 
 .product-card:hover {
   transform: translateY(-2px);
-  border-color: #2c1810;
-  box-shadow: 0 6px 16px rgba(44, 24, 16, 0.06);
+  border-color: #2d5a43;
+  box-shadow: 0 6px 16px rgba(45, 90, 67, 0.06);
 }
 
 .product-thumb {
@@ -2354,7 +2391,7 @@ onMounted(async () => {
   padding: 0.15rem 0.45rem;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.9);
-  color: #2c1810;
+  color: #2d5a43;
 }
 
 .product-body {
@@ -2390,7 +2427,7 @@ onMounted(async () => {
 .price-usd {
   font-size: 0.95rem;
   font-weight: 800;
-  color: #2c1810;
+  color: #2d5a43;
   line-height: 1.1;
 }
 
@@ -2443,8 +2480,8 @@ onMounted(async () => {
 
 .badge-editing {
   font-size: 0.72rem;
-  background: #ffdcc5;
-  color: #2c1810;
+  background: #d6ede0;
+  color: #2d5a43;
   padding: 0.18rem 0.5rem;
   border-radius: 6px;
   font-weight: 700;
@@ -2478,7 +2515,7 @@ onMounted(async () => {
 
 .type-btn.active {
   background: #ffffff;
-  color: #2c1810;
+  color: #2d5a43;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
@@ -2589,7 +2626,7 @@ onMounted(async () => {
 .cart-item-total {
   font-weight: 800;
   font-size: 0.9rem;
-  color: #2c1810;
+  color: #2d5a43;
 }
 
 .cart-item-unit {
@@ -2606,7 +2643,7 @@ onMounted(async () => {
 }
 
 .btn-edit-item:hover {
-  color: #2c1810;
+  color: #2d5a43;
 }
 
 /* Stepper */
@@ -2660,9 +2697,9 @@ onMounted(async () => {
 
 .btn-xs-action.has-value {
   border-style: solid;
-  border-color: #2c1810;
+  border-color: #2d5a43;
   background: #fff7f0;
-  color: #2c1810;
+  color: #2d5a43;
 }
 
 .totals-box {
@@ -2705,7 +2742,7 @@ onMounted(async () => {
 .grand-usd {
   font-size: 1.2rem;
   font-weight: 800;
-  color: #2c1810;
+  color: #2d5a43;
   line-height: 1.1;
 }
 
@@ -2723,7 +2760,7 @@ onMounted(async () => {
 
 .btn-hold-order {
   background: #f2efeb;
-  color: #2c1810;
+  color: #2d5a43;
   border: 1px solid #dfd9d0;
   border-radius: 11px;
   font-size: 0.82rem;
@@ -2732,7 +2769,7 @@ onMounted(async () => {
 }
 
 .btn-pay-now {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
   border: none;
   border-radius: 11px;
@@ -2748,7 +2785,7 @@ onMounted(async () => {
 
 /* Buttons */
 .btn-coffee {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
   border: none;
   border-radius: 10px;
@@ -2764,7 +2801,7 @@ onMounted(async () => {
 
 .btn-outline-coffee {
   background: #ffffff;
-  color: #2c1810;
+  color: #2d5a43;
   border: 1px solid #dfd9d0;
   border-radius: 10px;
   font-weight: 600;
@@ -2775,7 +2812,7 @@ onMounted(async () => {
 
 .btn-light-coffee {
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   border: 1px solid #e6e1da;
   border-radius: 10px;
   font-weight: 600;
@@ -2826,36 +2863,95 @@ onMounted(async () => {
   max-width: 720px;
 }
 
+.modal-customize-card {
+  max-width: 540px;
+  border-radius: 20px;
+  box-shadow: 0 25px 60px -12px rgba(28, 25, 23, 0.2), 0 0 1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e8e5e0;
+}
+
 .modal-header-custom {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid #eeeae4;
+  padding: 1.1rem 1.35rem;
+  border-bottom: 1px solid #f1ede8;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
+.customize-prod-thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: #f4f6f4;
+  border: 1px solid #e2eae4;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  color: #2d5a43;
+  flex-shrink: 0;
+}
+
+.customize-prod-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.badge-type-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.badge-type-pill.drink {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge-type-pill.food {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-type-pill.addon {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
 .modal-body-custom {
-  padding: 1.15rem 1.25rem;
+  padding: 1.2rem 1.35rem;
   overflow-y: auto;
 }
 
 .modal-footer-custom {
-  padding: 0.9rem 1.25rem;
-  border-top: 1px solid #eeeae4;
+  padding: 1rem 1.35rem;
+  border-top: 1px solid #f1ede8;
   background: #faf9f7;
   display: flex;
-  gap: 0.6rem;
+  gap: 0.65rem;
 }
 
 .btn-close-custom {
   border: none;
   background: #f4f1ed;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #6b7280;
+  transition: all 0.15s ease;
+}
+
+.btn-close-custom:hover {
+  background: #e8e3dc;
+  color: #111827;
 }
 
 .form-label-clean {
@@ -2863,6 +2959,16 @@ onMounted(async () => {
   font-weight: 700;
   color: #4f433d;
   margin-bottom: 0.4rem;
+  display: block;
+}
+
+.section-label-modern {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.45rem;
   display: block;
 }
 
@@ -2875,8 +2981,295 @@ onMounted(async () => {
 
 .form-control-clean:focus {
   background: #ffffff;
-  border-color: #2c1810;
+  border-color: #2d5a43;
   box-shadow: none;
+}
+
+/* Variant Cards Modern */
+.variant-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+  gap: 0.65rem;
+}
+
+.variant-card-modern {
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 13px;
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+  transition: all 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  outline: none !important;
+}
+
+.variant-card-modern:hover:not(.active) {
+  border-color: #cbd5e1;
+  background: #fafafa;
+  transform: translateY(-1px);
+}
+
+.variant-card-modern.active {
+  border-color: #2d5a43;
+  background: #f2f7f4;
+  box-shadow: 0 4px 12px rgba(45, 90, 67, 0.08);
+}
+
+.variant-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.variant-radio-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: transparent;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.variant-card-modern.active .variant-radio-indicator {
+  background: #2d5a43;
+  border-color: #2d5a43;
+  color: #ffffff;
+}
+
+.variant-specs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 0.3rem;
+  margin-bottom: 0.45rem;
+}
+
+.spec-pill {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.spec-pill.hot {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.spec-pill.iced,
+.spec-pill.frappe {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.spec-pill.size {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.variant-price-modern {
+  font-weight: 700;
+  font-size: 0.94rem;
+  color: #2d5a43;
+}
+
+/* Option Pills Modern */
+.option-pills-modern {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.opt-pill-modern {
+  flex: 1 1 auto;
+  min-width: 55px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 10px;
+  padding: 0.48rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.18s ease;
+  cursor: pointer;
+  outline: none !important;
+}
+
+.opt-pill-modern:hover:not(.active) {
+  border-color: #cbd5e1;
+  background: #f9fafb;
+  color: #111827;
+}
+
+.opt-pill-modern.active {
+  background: #2d5a43;
+  color: #ffffff;
+  border-color: #2d5a43;
+  box-shadow: 0 3px 8px rgba(45, 90, 67, 0.22);
+}
+
+/* Add-ons list modern */
+.addons-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.5rem;
+}
+
+.addon-card-modern {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.addon-card-modern.selected {
+  border-color: #2d5a43;
+  background: #f2f7f4;
+}
+
+.addon-price {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2d5a43;
+}
+
+/* Stepper Modern */
+.qty-stepper-modern {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+  height: 42px;
+  padding: 3px 4px;
+}
+
+.qty-btn-modern {
+  border: none;
+  background: #ffffff;
+  color: #374151;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.qty-btn-modern:hover:not(:disabled) {
+  background: #2d5a43;
+  color: #ffffff;
+}
+
+.qty-btn-modern:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.qty-val-modern {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #111827;
+  min-width: 28px;
+  text-align: center;
+}
+
+.note-input-wrap {
+  position: relative;
+}
+
+.note-input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.note-input {
+  height: 42px;
+  border-radius: 12px;
+  border: 1.5px solid #e5e7eb;
+  background: #f9fafb;
+  padding-left: 34px;
+  font-size: 0.86rem;
+}
+
+.note-input:focus {
+  background: #ffffff;
+  border-color: #2d5a43;
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.btn-ghost-cancel {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.88rem;
+  transition: all 0.15s ease;
+}
+
+.btn-ghost-cancel:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.btn-add-order {
+  background: #2d5a43;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 14px rgba(45, 90, 67, 0.28);
+  transition: all 0.18s ease;
+}
+
+.btn-add-order:hover {
+  background: #234634;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(45, 90, 67, 0.32);
+}
+
+.footer-btn-divider {
+  opacity: 0.45;
+}
+
+.footer-btn-price {
+  font-weight: 700;
+  letter-spacing: 0.2px;
 }
 
 /* Variant & Option Pills */
@@ -2896,14 +3289,14 @@ onMounted(async () => {
 }
 
 .variant-choice-btn.active {
-  border-color: #2c1810;
-  background: #fff6ee;
-  box-shadow: inset 0 0 0 1px #2c1810;
+  border-color: #2d5a43;
+  background: #edf7f1;
+  box-shadow: inset 0 0 0 1px #2d5a43;
 }
 
 .variant-price {
   font-weight: 800;
-  color: #2c1810;
+  color: #2d5a43;
   font-size: 0.86rem;
 }
 
@@ -2924,9 +3317,9 @@ onMounted(async () => {
 }
 
 .opt-pill.active {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
-  border-color: #2c1810;
+  border-color: #2d5a43;
 }
 
 /* Add-ons list */
@@ -2947,7 +3340,7 @@ onMounted(async () => {
 }
 
 .addon-row.selected {
-  border-color: #2c1810;
+  border-color: #2d5a43;
   background: #fff7f0;
 }
 
@@ -3002,7 +3395,7 @@ onMounted(async () => {
 
 /* Payment Modal Styles */
 .payment-total-banner {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
   border-radius: 14px;
   padding: 0.9rem 1.15rem;
@@ -3013,7 +3406,7 @@ onMounted(async () => {
 
 .method-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.5rem;
 }
 
@@ -3032,10 +3425,10 @@ onMounted(async () => {
 }
 
 .method-btn.active {
-  border-color: #2c1810;
-  background: #fff6ee;
-  color: #2c1810;
-  box-shadow: inset 0 0 0 1px #2c1810;
+  border-color: #2d5a43;
+  background: #edf7f1;
+  color: #2d5a43;
+  box-shadow: inset 0 0 0 1px #2d5a43;
 }
 
 .quick-cash-pills {
@@ -3051,12 +3444,12 @@ onMounted(async () => {
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #2c1810;
+  color: #2d5a43;
 }
 
 .quick-cash-btn.active,
 .quick-cash-btn:hover {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
 }
 
@@ -3116,7 +3509,7 @@ onMounted(async () => {
   border: 1px dashed #c8c2b8;
   border-radius: 10px;
   padding: 1rem;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: 'Kantumruy Pro', 'Courier New', Courier, monospace;
   font-size: 0.8rem;
   color: #1c1917;
 }

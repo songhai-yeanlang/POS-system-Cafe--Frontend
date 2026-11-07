@@ -483,7 +483,7 @@ const clearFilters = () => {
           @click="activeTab = 'products'"
         >
           <i class="bi bi-cup-hot"></i>
-          <span>Products</span>
+          <span>{{ $t('products.tabProducts') }}</span>
           <span class="tab-badge">{{ pagination.total || products.length }}</span>
         </button>
         <button
@@ -493,7 +493,7 @@ const clearFilters = () => {
           @click="activeTab = 'categories'"
         >
           <i class="bi bi-tags"></i>
-          <span>Categories</span>
+          <span>{{ $t('products.tabCategories') }}</span>
           <span class="tab-badge">{{ categories.length }}</span>
         </button>
       </div>
@@ -506,7 +506,7 @@ const clearFilters = () => {
           @click="openCreateProduct"
         >
           <template #prefix><i class="bi bi-plus-lg"></i></template>
-          Add Product
+          {{ $t('products.addProduct') }}
         </BaseButton>
         <BaseButton
           v-else
@@ -515,7 +515,7 @@ const clearFilters = () => {
           @click="openCreateCategory"
         >
           <template #prefix><i class="bi bi-plus-lg"></i></template>
-          Add Category
+          {{ $t('products.addCategory') }}
         </BaseButton>
       </div>
     </div>
@@ -532,7 +532,7 @@ const clearFilters = () => {
             <BaseInput
               v-model="searchQuery"
               type="search"
-              placeholder="Search product..."
+              :placeholder="$t('products.searchProduct')"
               size="sm"
               clearable
               class="mb-0"
@@ -544,7 +544,7 @@ const clearFilters = () => {
             class="form-select form-select-sm clean-select"
             style="width: auto; min-width: 155px"
           >
-            <option value="">All Categories</option>
+            <option value="">{{ $t('common.allCategories') }}</option>
             <option v-for="cat in categories" :key="cat.id" :value="cat.id">
               {{ cat.name }} ({{ cat.total_products }})
             </option>
@@ -555,10 +555,10 @@ const clearFilters = () => {
             class="form-select form-select-sm clean-select"
             style="width: auto; min-width: 120px"
           >
-            <option value="">All Types</option>
-            <option value="DRINK">Drink</option>
-            <option value="FOOD">Food</option>
-            <option value="ADDON">Add-on</option>
+            <option value="">{{ $t('common.allTypes') }}</option>
+            <option value="DRINK">{{ $t('pos.drink') }}</option>
+            <option value="FOOD">{{ $t('pos.food') }}</option>
+            <option value="ADDON">{{ $t('pos.addon') }}</option>
           </select>
 
           <button
@@ -569,22 +569,22 @@ const clearFilters = () => {
             @click="clearFilters"
           >
             <i class="bi bi-x-circle"></i>
-            <span>Clear</span>
+            <span>{{ $t('common.clear') }}</span>
           </button>
         </div>
         <div v-if="isLoadingProducts" class="text-center py-5 text-muted small">
           <span class="spinner-border spinner-border-sm me-2"></span>
-          Loading products...
+          {{ $t('products.loadingProducts') }}
         </div>
 
         <div v-else-if="products.length === 0" class="text-center py-5 px-3">
           <i class="bi bi-cup-hot fs-2 text-muted d-block mb-2"></i>
-          <div class="fw-semibold mb-1">No products found</div>
+          <div class="fw-semibold mb-1">{{ $t('products.noProductsFound') }}</div>
           <p class="text-muted small mb-3">
-            Add your drinks, food, and add-ons so they appear on the POS screen.
+            {{ $t('products.noProductsFoundDesc') }}
           </p>
           <BaseButton v-if="isOwner" variant="primary" size="sm" @click="openCreateProduct">
-            Add First Product
+            {{ $t('products.addFirstProduct') }}
           </BaseButton>
         </div>
 
@@ -592,12 +592,12 @@ const clearFilters = () => {
           <table class="table align-middle mb-0 clean-table">
             <thead>
               <tr>
-                <th class="ps-4">Product</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Variants & Price</th>
-                <th>Status</th>
-                <th v-if="isOwner" class="text-end pe-4">Actions</th>
+                <th class="ps-4">{{ $t('products.colProduct') }}</th>
+                <th>{{ $t('products.colCategory') }}</th>
+                <th>{{ $t('products.colType') }}</th>
+                <th>{{ $t('products.colVariantsPrice') }}</th>
+                <th>{{ $t('common.status') }}</th>
+                <th v-if="isOwner" class="text-end pe-4">{{ $t('common.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -655,7 +655,7 @@ const clearFilters = () => {
                         :key="v.id"
                         :value="v.id"
                       >
-                        {{ v.name }} — {{ formatUsd(v.price) }}{{ !v.is_active ? ' (Inactive)' : '' }}
+                        {{ v.name }} — {{ formatUsd(v.price) }}{{ !v.is_active ? ` (${$t('common.inactive')})` : '' }}
                       </option>
                     </select>
                   </div>
@@ -667,7 +667,7 @@ const clearFilters = () => {
                     class="status-dot-badge"
                     :class="prod.is_active ? 'status-active' : 'status-inactive'"
                   >
-                    {{ prod.is_active ? 'Active' : 'Inactive' }}
+                    {{ prod.is_active ? $t('common.active') : $t('common.inactive') }}
                   </span>
                 </td>
 
@@ -676,7 +676,7 @@ const clearFilters = () => {
                     <button
                       type="button"
                       class="btn-action"
-                      title="Edit product"
+                      :title="$t('common.edit')"
                       @click="openEditProduct(prod)"
                     >
                       <i class="bi bi-pencil"></i>
@@ -684,7 +684,7 @@ const clearFilters = () => {
                     <button
                       type="button"
                       class="btn-action btn-action--danger"
-                      title="Delete product"
+                      :title="$t('common.delete')"
                       @click="confirmDeleteProduct(prod)"
                     >
                       <i class="bi bi-trash3"></i>
@@ -701,7 +701,7 @@ const clearFilters = () => {
           v-if="pagination.totalPages > 1"
           class="d-flex align-items-center justify-content-between px-4 py-3 border-top small text-muted"
         >
-          <span>Page {{ pagination.page }} of {{ pagination.totalPages }}</span>
+          <span>{{ $t('common.pageOf', { page: pagination.page, total: pagination.totalPages }) }}</span>
           <div class="d-flex gap-2">
             <BaseButton
               variant="secondary"
@@ -709,7 +709,7 @@ const clearFilters = () => {
               :disabled="pagination.page <= 1"
               @click="fetchProducts(pagination.page - 1)"
             >
-              Previous
+              {{ $t('common.previous') }}
             </BaseButton>
             <BaseButton
               variant="secondary"
@@ -717,7 +717,7 @@ const clearFilters = () => {
               :disabled="pagination.page >= pagination.totalPages"
               @click="fetchProducts(pagination.page + 1)"
             >
-              Next
+              {{ $t('common.next') }}
             </BaseButton>
           </div>
         </div>
@@ -731,17 +731,17 @@ const clearFilters = () => {
       <div class="clean-card bg-white overflow-hidden">
         <div v-if="isLoadingCategories" class="text-center py-5 text-muted small">
           <span class="spinner-border spinner-border-sm me-2"></span>
-          Loading categories...
+          {{ $t('products.loadingCategories') }}
         </div>
 
         <div v-else-if="categories.length === 0" class="text-center py-5 px-3">
           <i class="bi bi-tags fs-2 text-muted d-block mb-2"></i>
-          <div class="fw-semibold mb-1">No categories yet</div>
+          <div class="fw-semibold mb-1">{{ $t('products.noCategoriesYet') }}</div>
           <p class="text-muted small mb-3">
-            Create categories like Coffee, Non-Coffee, Bakery, or Add-ons first.
+            {{ $t('products.noCategoriesYetDesc') }}
           </p>
           <BaseButton v-if="isOwner" variant="primary" size="sm" @click="openCreateCategory">
-            Create First Category
+            {{ $t('products.createFirstCategory') }}
           </BaseButton>
         </div>
 
@@ -749,11 +749,11 @@ const clearFilters = () => {
           <table class="table align-middle mb-0 clean-table">
             <thead>
               <tr>
-                <th class="ps-4" style="width: 90px">Order</th>
-                <th>Category Name</th>
-                <th>Products</th>
-                <th>Status</th>
-                <th v-if="isOwner" class="text-end pe-4">Actions</th>
+                <th class="ps-4" style="width: 90px">{{ $t('products.colOrder') }}</th>
+                <th>{{ $t('products.colCategoryName') }}</th>
+                <th>{{ $t('products.colProducts') }}</th>
+                <th>{{ $t('common.status') }}</th>
+                <th v-if="isOwner" class="text-end pe-4">{{ $t('common.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -762,7 +762,7 @@ const clearFilters = () => {
                 <td class="fw-semibold text-dark">{{ cat.name }}</td>
                 <td>
                   <span class="text-muted small numeric-tabular">
-                    {{ cat.total_products }} item(s)
+                    {{ $t('orders.itemsCount', { count: cat.total_products }) }}
                   </span>
                 </td>
                 <td>
@@ -770,7 +770,7 @@ const clearFilters = () => {
                     class="status-dot-badge"
                     :class="cat.is_active ? 'status-active' : 'status-inactive'"
                   >
-                    {{ cat.is_active ? 'Active' : 'Inactive' }}
+                    {{ cat.is_active ? $t('common.active') : $t('common.inactive') }}
                   </span>
                 </td>
                 <td v-if="isOwner" class="text-end pe-4">
@@ -778,7 +778,7 @@ const clearFilters = () => {
                     <button
                       type="button"
                       class="btn-action"
-                      title="Edit category"
+                      :title="$t('common.edit')"
                       @click="openEditCategory(cat)"
                     >
                       <i class="bi bi-pencil"></i>
@@ -786,7 +786,7 @@ const clearFilters = () => {
                     <button
                       type="button"
                       class="btn-action btn-action--danger"
-                      title="Delete category"
+                      :title="$t('common.delete')"
                       @click="confirmDeleteCategory(cat)"
                     >
                       <i class="bi bi-trash3"></i>
@@ -808,7 +808,7 @@ const clearFilters = () => {
         <div class="modal-card bg-white p-4" style="max-width: 420px">
           <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
             <h5 class="fw-semibold mb-0">
-              {{ editingCategoryId ? 'Edit Category' : 'New Category' }}
+              {{ editingCategoryId ? $t('products.editCategory') : $t('products.newCategory') }}
             </h5>
             <button type="button" class="btn-close btn-sm" @click="closeCategoryModal"></button>
           </div>
@@ -816,8 +816,8 @@ const clearFilters = () => {
           <form @submit.prevent="handleSaveCategory">
             <BaseInput
               v-model="categoryForm.name"
-              label="Category name"
-              placeholder="e.g. Espresso & Coffee"
+              :label="$t('products.categoryNameLabel')"
+              :placeholder="$t('products.categoryNamePlaceholder')"
               :error="categoryError"
               required
               autofocus
@@ -826,7 +826,7 @@ const clearFilters = () => {
             <BaseInput
               v-model="categoryForm.sort_order"
               type="number"
-              label="Display order"
+              :label="$t('products.displayOrderLabel')"
               placeholder="0"
             />
 
@@ -838,16 +838,16 @@ const clearFilters = () => {
                 class="form-check-input custom-check"
               />
               <label for="catActive" class="form-check-label small fw-medium">
-                Active (visible on POS menu)
+                {{ $t('products.activeCategoryCheck') }}
               </label>
             </div>
 
             <div class="d-flex justify-content-end gap-2 pt-2 border-top">
               <BaseButton type="button" variant="secondary" @click="closeCategoryModal">
-                Cancel
+                {{ $t('common.cancel') }}
               </BaseButton>
               <BaseButton type="submit" variant="primary" :loading="isSavingCategory">
-                {{ editingCategoryId ? 'Save Changes' : 'Create' }}
+                {{ editingCategoryId ? $t('common.saveChanges') : $t('common.create') }}
               </BaseButton>
             </div>
           </form>
@@ -863,7 +863,7 @@ const clearFilters = () => {
         <div class="modal-card modal-card--lg bg-white p-4">
           <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
             <h5 class="fw-semibold mb-0">
-              {{ editingProductId ? 'Edit Product' : 'New Product' }}
+              {{ editingProductId ? $t('products.editProduct') : $t('products.newProduct') }}
             </h5>
             <button type="button" class="btn-close btn-sm" @click="closeProductModal"></button>
           </div>
@@ -882,8 +882,8 @@ const clearFilters = () => {
                   <i v-else class="bi bi-image fs-4 text-muted"></i>
                 </div>
                 <div>
-                  <div class="small fw-medium text-dark">Product Image</div>
-                  <div class="text-muted" style="font-size: 12px">JPG, PNG or WEBP (Max 5MB)</div>
+                  <div class="small fw-medium text-dark">{{ $t('products.productImage') }}</div>
+                  <div class="text-muted" style="font-size: 12px">{{ $t('products.imageHint') }}</div>
                 </div>
               </div>
 
@@ -901,7 +901,7 @@ const clearFilters = () => {
                   size="sm"
                   @click="triggerProductImageSelect"
                 >
-                  {{ currentProductPreviewUrl ? 'Change' : 'Upload' }}
+                  {{ currentProductPreviewUrl ? $t('common.change') : $t('common.upload') }}
                 </BaseButton>
                 <BaseButton
                   v-if="currentProductPreviewUrl"
@@ -911,7 +911,7 @@ const clearFilters = () => {
                   class="text-danger"
                   @click="handleClearProductImage"
                 >
-                  Remove
+                  {{ $t('common.remove') }}
                 </BaseButton>
               </div>
             </div>
@@ -921,8 +921,8 @@ const clearFilters = () => {
               <div class="col-12 col-md-6">
                 <BaseInput
                   v-model="productForm.name"
-                  label="Product name"
-                  placeholder="e.g. Caramel Macchiato"
+                  :label="$t('products.productNameLabel')"
+                  :placeholder="$t('products.productNamePlaceholder')"
                   :error="productErrors.name"
                   required
                 />
@@ -930,7 +930,7 @@ const clearFilters = () => {
 
               <div class="col-6 col-md-3 mb-3">
                 <label class="form-label mb-1 fw-medium small text-dark">
-                  Category <span class="text-danger">*</span>
+                  {{ $t('products.colCategory') }} <span class="text-danger">*</span>
                 </label>
                 <select v-model="productForm.category_id" class="form-select clean-select-input">
                   <option v-for="cat in categories" :key="cat.id" :value="cat.id">
@@ -943,11 +943,11 @@ const clearFilters = () => {
               </div>
 
               <div class="col-6 col-md-3 mb-3">
-                <label class="form-label mb-1 fw-medium small text-dark">Type</label>
+                <label class="form-label mb-1 fw-medium small text-dark">{{ $t('products.colType') }}</label>
                 <select v-model="productForm.product_type" class="form-select clean-select-input">
-                  <option value="DRINK">Drink</option>
-                  <option value="FOOD">Food</option>
-                  <option value="ADDON">Add-on</option>
+                  <option value="DRINK">{{ $t('pos.drink') }}</option>
+                  <option value="FOOD">{{ $t('pos.food') }}</option>
+                  <option value="ADDON">{{ $t('pos.addon') }}</option>
                 </select>
               </div>
             </div>
@@ -956,8 +956,8 @@ const clearFilters = () => {
               <div class="col-12 col-md-9">
                 <BaseInput
                   v-model="productForm.description"
-                  label="Description (optional)"
-                  placeholder="Short note or flavor profile..."
+                  :label="$t('products.descriptionOptional')"
+                  :placeholder="$t('products.descriptionPlaceholder')"
                   class="mb-0"
                 />
               </div>
@@ -970,7 +970,7 @@ const clearFilters = () => {
                     class="form-check-input custom-check"
                   />
                   <label for="prodActive" class="form-check-label small fw-medium">
-                    Product Active
+                    {{ $t('products.productActiveCheck') }}
                   </label>
                 </div>
               </div>
@@ -980,7 +980,7 @@ const clearFilters = () => {
             <div class="variants-box p-3 rounded-3 mb-3">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div>
-                  <span class="fw-semibold small text-dark">Variants & Pricing</span>
+                  <span class="fw-semibold small text-dark">{{ $t('products.variantsAndPricing') }}</span>
                   <span class="text-muted small ms-2">({{ productForm.variants.length }})</span>
                 </div>
                 <button
@@ -988,7 +988,7 @@ const clearFilters = () => {
                   class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold add-variant-btn"
                   @click="addVariantRow"
                 >
-                  + Add Variant
+                  {{ $t('products.addVariant') }}
                 </button>
               </div>
 
@@ -1007,7 +1007,7 @@ const clearFilters = () => {
                       v-model="v.name"
                       type="text"
                       class="form-control form-control-sm"
-                      placeholder="Variant name (e.g. Iced Regular)"
+                      :placeholder="$t('products.variantNamePlaceholder')"
                       required
                     />
                   </div>
@@ -1017,7 +1017,7 @@ const clearFilters = () => {
                       v-model="v.size"
                       type="text"
                       class="form-control form-control-sm"
-                      placeholder="Size (R/L)"
+                      :placeholder="$t('products.sizePlaceholder')"
                     />
                   </div>
 
@@ -1069,10 +1069,10 @@ const clearFilters = () => {
             <!-- Modal Actions -->
             <div class="d-flex justify-content-end gap-2 pt-3 border-top">
               <BaseButton type="button" variant="secondary" @click="closeProductModal">
-                Cancel
+                {{ $t('common.cancel') }}
               </BaseButton>
               <BaseButton type="submit" variant="primary" :loading="isSavingProduct">
-                {{ editingProductId ? 'Save Changes' : 'Create Product' }}
+                {{ editingProductId ? $t('common.saveChanges') : $t('products.createProduct') }}
               </BaseButton>
             </div>
           </form>
@@ -1086,9 +1086,9 @@ const clearFilters = () => {
     <Teleport to="body">
       <div v-if="deleteModal.show" class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3">
         <div class="modal-card bg-white p-4" style="max-width: 400px">
-          <h5 class="fw-semibold mb-2">Delete {{ deleteModal.type }}?</h5>
+          <h5 class="fw-semibold mb-2">{{ $t('products.deleteConfirmTitle', { type: deleteModal.type }) }}</h5>
           <p class="text-muted small mb-4">
-            Are you sure you want to delete <strong>{{ deleteModal.name }}</strong>? This action cannot be undone.
+            {{ $t('products.deleteConfirmDesc', { name: deleteModal.name }) }}
           </p>
           <div class="d-flex justify-content-end gap-2">
             <BaseButton
@@ -1097,7 +1097,7 @@ const clearFilters = () => {
               :disabled="deleteModal.isDeleting"
               @click="deleteModal.show = false"
             >
-              Cancel
+              {{ $t('common.cancel') }}
             </BaseButton>
             <BaseButton
               type="button"
@@ -1105,7 +1105,7 @@ const clearFilters = () => {
               :loading="deleteModal.isDeleting"
               @click="handleConfirmDelete"
             >
-              Delete
+              {{ $t('common.delete') }}
             </BaseButton>
           </div>
         </div>
@@ -1150,9 +1150,9 @@ const clearFilters = () => {
 }
 
 .nav-tab-btn.active {
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   font-weight: 600;
-  border-bottom-color: var(--primary, #2c1810);
+  border-bottom-color: var(--primary, #2d5a43);
 }
 
 .tab-badge {
@@ -1165,7 +1165,7 @@ const clearFilters = () => {
 }
 
 .nav-tab-btn.active .tab-badge {
-  background-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
   color: #ffffff;
 }
 
@@ -1177,7 +1177,7 @@ const clearFilters = () => {
 
 .btn-light-coffee {
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   border: 1px solid #e6e1da;
   border-radius: 8px;
   font-weight: 500;
@@ -1201,7 +1201,7 @@ const clearFilters = () => {
 
 .clean-select:focus,
 .clean-select-input:focus {
-  border-color: var(--primary, #2c1810);
+  border-color: var(--primary, #2d5a43);
   box-shadow: none !important;
 }
 
@@ -1254,7 +1254,7 @@ const clearFilters = () => {
 }
 
 .type-pill--drink {
-  background-color: var(--secondary-fixed, #ffdcc5);
+  background-color: var(--secondary-fixed, #d6ede0);
   color: var(--on-secondary-fixed, #2b1707);
 }
 
@@ -1290,7 +1290,7 @@ const clearFilters = () => {
 }
 
 .variant-select:focus {
-  border-color: var(--primary, #2c1810);
+  border-color: var(--primary, #2d5a43);
   box-shadow: none;
   background-color: #ffffff;
 }
@@ -1384,12 +1384,12 @@ const clearFilters = () => {
 }
 
 .add-variant-btn {
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   font-size: 13px;
 }
 
 .custom-check:checked {
-  background-color: var(--primary, #2c1810);
-  border-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
+  border-color: var(--primary, #2d5a43);
 }
 </style>

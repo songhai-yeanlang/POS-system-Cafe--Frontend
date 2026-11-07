@@ -242,29 +242,30 @@ const openShiftDetails = async (shiftId) => {
     <div class="clean-card bg-white p-4 mb-4">
       <div v-if="isLoadingCurrent" class="text-center py-4 text-muted small">
         <span class="spinner-border spinner-border-sm me-2"></span>
-        Checking active shift...
+        {{ $t('shifts.checkingActiveShift') }}
       </div>
 
       <!-- STATE A: NO ACTIVE SHIFT -> OPEN SHIFT FORM -->
       <div v-else-if="!activeShift">
         <div class="mb-3 pb-3 border-bottom">
           <div class="d-flex align-items-center gap-2 mb-1">
-            <span class="status-dot-badge status-closed">Shift Closed</span>
+            <span class="status-dot-badge status-closed">{{ $t('shifts.shiftClosed') }}</span>
           </div>
-          <h5 class="fw-semibold text-dark mb-1">Open Cashier Shift</h5>
+          <h5 class="fw-semibold text-dark mb-1">{{ $t('shifts.openCashierShift') }}</h5>
           <p class="text-muted small mb-0">
-            Enter your starting cash drawer balance (USD & KHR) to begin taking orders.
+            {{ $t('shifts.openShiftSubtitle') }}
           </p>
         </div>
 
-        <form @submit.prevent="handleOpenShift">
+        <form @submit.prevent="handleOpenShift" class="open-shift-form">
           <div class="row g-3 align-items-end">
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-12 col-sm-6 col-lg-3">
               <BaseInput
                 v-model="openForm.opening_cash_usd"
                 type="number"
-                label="Opening Cash (USD)"
+                :label="$t('shifts.openingCashUsd')"
                 placeholder="0.00"
+                no-margin
                 class="mb-0"
                 required
               >
@@ -272,12 +273,13 @@ const openShiftDetails = async (shiftId) => {
               </BaseInput>
             </div>
 
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-12 col-sm-6 col-lg-3">
               <BaseInput
                 v-model="openForm.opening_cash_khr"
                 type="number"
-                label="Opening Cash (KHR)"
+                :label="$t('shifts.openingCashKhr')"
                 placeholder="0"
+                no-margin
                 class="mb-0"
                 required
               >
@@ -285,18 +287,28 @@ const openShiftDetails = async (shiftId) => {
               </BaseInput>
             </div>
 
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-sm-6 col-lg-3">
               <BaseInput
                 v-model="openForm.note"
-                label="Shift note (optional)"
-                placeholder="e.g. Morning shift"
+                :label="$t('shifts.shiftNoteOptional')"
+                :placeholder="$t('shifts.shiftNotePlaceholder')"
+                no-margin
                 class="mb-0"
               />
             </div>
 
-            <div class="col-12 col-md-2">
-              <BaseButton type="submit" variant="primary" block :loading="isOpeningShift">
-                Open Shift
+            <div class="col-12 col-sm-6 col-lg-3">
+              <div class="d-none d-sm-block mb-1" style="visibility: hidden; height: 21px;">
+                <span class="small">&nbsp;</span>
+              </div>
+              <BaseButton
+                type="submit"
+                variant="primary"
+                block
+                :loading="isOpeningShift"
+                class="btn-open-shift"
+              >
+                <i class="bi bi-unlock me-1"></i>{{ $t('shifts.openShiftBtn') }}
               </BaseButton>
             </div>
           </div>
@@ -310,29 +322,29 @@ const openShiftDetails = async (shiftId) => {
         >
           <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-              <span class="status-dot-badge status-open">Shift #{{ activeShift.id }} Active</span>
+              <span class="status-dot-badge status-open">{{ $t('shifts.shiftActiveBadge', { id: activeShift.id }) }}</span>
               <span class="text-muted small">
-                • Opened {{ formatDateTime(activeShift.opened_at) }}
+                • {{ $t('shifts.openedAt', { date: formatDateTime(activeShift.opened_at) }) }}
               </span>
             </div>
-            <h5 class="fw-semibold text-dark mb-0">Current Cash Drawer Summary</h5>
+            <h5 class="fw-semibold text-dark mb-0">{{ $t('shifts.currentDrawerSummary') }}</h5>
           </div>
 
           <div class="d-flex align-items-center gap-2">
             <BaseButton variant="secondary" size="sm" @click="loadCurrentShift">
               <template #prefix><i class="bi bi-arrow-clockwise"></i></template>
-              Refresh
+              {{ $t('common.refresh') }}
             </BaseButton>
             <BaseButton variant="secondary" size="sm" @click="router.push('/pos')">
               <template #prefix><i class="bi bi-calculator"></i></template>
-              Go to POS
+              {{ $t('shifts.goToPos') }}
             </BaseButton>
             <BaseButton
               variant="danger"
               size="sm"
               @click="openCloseShiftModal(activeShift)"
             >
-              Close Shift
+              {{ $t('shifts.closeShiftBtn') }}
             </BaseButton>
           </div>
         </div>
@@ -341,7 +353,7 @@ const openShiftDetails = async (shiftId) => {
         <div class="row g-3">
           <div class="col-12 col-sm-6 col-lg-3">
             <div class="stat-box p-3 rounded-3">
-              <div class="text-muted small mb-1">Opening Cash</div>
+              <div class="text-muted small mb-1">{{ $t('shifts.openingCash') }}</div>
               <div class="fw-bold fs-6 numeric-tabular">
                 {{ formatUsd(activeShift.opening_cash_usd) }}
               </div>
@@ -353,7 +365,7 @@ const openShiftDetails = async (shiftId) => {
 
           <div class="col-12 col-sm-6 col-lg-3">
             <div class="stat-box stat-box--highlight p-3 rounded-3">
-              <div class="text-muted small mb-1">Expected Cash in Drawer</div>
+              <div class="text-muted small mb-1">{{ $t('shifts.expectedCashInDrawer') }}</div>
               <div class="fw-bold fs-6 text-dark numeric-tabular">
                 {{ formatUsd(activeShift.summary?.expected_drawer?.cash_usd) }}
               </div>
@@ -365,18 +377,18 @@ const openShiftDetails = async (shiftId) => {
 
           <div class="col-12 col-sm-6 col-lg-3">
             <div class="stat-box p-3 rounded-3">
-              <div class="text-muted small mb-1">Total Sales (Paid Orders)</div>
+              <div class="text-muted small mb-1">{{ $t('shifts.totalSalesPaid') }}</div>
               <div class="fw-bold fs-6 numeric-tabular">
                 {{ formatUsd(activeShift.summary?.total_sales_usd) }}
               </div>
               <div class="text-muted small numeric-tabular">
-                {{ activeShift.summary?.total_orders || 0 }} paid •
+                {{ $t('shifts.paidCount', { count: activeShift.summary?.total_orders || 0 }) }} •
                 <span
                   :class="
                     activeShift.summary?.open_orders_count > 0 ? 'text-danger fw-semibold' : ''
                   "
                 >
-                  {{ activeShift.summary?.open_orders_count || 0 }} open
+                  {{ $t('shifts.openCount', { count: activeShift.summary?.open_orders_count || 0 }) }}
                 </span>
               </div>
             </div>
@@ -384,7 +396,7 @@ const openShiftDetails = async (shiftId) => {
 
           <div class="col-12 col-sm-6 col-lg-3">
             <div class="stat-box p-3 rounded-3">
-              <div class="text-muted small mb-1">KHQR & Bank Transfers</div>
+              <div class="text-muted small mb-1">{{ $t('shifts.khqrBankTransfers') }}</div>
               <div class="fw-bold fs-6 numeric-tabular">
                 {{
                   formatUsd(
@@ -412,7 +424,7 @@ const openShiftDetails = async (shiftId) => {
     <!-- ========================================== -->
     <div class="clean-card bg-white overflow-hidden">
       <div class="p-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <h6 class="fw-bold text-dark mb-0">Shifts History</h6>
+        <h6 class="fw-bold text-dark mb-0">{{ $t('shifts.shiftsHistory') }}</h6>
 
         <div class="d-flex align-items-center flex-wrap gap-2">
           <select
@@ -420,9 +432,9 @@ const openShiftDetails = async (shiftId) => {
             class="form-select form-select-sm clean-select"
             style="width: auto; min-width: 120px"
           >
-            <option value="">All Status</option>
-            <option value="OPEN">Open</option>
-            <option value="CLOSED">Closed</option>
+            <option value="">{{ $t('common.allStatus') }}</option>
+            <option value="OPEN">{{ $t('orders.statusOpen') }}</option>
+            <option value="CLOSED">{{ $t('shifts.shiftClosed') }}</option>
           </select>
 
           <select
@@ -431,7 +443,7 @@ const openShiftDetails = async (shiftId) => {
             class="form-select form-select-sm clean-select"
             style="width: auto; min-width: 140px"
           >
-            <option value="">All Staff</option>
+            <option value="">{{ $t('shifts.allStaff') }}</option>
             <option v-for="s in staffList" :key="s.id" :value="s.id">
               {{ s.name }}
             </option>
@@ -442,7 +454,6 @@ const openShiftDetails = async (shiftId) => {
             type="date"
             class="form-control form-control-sm clean-select"
             style="width: auto"
-            title="Start Date"
           />
 
           <input
@@ -450,33 +461,32 @@ const openShiftDetails = async (shiftId) => {
             type="date"
             class="form-control form-control-sm clean-select"
             style="width: auto"
-            title="End Date"
           />
         </div>
       </div>
 
       <div v-if="isLoadingHistory" class="text-center py-5 text-muted small">
         <span class="spinner-border spinner-border-sm me-2"></span>
-        Loading shifts...
+        {{ $t('shifts.loadingShifts') }}
       </div>
 
       <div v-else-if="shifts.length === 0" class="text-center py-5 px-3">
         <i class="bi bi-safe2 fs-2 text-muted d-block mb-2"></i>
-        <div class="fw-semibold mb-1">No shifts recorded</div>
-        <p class="text-muted small mb-0">Shift records will appear here once opened.</p>
+        <div class="fw-semibold mb-1">{{ $t('shifts.noShiftsRecorded') }}</div>
+        <p class="text-muted small mb-0">{{ $t('shifts.noShiftsRecordedDesc') }}</p>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table align-middle mb-0 clean-table">
           <thead>
             <tr>
-              <th class="ps-4">Shift</th>
-              <th>Cashier</th>
-              <th>Opened / Closed</th>
-              <th>Opening Cash</th>
-              <th>Closing vs Expected</th>
-              <th>Status</th>
-              <th class="text-end pe-4">Actions</th>
+              <th class="ps-4">{{ $t('shifts.colShift') }}</th>
+              <th>{{ $t('shifts.colCashier') }}</th>
+              <th>{{ $t('shifts.colOpenedClosed') }}</th>
+              <th>{{ $t('shifts.colOpeningCash') }}</th>
+              <th>{{ $t('shifts.colClosingExpected') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th class="text-end pe-4">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -491,7 +501,7 @@ const openShiftDetails = async (shiftId) => {
               <td class="small">
                 <div class="text-dark">{{ formatDateTime(s.opened_at) }}</div>
                 <div class="text-muted">
-                  {{ s.closed_at ? formatDateTime(s.closed_at) : 'Still open' }}
+                  {{ s.closed_at ? formatDateTime(s.closed_at) : $t('shifts.stillOpen') }}
                 </div>
               </td>
 
@@ -527,7 +537,6 @@ const openShiftDetails = async (shiftId) => {
                   <button
                     type="button"
                     class="btn-action"
-                    title="View shift details"
                     @click="openShiftDetails(s.id)"
                   >
                     <i class="bi bi-eye"></i>
@@ -536,7 +545,6 @@ const openShiftDetails = async (shiftId) => {
                     v-if="s.status === 'OPEN'"
                     type="button"
                     class="btn-action btn-action--danger"
-                    title="Close shift"
                     @click="openCloseShiftModal(s)"
                   >
                     <i class="bi bi-lock"></i>
@@ -553,7 +561,7 @@ const openShiftDetails = async (shiftId) => {
         v-if="pagination.totalPages > 1"
         class="d-flex align-items-center justify-content-between px-4 py-3 border-top small text-muted"
       >
-        <span>Page {{ pagination.page }} of {{ pagination.totalPages }}</span>
+        <span>{{ $t('common.pageOf', { page: pagination.page, total: pagination.totalPages }) }}</span>
         <div class="d-flex gap-2">
           <BaseButton
             variant="secondary"
@@ -561,7 +569,7 @@ const openShiftDetails = async (shiftId) => {
             :disabled="pagination.page <= 1"
             @click="fetchShiftsHistory(pagination.page - 1)"
           >
-            Previous
+            {{ $t('common.previous') }}
           </BaseButton>
           <BaseButton
             variant="secondary"
@@ -569,7 +577,7 @@ const openShiftDetails = async (shiftId) => {
             :disabled="pagination.page >= pagination.totalPages"
             @click="fetchShiftsHistory(pagination.page + 1)"
           >
-            Next
+            {{ $t('common.next') }}
           </BaseButton>
         </div>
       </div>
@@ -585,14 +593,14 @@ const openShiftDetails = async (shiftId) => {
       >
         <div class="modal-card bg-white p-4" style="max-width: 460px">
           <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-            <h5 class="fw-semibold mb-0">Close Shift #{{ closeModal.shiftId }}</h5>
+            <h5 class="fw-semibold mb-0">{{ $t('shifts.closeShiftModalTitle', { id: closeModal.shiftId }) }}</h5>
             <button type="button" class="btn-close btn-sm" @click="closeModal.show = false"></button>
           </div>
 
           <form @submit.prevent="handleConfirmCloseShift">
             <!-- Expected Cash Reference -->
             <div class="expected-box p-3 rounded-3 mb-3">
-              <div class="small text-muted mb-1">System Expected Cash in Drawer</div>
+              <div class="small text-muted mb-1">{{ $t('shifts.systemExpectedCash') }}</div>
               <div class="d-flex justify-content-between align-items-center numeric-tabular">
                 <span class="fw-bold fs-6">{{ formatUsd(closeModal.expectedUsd) }}</span>
                 <span class="fw-bold fs-6">{{ formatKhr(closeModal.expectedKhr) }}</span>
@@ -604,7 +612,7 @@ const openShiftDetails = async (shiftId) => {
                 <BaseInput
                   v-model="closeModal.closing_cash_usd"
                   type="number"
-                  label="Counted Cash (USD)"
+                  :label="$t('shifts.countedCashUsd')"
                   placeholder="0.00"
                   required
                 >
@@ -616,7 +624,7 @@ const openShiftDetails = async (shiftId) => {
                 <BaseInput
                   v-model="closeModal.closing_cash_khr"
                   type="number"
-                  label="Counted Cash (KHR)"
+                  :label="$t('shifts.countedCashKhr')"
                   placeholder="0"
                   required
                 >
@@ -628,7 +636,7 @@ const openShiftDetails = async (shiftId) => {
             <!-- Live Difference Preview -->
             <div class="d-flex justify-content-between small px-1 mb-3 numeric-tabular">
               <span>
-                USD Diff:
+                {{ $t('shifts.usdDiff') }}
                 <strong
                   :class="
                     liveDiffUsd === 0
@@ -642,7 +650,7 @@ const openShiftDetails = async (shiftId) => {
                 </strong>
               </span>
               <span>
-                KHR Diff:
+                {{ $t('shifts.khrDiff') }}
                 <strong
                   :class="
                     liveDiffKhr === 0
@@ -659,8 +667,8 @@ const openShiftDetails = async (shiftId) => {
 
             <BaseInput
               v-model="closeModal.note"
-              label="Closing note (optional)"
-              placeholder="Any discrepancy reason or handover note..."
+              :label="$t('shifts.closingNoteOptional')"
+              :placeholder="$t('shifts.closingNotePlaceholder')"
             />
 
             <div class="d-flex justify-content-end gap-2 pt-3 border-top">
@@ -670,10 +678,10 @@ const openShiftDetails = async (shiftId) => {
                 :disabled="closeModal.isClosing"
                 @click="closeModal.show = false"
               >
-                Cancel
+                {{ $t('common.cancel') }}
               </BaseButton>
               <BaseButton type="submit" variant="danger" :loading="closeModal.isClosing">
-                Confirm Close Shift
+                {{ $t('shifts.confirmCloseShift') }}
               </BaseButton>
             </div>
           </form>
@@ -692,68 +700,68 @@ const openShiftDetails = async (shiftId) => {
         <div class="modal-card bg-white p-4" style="max-width: 520px">
           <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
             <h5 class="fw-semibold mb-0">
-              Shift #{{ detailModal.data?.id || '' }} Details
+              {{ $t('shifts.shiftDetailsTitle', { id: detailModal.data?.id || '' }) }}
             </h5>
             <button type="button" class="btn-close btn-sm" @click="detailModal.show = false"></button>
           </div>
 
           <div v-if="detailModal.isLoading" class="text-center py-4 text-muted small">
             <span class="spinner-border spinner-border-sm me-2"></span>
-            Loading summary...
+            {{ $t('shifts.loadingSummary') }}
           </div>
 
           <div v-else-if="detailModal.data" class="small">
             <div class="d-flex justify-content-between py-1">
-              <span class="text-muted">Cashier</span>
+              <span class="text-muted">{{ $t('shifts.colCashier') }}</span>
               <span class="fw-semibold">{{ detailModal.data.user_name }}</span>
             </div>
             <div class="d-flex justify-content-between py-1">
-              <span class="text-muted">Opened At</span>
+              <span class="text-muted">{{ $t('shifts.openedAtLabel') }}</span>
               <span>{{ formatDateTime(detailModal.data.opened_at) }}</span>
             </div>
             <div class="d-flex justify-content-between py-1 pb-2 border-bottom">
-              <span class="text-muted">Closed At</span>
+              <span class="text-muted">{{ $t('shifts.closedAtLabel') }}</span>
               <span>
                 {{
                   detailModal.data.closed_at
                     ? formatDateTime(detailModal.data.closed_at)
-                    : 'Still Open'
+                    : $t('shifts.stillOpen')
                 }}
               </span>
             </div>
 
             <div class="py-2 border-bottom numeric-tabular">
-              <div class="fw-semibold text-dark mb-1">Cash Drawer Flow</div>
+              <div class="fw-semibold text-dark mb-1">{{ $t('shifts.cashDrawerFlow') }}</div>
               <div class="d-flex justify-content-between py-1">
-                <span class="text-muted">Opening Cash</span>
+                <span class="text-muted">{{ $t('shifts.openingCash') }}</span>
                 <span>
                   {{ formatUsd(detailModal.data.opening_cash_usd) }} /
                   {{ formatKhr(detailModal.data.opening_cash_khr) }}
                 </span>
               </div>
               <div class="d-flex justify-content-between py-1">
-                <span class="text-muted">Net Cash Sales</span>
+                <span class="text-muted">{{ $t('shifts.netCashSales') }}</span>
                 <span>
                   {{ formatUsd(detailModal.data.summary?.cash?.net_usd) }} /
                   {{ formatKhr(detailModal.data.summary?.cash?.net_khr) }}
                 </span>
               </div>
               <div class="d-flex justify-content-between py-1">
-                <span class="text-muted">Cash Expenses</span>
+                <span class="text-muted">{{ $t('shifts.cashExpenses') }}</span>
                 <span class="text-danger">
                   -{{ formatUsd(detailModal.data.summary?.expenses?.cash_usd) }} /
                   -{{ formatKhr(detailModal.data.summary?.expenses?.cash_khr) }}
                 </span>
               </div>
               <div class="d-flex justify-content-between py-1">
-                <span class="text-muted">Cash Refunds</span>
+                <span class="text-muted">{{ $t('shifts.cashRefunds') }}</span>
                 <span class="text-danger">
                   -{{ formatUsd(detailModal.data.summary?.refunds?.cash_usd) }} /
                   -{{ formatKhr(detailModal.data.summary?.refunds?.cash_khr) }}
                 </span>
               </div>
               <div class="d-flex justify-content-between py-1 fw-semibold text-dark">
-                <span>Expected Drawer</span>
+                <span>{{ $t('shifts.expectedDrawer') }}</span>
                 <span>
                   {{ formatUsd(detailModal.data.summary?.expected_drawer?.cash_usd) }} /
                   {{ formatKhr(detailModal.data.summary?.expected_drawer?.cash_khr) }}
@@ -763,7 +771,7 @@ const openShiftDetails = async (shiftId) => {
                 v-if="detailModal.data.status === 'CLOSED'"
                 class="d-flex justify-content-between py-1 fw-semibold"
               >
-                <span>Actual Counted</span>
+                <span>{{ $t('shifts.actualCounted') }}</span>
                 <span>
                   {{ formatUsd(detailModal.data.closing_cash_usd) }} /
                   {{ formatKhr(detailModal.data.closing_cash_khr) }}
@@ -772,12 +780,12 @@ const openShiftDetails = async (shiftId) => {
             </div>
 
             <div v-if="detailModal.data.note" class="pt-2 text-muted">
-              <strong>Note:</strong> {{ detailModal.data.note }}
+              <strong>{{ $t('common.note') }}:</strong> {{ detailModal.data.note }}
             </div>
 
             <div class="d-flex justify-content-end pt-3 mt-2 border-top">
               <BaseButton variant="secondary" size="sm" @click="detailModal.show = false">
-                Close
+                {{ $t('common.close') }}
               </BaseButton>
             </div>
           </div>
@@ -797,13 +805,21 @@ const openShiftDetails = async (shiftId) => {
   border: 1px solid var(--border-hairline, #e6e4e0);
 }
 
+.open-shift-form :deep(.mb-3) {
+  margin-bottom: 0 !important;
+}
+
+.btn-open-shift {
+  height: 44px !important;
+}
+
 .stat-box {
   background-color: var(--surface-container-low, #f6f3f2);
   border: 1px solid var(--border-hairline, #e6e4e0);
 }
 
 .stat-box--highlight {
-  background-color: var(--secondary-fixed, #ffdcc5);
+  background-color: var(--secondary-fixed, #d6ede0);
   border-color: #f3c6a5;
 }
 
@@ -816,7 +832,7 @@ const openShiftDetails = async (shiftId) => {
 }
 
 .clean-select:focus {
-  border-color: var(--primary, #2c1810);
+  border-color: var(--primary, #2d5a43);
 }
 
 .clean-table th {

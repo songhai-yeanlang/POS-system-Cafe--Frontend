@@ -13,12 +13,12 @@ const authStore = useAuthStore()
       <div class="code-badge mx-auto mb-3 d-inline-flex align-items-center justify-content-center">
         404
       </div>
-      <h3 class="fw-bold mb-2">Page not found</h3>
+      <h3 class="fw-bold mb-2">{{ $t('auth.notFoundTitle') }}</h3>
       <p class="text-muted small mb-4">
-        The page you are looking for does not exist or has been moved.
+        {{ $t('auth.notFoundDesc') }}
       </p>
       <BaseButton variant="primary" @click="router.push(authStore.defaultRoute)">
-        Back to Workspace
+        {{ $t('auth.backToWorkspace') }}
       </BaseButton>
     </div>
   </div>
@@ -35,7 +35,7 @@ const authStore = useAuthStore()
 .code-badge {
   padding: 0.35rem 0.85rem;
   border-radius: 9999px;
-  background-color: var(--secondary-fixed, #ffdcc5);
+  background-color: var(--secondary-fixed, #d6ede0);
   color: var(--on-secondary-fixed, #2b1707);
   font-weight: 700;
   font-size: 13px;

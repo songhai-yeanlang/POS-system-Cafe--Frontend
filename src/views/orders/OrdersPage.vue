@@ -9,7 +9,7 @@
         @click="switchTab('ORDERS')"
       >
         <i class="bi bi-receipt"></i>
-        <span>Orders</span>
+        <span>{{ $t('orders.tabOrders') }}</span>
       </button>
       <button
         type="button"
@@ -18,7 +18,7 @@
         @click="switchTab('PAYMENTS')"
       >
         <i class="bi bi-credit-card-2-front"></i>
-        <span>Payments</span>
+        <span>{{ $t('orders.tabPayments') }}</span>
       </button>
       <button
         type="button"
@@ -27,7 +27,7 @@
         @click="switchTab('REFUNDS')"
       >
         <i class="bi bi-arrow-counterclockwise"></i>
-        <span>Refunds</span>
+        <span>{{ $t('orders.tabRefunds') }}</span>
       </button>
     </div>
 
@@ -55,7 +55,7 @@
               v-model="orderFilters.search"
               type="text"
               class="form-control form-control-sm search-input"
-              placeholder="Receipt #, Queue #, Table..."
+              :placeholder="$t('orders.searchOrdersPlaceholder')"
               @keyup.enter="fetchOrders(1)"
             />
           </div>
@@ -65,23 +65,21 @@
             class="form-select form-select-sm filter-select"
             @change="fetchOrders(1)"
           >
-            <option value="">All Types</option>
-            <option value="TAKEAWAY">Takeaway</option>
-            <option value="DINE_IN">Dine-In</option>
+            <option value="">{{ $t('common.allTypes') }}</option>
+            <option value="TAKEAWAY">{{ $t('common.takeaway') }}</option>
+            <option value="DINE_IN">{{ $t('common.dineIn') }}</option>
           </select>
 
           <input
             v-model="orderFilters.start_date"
             type="date"
             class="form-control form-control-sm filter-date"
-            title="Start Date"
             @change="fetchOrders(1)"
           />
           <input
             v-model="orderFilters.end_date"
             type="date"
             class="form-control form-control-sm filter-date"
-            title="End Date"
             @change="fetchOrders(1)"
           />
 
@@ -92,13 +90,13 @@
             :class="orderFilters.currentShiftOnly ? 'btn-coffee' : 'btn-light-coffee'"
             @click="toggleCurrentShiftFilter"
           >
-            <i class="bi bi-clock-history me-1"></i>Current Shift
+            <i class="bi bi-clock-history me-1"></i>{{ $t('orders.currentShift') }}
           </button>
 
           <button
             type="button"
             class="btn btn-light-coffee btn-sm"
-            title="Reset Filters"
+            :title="$t('common.reset')"
             @click="resetOrderFilters"
           >
             <i class="bi bi-arrow-counterclockwise"></i>
@@ -109,41 +107,41 @@
       <!-- Orders Table -->
       <div v-if="isLoadingOrders" class="empty-box">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-        <div class="small text-muted">Loading orders...</div>
+        <div class="small text-muted">{{ $t('orders.loadingOrders') }}</div>
       </div>
 
       <div v-else-if="ordersList.length === 0" class="empty-box">
         <i class="bi bi-receipt-cutoff fs-2 text-muted mb-2 d-block"></i>
-        <div class="fw-semibold text-dark">No Orders Found</div>
-        <div class="small text-muted">No orders match the current filter criteria.</div>
+        <div class="fw-semibold text-dark">{{ $t('orders.noOrdersFound') }}</div>
+        <div class="small text-muted">{{ $t('orders.noOrdersFoundDesc') }}</div>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Receipt / Queue</th>
-              <th>Type / Table</th>
-              <th>Cashier</th>
-              <th>Items</th>
-              <th>Total</th>
-              <th>Status</th>
-              <th>Date / Time</th>
-              <th class="text-end">Actions</th>
+              <th>{{ $t('orders.colReceiptQueue') }}</th>
+              <th>{{ $t('orders.colTypeTable') }}</th>
+              <th>{{ $t('orders.colCashier') }}</th>
+              <th>{{ $t('orders.colItems') }}</th>
+              <th>{{ $t('orders.colTotal') }}</th>
+              <th>{{ $t('orders.colStatus') }}</th>
+              <th>{{ $t('orders.colDateTime') }}</th>
+              <th class="text-end">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="ord in ordersList" :key="ord.id">
               <td>
                 <div class="fw-bold text-dark">{{ ord.receipt_no }}</div>
-                <div class="small text-muted">Queue #{{ ord.queue_no }}</div>
+                <div class="small text-muted">{{ $t('receipt.queue') }} #{{ ord.queue_no }}</div>
               </td>
               <td>
                 <span
                   class="type-badge"
                   :class="ord.order_type === 'DINE_IN' ? 'dine-in' : 'takeaway'"
                 >
-                  {{ ord.order_type === 'DINE_IN' ? 'Dine-In' : 'Takeaway' }}
+                  {{ ord.order_type === 'DINE_IN' ? $t('common.dineIn') : $t('common.takeaway') }}
                   <template v-if="ord.table_no"> • #{{ ord.table_no }}</template>
                 </span>
               </td>
@@ -151,7 +149,7 @@
                 <div class="fw-semibold small text-dark">{{ ord.cashier?.name || '—' }}</div>
               </td>
               <td>
-                <span class="text-muted small">{{ ord.total_items }} item(s)</span>
+                <span class="text-muted small">{{ $t('orders.itemsCount', { count: ord.total_items }) }}</span>
               </td>
               <td>
                 <div class="fw-bold text-dark">{{ formatUsd(ord.total) }}</div>
@@ -169,7 +167,6 @@
                   <button
                     type="button"
                     class="btn btn-action-icon"
-                    title="View Details & Receipt"
                     @click="openOrderDetails(ord.id)"
                   >
                     <i class="bi bi-eye"></i>
@@ -180,7 +177,6 @@
                     <button
                       type="button"
                       class="btn btn-action-icon text-primary"
-                      title="Resume / Pay in POS"
                       @click="resumeInPos(ord.id)"
                     >
                       <i class="bi bi-calculator"></i>
@@ -188,7 +184,6 @@
                     <button
                       type="button"
                       class="btn btn-action-icon text-danger"
-                      title="Cancel Order"
                       @click="openCancelModal(ord)"
                     >
                       <i class="bi bi-x-circle"></i>
@@ -200,7 +195,6 @@
                     <button
                       type="button"
                       class="btn btn-action-icon text-warning"
-                      title="Process Refund"
                       @click="openRefundModalFromOrder(ord.id)"
                     >
                       <i class="bi bi-arrow-counterclockwise"></i>
@@ -216,8 +210,8 @@
       <!-- Pagination -->
       <div v-if="orderPagination.totalPages > 1" class="pagination-bar">
         <div class="small text-muted">
-          Page {{ orderPagination.page }} of {{ orderPagination.totalPages }}
-          ({{ orderPagination.total }} total orders)
+          {{ $t('common.pageOf', { page: orderPagination.page, total: orderPagination.totalPages }) }}
+          {{ $t('orders.totalOrdersCount', { count: orderPagination.total }) }}
         </div>
         <div class="d-flex gap-1">
           <button
@@ -226,7 +220,7 @@
             :disabled="orderPagination.page <= 1"
             @click="fetchOrders(orderPagination.page - 1)"
           >
-            Prev
+            {{ $t('common.prev') }}
           </button>
           <button
             type="button"
@@ -234,7 +228,7 @@
             :disabled="orderPagination.page >= orderPagination.totalPages"
             @click="fetchOrders(orderPagination.page + 1)"
           >
-            Next
+            {{ $t('common.next') }}
           </button>
         </div>
       </div>
@@ -251,7 +245,7 @@
                 v-model="paymentFilters.search"
                 type="text"
                 class="form-control form-control-sm search-input"
-                placeholder="Receipt #, Bank, Reference..."
+                :placeholder="$t('orders.searchPaymentsPlaceholder')"
                 @keyup.enter="fetchPayments(1)"
               />
             </div>
@@ -261,10 +255,10 @@
               class="form-select form-select-sm filter-select"
               @change="fetchPayments(1)"
             >
-              <option value="">All Methods</option>
-              <option value="CASH">Cash</option>
-              <option value="KHQR">KHQR</option>
-              <option value="BANK_TRANSFER">Bank Transfer</option>
+              <option value="">{{ $t('common.allMethods') }}</option>
+              <option value="CASH">{{ $t('common.cash') }}</option>
+              <option value="KHQR">{{ $t('common.khqr') }}</option>
+              <option value="BANK_TRANSFER">{{ $t('common.bankTransfer') }}</option>
             </select>
 
             <select
@@ -272,7 +266,7 @@
               class="form-select form-select-sm filter-select"
               @change="fetchPayments(1)"
             >
-              <option value="">All Currencies</option>
+              <option value="">{{ $t('common.allCurrencies') }}</option>
               <option value="USD">USD ($)</option>
               <option value="KHR">KHR (៛)</option>
             </select>
@@ -283,34 +277,34 @@
             class="btn btn-light-coffee btn-sm"
             @click="resetPaymentFilters"
           >
-            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+            <i class="bi bi-arrow-counterclockwise me-1"></i>{{ $t('common.reset') }}
           </button>
         </div>
       </div>
 
       <div v-if="isLoadingPayments" class="empty-box">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-        <div class="small text-muted">Loading payments...</div>
+        <div class="small text-muted">{{ $t('orders.loadingPayments') }}</div>
       </div>
 
       <div v-else-if="paymentsList.length === 0" class="empty-box">
         <i class="bi bi-credit-card fs-2 text-muted mb-2 d-block"></i>
-        <div class="fw-semibold text-dark">No Payments Found</div>
-        <div class="small text-muted">Completed payments will appear here.</div>
+        <div class="fw-semibold text-dark">{{ $t('orders.noPaymentsFound') }}</div>
+        <div class="small text-muted">{{ $t('orders.noPaymentsFoundDesc') }}</div>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Receipt</th>
-              <th>Method</th>
-              <th>Bill Amount</th>
-              <th>Received</th>
-              <th>Change</th>
-              <th>Cashier</th>
-              <th>Paid At</th>
-              <th class="text-end">Actions</th>
+              <th>{{ $t('orders.colReceipt') }}</th>
+              <th>{{ $t('orders.colMethod') }}</th>
+              <th>{{ $t('orders.colBillAmount') }}</th>
+              <th>{{ $t('orders.colReceived') }}</th>
+              <th>{{ $t('orders.colChange') }}</th>
+              <th>{{ $t('orders.colCashier') }}</th>
+              <th>{{ $t('orders.colPaidAt') }}</th>
+              <th class="text-end">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -353,11 +347,10 @@
               </td>
               <td class="text-end">
                 <div class="d-inline-flex gap-1 align-items-center">
-                  <span v-if="pay.is_refunded" class="status-badge refunded me-1">Refunded</span>
+                  <span v-if="pay.is_refunded" class="status-badge refunded me-1">{{ $t('orders.statusRefunded') }}</span>
                   <button
                     type="button"
                     class="btn btn-action-icon"
-                    title="View Order Receipt"
                     @click="openOrderDetails(pay.order_id)"
                   >
                     <i class="bi bi-eye"></i>
@@ -366,7 +359,6 @@
                     v-if="!pay.is_refunded"
                     type="button"
                     class="btn btn-action-icon text-warning"
-                    title="Refund Payment"
                     @click="openRefundModalWithPayment(pay)"
                   >
                     <i class="bi bi-arrow-counterclockwise"></i>
@@ -380,7 +372,7 @@
 
       <div v-if="paymentPagination.total_pages > 1" class="pagination-bar">
         <div class="small text-muted">
-          Page {{ paymentPagination.current_page }} of {{ paymentPagination.total_pages }}
+          {{ $t('common.pageOf', { page: paymentPagination.current_page, total: paymentPagination.total_pages }) }}
         </div>
         <div class="d-flex gap-1">
           <button
@@ -389,7 +381,7 @@
             :disabled="paymentPagination.current_page <= 1"
             @click="fetchPayments(paymentPagination.current_page - 1)"
           >
-            Prev
+            {{ $t('common.prev') }}
           </button>
           <button
             type="button"
@@ -397,7 +389,7 @@
             :disabled="paymentPagination.current_page >= paymentPagination.total_pages"
             @click="fetchPayments(paymentPagination.current_page + 1)"
           >
-            Next
+            {{ $t('common.next') }}
           </button>
         </div>
       </div>
@@ -413,7 +405,7 @@
               v-model="refundFilters.search"
               type="text"
               class="form-control form-control-sm search-input"
-              placeholder="Search receipt # or reason..."
+              :placeholder="$t('orders.searchRefundsPlaceholder')"
               @keyup.enter="fetchRefunds(1)"
             />
           </div>
@@ -423,40 +415,40 @@
             class="btn btn-light-coffee btn-sm"
             @click="refundFilters.search = ''; fetchRefunds(1)"
           >
-            <i class="bi bi-arrow-counterclockwise me-1"></i>Refresh
+            <i class="bi bi-arrow-counterclockwise me-1"></i>{{ $t('common.refresh') }}
           </button>
         </div>
       </div>
 
       <div v-if="isLoadingRefunds" class="empty-box">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-        <div class="small text-muted">Loading refunds...</div>
+        <div class="small text-muted">{{ $t('orders.loadingRefunds') }}</div>
       </div>
 
       <div v-else-if="refundsList.length === 0" class="empty-box">
         <i class="bi bi-shield-check fs-2 text-muted mb-2 d-block"></i>
-        <div class="fw-semibold text-dark">No Refunds Recorded</div>
-        <div class="small text-muted">Refunded transactions will be listed here.</div>
+        <div class="fw-semibold text-dark">{{ $t('orders.noRefundsRecorded') }}</div>
+        <div class="small text-muted">{{ $t('orders.noRefundsRecordedDesc') }}</div>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Refund ID / Receipt</th>
-              <th>Method</th>
-              <th>Refunded Amount</th>
-              <th>Reason</th>
-              <th>Approved By</th>
-              <th>Refunded At</th>
-              <th class="text-end">Order</th>
+              <th>{{ $t('orders.colRefundIdReceipt') }}</th>
+              <th>{{ $t('orders.colMethod') }}</th>
+              <th>{{ $t('orders.colRefundedAmount') }}</th>
+              <th>{{ $t('orders.colReason') }}</th>
+              <th>{{ $t('orders.colApprovedBy') }}</th>
+              <th>{{ $t('orders.colRefundedAt') }}</th>
+              <th class="text-end">{{ $t('orders.colOrder') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="refItem in refundsList" :key="refItem.id">
               <td>
                 <div class="fw-bold text-dark">{{ refItem.receipt_no }}</div>
-                <div class="small text-muted">Refund #{{ refItem.id }} • Shift #{{ refItem.shift_id }}</div>
+                <div class="small text-muted">#{{ refItem.id }} • {{ $t('receipt.shift') }} #{{ refItem.shift_id }}</div>
               </td>
               <td>
                 <span class="method-pill">{{ refItem.method }}</span>
@@ -485,7 +477,6 @@
                 <button
                   type="button"
                   class="btn btn-action-icon"
-                  title="View Order Details"
                   @click="openOrderDetails(refItem.order_id)"
                 >
                   <i class="bi bi-eye"></i>
@@ -502,7 +493,7 @@
       <div class="modal-card-custom modal-lg-custom">
         <div class="modal-header-custom no-print">
           <div class="d-flex align-items-center gap-2">
-            <h6 class="mb-0 fw-bold">Order {{ selectedOrder.receipt_no }}</h6>
+            <h6 class="mb-0 fw-bold">{{ $t('orders.orderTitle', { no: selectedOrder.receipt_no }) }}</h6>
             <span class="status-badge" :class="selectedOrder.status.toLowerCase()">
               {{ selectedOrder.status }}
             </span>
@@ -518,61 +509,61 @@
             <div class="col-md-6 no-print">
               <div class="info-box mb-3">
                 <div class="d-flex justify-content-between small mb-2">
-                  <span class="text-muted">Queue Number</span>
+                  <span class="text-muted">{{ $t('orders.queueNumber') }}</span>
                   <span class="fw-bold">#{{ selectedOrder.queue_no }}</span>
                 </div>
                 <div class="d-flex justify-content-between small mb-2">
-                  <span class="text-muted">Order Type</span>
+                  <span class="text-muted">{{ $t('orders.orderType') }}</span>
                   <span class="fw-semibold">
-                    {{ selectedOrder.order_type }}
+                    {{ selectedOrder.order_type === 'DINE_IN' ? $t('common.dineIn') : $t('common.takeaway') }}
                     <template v-if="selectedOrder.table_no">
-                      (Table {{ selectedOrder.table_no }})
+                      ({{ $t('receipt.table') }} {{ selectedOrder.table_no }})
                     </template>
                   </span>
                 </div>
                 <div class="d-flex justify-content-between small mb-2">
-                  <span class="text-muted">Cashier</span>
+                  <span class="text-muted">{{ $t('orders.colCashier') }}</span>
                   <span class="fw-semibold">{{ selectedOrder.cashier?.name }}</span>
                 </div>
                 <div class="d-flex justify-content-between small mb-2">
-                  <span class="text-muted">Created At</span>
+                  <span class="text-muted">{{ $t('orders.createdAt') }}</span>
                   <span>{{ formatDateTime(selectedOrder.created_at) }}</span>
                 </div>
                 <div v-if="selectedOrder.paid_at" class="d-flex justify-content-between small mb-2">
-                  <span class="text-muted">Paid At</span>
+                  <span class="text-muted">{{ $t('orders.paidAt') }}</span>
                   <span class="text-success fw-semibold">{{ formatDateTime(selectedOrder.paid_at) }}</span>
                 </div>
                 <div v-if="selectedOrder.cancelled_at" class="d-flex justify-content-between small mb-2">
-                  <span class="text-muted">Cancelled By</span>
+                  <span class="text-muted">{{ $t('orders.cancelledBy') }}</span>
                   <span class="text-danger">
                     {{ selectedOrder.cancelled_by?.name }} ({{ selectedOrder.cancellation_reason }})
                   </span>
                 </div>
                 <div v-if="selectedOrder.note" class="small text-muted border-top pt-2 mt-2">
-                  <strong>Note:</strong> {{ selectedOrder.note }}
+                  <strong>{{ $t('common.note') }}:</strong> {{ selectedOrder.note }}
                 </div>
               </div>
 
               <!-- Payment Info Box -->
               <div v-if="selectedOrder.payments?.length > 0" class="info-box">
-                <div class="fw-bold small mb-2">Payment Record</div>
+                <div class="fw-bold small mb-2">{{ $t('orders.paymentRecord') }}</div>
                 <div
                   v-for="p in selectedOrder.payments"
                   :key="p.id"
                   class="small"
                 >
                   <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">Method</span>
+                    <span class="text-muted">{{ $t('orders.colMethod') }}</span>
                     <span class="fw-semibold">{{ p.method }} ({{ p.currency }})</span>
                   </div>
                   <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">Received</span>
+                    <span class="text-muted">{{ $t('orders.colReceived') }}</span>
                     <span class="fw-bold">
                       {{ p.currency === 'USD' ? formatUsd(p.received_amount) : formatKhr(p.received_amount) }}
                     </span>
                   </div>
                   <div v-if="p.change_usd > 0 || p.change_khr > 0" class="d-flex justify-content-between">
-                    <span class="text-muted">Change</span>
+                    <span class="text-muted">{{ $t('orders.colChange') }}</span>
                     <span class="text-success fw-semibold">
                       {{ p.change_usd > 0 ? formatUsd(p.change_usd) : formatKhr(p.change_khr) }}
                     </span>
@@ -596,19 +587,19 @@
                     {{ appStore.settings.address }}
                   </div>
                   <div v-if="appStore.settings.phone" class="receipt-sub">
-                    Tel: {{ appStore.settings.phone }}
+                    {{ $t('receipt.tel') }}: {{ appStore.settings.phone }}
                   </div>
                 </div>
 
                 <div class="receipt-divider"></div>
 
                 <div class="d-flex justify-content-between receipt-meta">
-                  <span>Receipt: <strong>{{ selectedOrder.receipt_no }}</strong></span>
-                  <span>Queue: <strong>#{{ selectedOrder.queue_no }}</strong></span>
+                  <span>{{ $t('receipt.receipt') }}: <strong>{{ selectedOrder.receipt_no }}</strong></span>
+                  <span>{{ $t('receipt.queue') }}: <strong>#{{ selectedOrder.queue_no }}</strong></span>
                 </div>
                 <div class="d-flex justify-content-between receipt-meta">
-                  <span>Type: {{ selectedOrder.order_type }}</span>
-                  <span>Status: <strong>{{ selectedOrder.status }}</strong></span>
+                  <span>{{ $t('receipt.type') }}: {{ selectedOrder.order_type === 'DINE_IN' ? $t('common.dineIn') : $t('common.takeaway') }}</span>
+                  <span>{{ $t('receipt.status') }}: <strong>{{ selectedOrder.status }}</strong></span>
                 </div>
 
                 <div class="receipt-divider"></div>
@@ -623,9 +614,9 @@
                     <span>{{ formatUsd(item.line_total) }}</span>
                   </div>
                   <div v-if="item.sugar_level !== null || item.ice_level" class="receipt-item-sub">
-                    <span v-if="item.sugar_level !== null">Sugar {{ item.sugar_level }}%</span>
+                    <span v-if="item.sugar_level !== null">{{ $t('receipt.sugar') }} {{ item.sugar_level }}%</span>
                     <span v-if="item.sugar_level !== null && item.ice_level"> • </span>
-                    <span v-if="item.ice_level">Ice {{ item.ice_level }}</span>
+                    <span v-if="item.ice_level">{{ $t('receipt.ice') }} {{ item.ice_level }}</span>
                   </div>
                   <div
                     v-for="addon in item.addons || []"
@@ -640,28 +631,28 @@
                 <div class="receipt-divider"></div>
 
                 <div class="d-flex justify-content-between receipt-meta">
-                  <span>Subtotal</span>
+                  <span>{{ $t('receipt.subtotal') }}</span>
                   <span>{{ formatUsd(selectedOrder.subtotal) }}</span>
                 </div>
                 <div
                   v-if="selectedOrder.discount?.amount > 0"
                   class="d-flex justify-content-between receipt-meta"
                 >
-                  <span>Discount</span>
+                  <span>{{ $t('receipt.discount') }}</span>
                   <span>-{{ formatUsd(selectedOrder.discount.amount) }}</span>
                 </div>
                 <div class="d-flex justify-content-between fw-bold mt-1">
-                  <span>TOTAL (USD)</span>
+                  <span>{{ $t('receipt.totalUsd') }}</span>
                   <span>{{ formatUsd(selectedOrder.total) }}</span>
                 </div>
                 <div class="d-flex justify-content-between receipt-meta fw-semibold">
-                  <span>TOTAL (KHR)</span>
+                  <span>{{ $t('receipt.totalKhr') }}</span>
                   <span>{{ formatKhr(usdToKhr(selectedOrder.total)) }}</span>
                 </div>
 
                 <div class="receipt-divider"></div>
                 <div class="text-center receipt-sub">
-                  {{ appStore.settings.receipt_footer || 'Thank you for visiting!' }}
+                  {{ appStore.settings.receipt_footer || $t('receipt.thankYouDefault') }}
                 </div>
               </div>
             </div>
@@ -670,7 +661,7 @@
 
         <div class="modal-footer-custom no-print">
           <button type="button" class="btn btn-light-coffee" @click="showDetailModal = false">
-            Close
+            {{ $t('common.close') }}
           </button>
 
           <button
@@ -679,7 +670,7 @@
             class="btn btn-outline-coffee"
             @click="resumeInPos(selectedOrder.id)"
           >
-            <i class="bi bi-calculator me-1"></i>Resume in POS
+            <i class="bi bi-calculator me-1"></i>{{ $t('orders.resumeInPos') }}
           </button>
 
           <button
@@ -688,11 +679,11 @@
             class="btn btn-outline-danger"
             @click="showDetailModal = false; openRefundModalFromOrder(selectedOrder.id)"
           >
-            <i class="bi bi-arrow-counterclockwise me-1"></i>Refund Order
+            <i class="bi bi-arrow-counterclockwise me-1"></i>{{ $t('orders.refundOrder') }}
           </button>
 
           <button type="button" class="btn btn-coffee ms-auto" @click="printCurrentReceipt">
-            <i class="bi bi-printer me-1"></i>Print Receipt
+            <i class="bi bi-printer me-1"></i>{{ $t('receipt.printReceipt') }}
           </button>
         </div>
       </div>
@@ -702,7 +693,7 @@
     <div v-if="showCancelModal && cancellingOrder" class="modal-backdrop-custom" @click.self="showCancelModal = false">
       <div class="modal-card-custom modal-sm-custom">
         <div class="modal-header-custom">
-          <h6 class="mb-0 fw-bold text-danger">Cancel Order {{ cancellingOrder.receipt_no }}</h6>
+          <h6 class="mb-0 fw-bold text-danger">{{ $t('orders.cancelOrderTitle', { no: cancellingOrder.receipt_no }) }}</h6>
           <button type="button" class="btn-close-custom" @click="showCancelModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
@@ -710,23 +701,22 @@
 
         <div class="modal-body-custom">
           <p class="small text-muted mb-3">
-            Are you sure you want to cancel Queue <strong>#{{ cancellingOrder.queue_no }}</strong>
-            ({{ formatUsd(cancellingOrder.total) }})? This action cannot be undone.
+            {{ $t('orders.cancelOrderConfirm', { queue: cancellingOrder.queue_no, total: formatUsd(cancellingOrder.total) }) }}
           </p>
 
-          <label class="form-label-clean">Cancellation Reason <span class="text-danger">*</span></label>
+          <label class="form-label-clean">{{ $t('orders.cancellationReason') }} <span class="text-danger">*</span></label>
           <textarea
             v-model="cancelReason"
             rows="3"
             class="form-control form-control-clean"
-            placeholder="e.g. Customer changed mind, duplicate order..."
+            :placeholder="$t('orders.cancelReasonPlaceholder')"
             maxlength="255"
           ></textarea>
         </div>
 
         <div class="modal-footer-custom">
           <button type="button" class="btn btn-light-coffee" @click="showCancelModal = false">
-            Keep Order
+            {{ $t('orders.keepOrder') }}
           </button>
           <button
             type="button"
@@ -735,7 +725,7 @@
             @click="handleConfirmCancel"
           >
             <span v-if="isSubmittingCancel" class="spinner-border spinner-border-sm me-1"></span>
-            Confirm Cancel
+            {{ $t('orders.confirmCancel') }}
           </button>
         </div>
       </div>
@@ -745,7 +735,7 @@
     <div v-if="showRefundModal && refundTargetPayment" class="modal-backdrop-custom" @click.self="showRefundModal = false">
       <div class="modal-card-custom modal-sm-custom">
         <div class="modal-header-custom">
-          <h6 class="mb-0 fw-bold">Process Refund</h6>
+          <h6 class="mb-0 fw-bold">{{ $t('orders.processRefundTitle') }}</h6>
           <button type="button" class="btn-close-custom" @click="showRefundModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
@@ -754,15 +744,15 @@
         <div class="modal-body-custom">
           <div class="info-box mb-3">
             <div class="d-flex justify-content-between small mb-1">
-              <span class="text-muted">Receipt No</span>
+              <span class="text-muted">{{ $t('orders.receiptNo') }}</span>
               <span class="fw-bold">{{ refundTargetPayment.receipt_no }}</span>
             </div>
             <div class="d-flex justify-content-between small mb-1">
-              <span class="text-muted">Payment Method</span>
+              <span class="text-muted">{{ $t('orders.paymentMethod') }}</span>
               <span class="fw-semibold">{{ refundTargetPayment.method }}</span>
             </div>
             <div class="d-flex justify-content-between small">
-              <span class="text-muted">Refund Amount</span>
+              <span class="text-muted">{{ $t('orders.refundAmount') }}</span>
               <span class="fw-bold text-danger">
                 {{
                   refundTargetPayment.currency === 'USD'
@@ -774,18 +764,18 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label-clean">Refund Reason (Min 3 chars) <span class="text-danger">*</span></label>
+            <label class="form-label-clean">{{ $t('orders.refundReasonLabel') }} <span class="text-danger">*</span></label>
             <textarea
               v-model="refundForm.reason"
               rows="2"
               class="form-control form-control-clean"
-              placeholder="e.g. Wrong drink prepared, customer complaint..."
+              :placeholder="$t('orders.refundReasonPlaceholder')"
               maxlength="500"
             ></textarea>
           </div>
 
           <div v-if="!authStore.isOwner" class="mb-3">
-            <label class="form-label-clean">Approved By Owner ID <span class="text-danger">*</span></label>
+            <label class="form-label-clean">{{ $t('pos.approvedByOwnerId') }} <span class="text-danger">*</span></label>
             <input
               v-model.number="refundForm.approved_by"
               type="number"
@@ -796,12 +786,12 @@
           </div>
 
           <div class="mb-1">
-            <label class="form-label-clean">Reference Note (Optional)</label>
+            <label class="form-label-clean">{{ $t('orders.referenceNoteOptional') }}</label>
             <input
               v-model="refundForm.reference"
               type="text"
               class="form-control form-control-clean"
-              placeholder="Optional reference..."
+              placeholder="..."
               maxlength="150"
             />
           </div>
@@ -809,7 +799,7 @@
 
         <div class="modal-footer-custom">
           <button type="button" class="btn btn-light-coffee" @click="showRefundModal = false">
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button
             type="button"
@@ -818,7 +808,7 @@
             @click="handleConfirmRefund"
           >
             <span v-if="isSubmittingRefund" class="spinner-border spinner-border-sm me-1"></span>
-            Confirm Refund
+            {{ $t('orders.confirmRefund') }}
           </button>
         </div>
       </div>
@@ -827,7 +817,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/api'
 import { useAppStore } from '@/stores/appStore'
@@ -835,6 +825,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useCurrency } from '@/composables/useCurrency'
 import { useFormatDate } from '@/composables/useFormatDate'
+import { useI18n } from '@/i18n'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -842,6 +833,7 @@ const authStore = useAuthStore()
 const toast = useToast()
 const { formatUsd, formatKhr, usdToKhr } = useCurrency()
 const { formatDateTime } = useFormatDate()
+const { t } = useI18n()
 
 const activeTab = ref('ORDERS')
 
@@ -855,13 +847,13 @@ const orderPagination = reactive({
   totalPages: 1,
 })
 
-const orderStatusOptions = [
-  { value: '', label: 'All' },
-  { value: 'OPEN', label: 'Open' },
-  { value: 'PAID', label: 'Paid' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-  { value: 'REFUNDED', label: 'Refunded' },
-]
+const orderStatusOptions = computed(() => [
+  { value: '', label: t('orders.statusAll') },
+  { value: 'OPEN', label: t('orders.statusOpen') },
+  { value: 'PAID', label: t('orders.statusPaid') },
+  { value: 'CANCELLED', label: t('orders.statusCancelled') },
+  { value: 'REFUNDED', label: t('orders.statusRefunded') },
+])
 
 const orderFilters = reactive({
   status: '',
@@ -1156,9 +1148,9 @@ onMounted(async () => {
 }
 
 .nav-tab-btn.active {
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   font-weight: 600;
-  border-bottom-color: var(--primary, #2c1810);
+  border-bottom-color: var(--primary, #2d5a43);
 }
 
 .nav-tab-btn i {
@@ -1200,9 +1192,9 @@ onMounted(async () => {
 }
 
 .status-pill.active {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
-  border-color: #2c1810;
+  border-color: #2d5a43;
 }
 
 .search-wrap {
@@ -1299,7 +1291,7 @@ onMounted(async () => {
   font-size: 0.74rem;
   font-weight: 700;
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   padding: 0.2rem 0.55rem;
   border-radius: 6px;
 }
@@ -1334,7 +1326,7 @@ onMounted(async () => {
 }
 
 .btn-coffee {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
   border: none;
   border-radius: 9px;
@@ -1343,7 +1335,7 @@ onMounted(async () => {
 
 .btn-light-coffee {
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   border: 1px solid #e6e1da;
   border-radius: 9px;
   font-weight: 600;
@@ -1351,8 +1343,8 @@ onMounted(async () => {
 
 .btn-outline-coffee {
   background: #ffffff;
-  color: #2c1810;
-  border: 1px solid #2c1810;
+  color: #2d5a43;
+  border: 1px solid #2d5a43;
   border-radius: 9px;
   font-weight: 600;
 }
@@ -1447,7 +1439,7 @@ onMounted(async () => {
   border: 1px dashed #c8c2b8;
   border-radius: 10px;
   padding: 1rem;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: 'Kantumruy Pro', 'Courier New', Courier, monospace;
   font-size: 0.8rem;
 }
 

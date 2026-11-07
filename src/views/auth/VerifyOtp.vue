@@ -169,18 +169,18 @@ const handleResend = async () => {
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
-          Back to forgot password
+          {{ $t('auth.backToForgot') }}
         </router-link>
-        <span class="step-text">Step 2</span>
+        <span class="step-text">{{ $t('auth.step2') }}</span>
       </div>
 
-      <h3 class="title-text fw-bold mb-2">Check email</h3>
-      <p class="subtitle-text mb-4">Enter the 6-digit passcode sent to your inbox.</p>
+      <h3 class="title-text fw-bold mb-2">{{ $t('auth.checkEmailTitle') }}</h3>
+      <p class="subtitle-text mb-4">{{ $t('auth.checkEmailSubtitle') }}</p>
 
       <form @submit.prevent="handleVerify">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <label class="code-label mb-0 fw-medium">Security code</label>
-          <span class="expiry-text">10 min expiry</span>
+          <label class="code-label mb-0 fw-medium">{{ $t('auth.securityCode') }}</label>
+          <span class="expiry-text">{{ $t('auth.expiry10Min') }}</span>
         </div>
 
         <div class="otp-grid mb-2" @paste="handlePaste">
@@ -217,7 +217,7 @@ const handleResend = async () => {
           class="mb-4"
           :loading="isLoading"
         >
-          Verify Code
+          {{ $t('auth.verifyCodeBtn') }}
         </BaseButton>
       </form>
 
@@ -228,9 +228,9 @@ const handleResend = async () => {
           :disabled="isResending || countdown > 0"
           @click="handleResend"
         >
-          <span v-if="isResending">Sending code...</span>
-          <span v-else-if="countdown > 0">Resend OTP ({{ countdown }}s)</span>
-          <span v-else>Resend OTP</span>
+          <span v-if="isResending">{{ $t('auth.sendingCode') }}</span>
+          <span v-else-if="countdown > 0">{{ $t('auth.resendOtpIn', { seconds: countdown }) }}</span>
+          <span v-else>{{ $t('auth.resendOtp') }}</span>
         </button>
       </div>
     </div>
@@ -248,7 +248,7 @@ const handleResend = async () => {
   max-width: 440px;
   border-radius: 16px;
   border: 1px solid var(--border-hairline, #e6e4e0);
-  box-shadow: 0 4px 20px -2px rgba(44, 24, 16, 0.04);
+  box-shadow: 0 4px 20px -2px rgba(45, 90, 67, 0.04);
 }
 
 .back-link {
@@ -258,7 +258,7 @@ const handleResend = async () => {
   transition: color 0.15s ease;
 }
 .back-link:hover {
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
 }
 
 .step-text {
@@ -321,11 +321,11 @@ const handleResend = async () => {
 }
 
 .otp-box:focus {
-  border-color: var(--primary, #2c1810);
+  border-color: var(--primary, #2d5a43);
   background-color: #ffffff;
   box-shadow:
     0 0 0 2px var(--background, #faf9f7),
-    0 0 0 4px rgba(44, 24, 16, 0.2);
+    0 0 0 4px rgba(45, 90, 67, 0.2);
 }
 
 .otp-box--filled {
@@ -346,12 +346,12 @@ const handleResend = async () => {
 .resend-link {
   font-size: 13px;
   font-weight: 500;
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   transition: color 0.15s ease;
 }
 
 .resend-link:hover:not(:disabled) {
-  color: var(--primary-dark, #1d100b) !important;
+  color: var(--primary-dark, #1e3f2f) !important;
   text-decoration: underline !important;
 }
 
