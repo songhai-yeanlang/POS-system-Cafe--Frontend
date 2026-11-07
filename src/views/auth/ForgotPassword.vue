@@ -61,14 +61,14 @@ const handleSendCode = async () => {
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
-          Back to login
+          {{ $t('auth.backToLogin') }}
         </router-link>
-        <span class="step-text">Step 1</span>
+        <span class="step-text">{{ $t('auth.step1') }}</span>
       </div>
 
-      <h3 class="title-text fw-bold mb-2">Forgot password?</h3>
+      <h3 class="title-text fw-bold mb-2">{{ $t('auth.forgotTitle') }}</h3>
       <p class="subtitle-text mb-4">
-        Enter your work email to receive a 6-digit verification code.
+        {{ $t('auth.forgotSubtitle') }}
       </p>
 
       <form @submit.prevent="handleSendCode">
@@ -76,7 +76,7 @@ const handleSendCode = async () => {
           <BaseInput
             v-model="email"
             type="email"
-            label="Work email"
+            :label="$t('auth.workEmailLabel')"
             placeholder="elena.rossi@brewpos.com"
             :error="errorMessage"
             required
@@ -94,7 +94,7 @@ const handleSendCode = async () => {
         </div>
 
         <BaseButton type="submit" variant="primary" size="lg" block :loading="isLoading">
-          Send Code
+          {{ $t('auth.sendCodeBtn') }}
         </BaseButton>
       </form>
     </div>
@@ -112,7 +112,7 @@ const handleSendCode = async () => {
   max-width: 440px;
   border-radius: 16px;
   border: 1px solid var(--border-hairline, #e6e4e0);
-  box-shadow: 0 4px 20px -2px rgba(44, 24, 16, 0.04);
+  box-shadow: 0 4px 20px -2px rgba(45, 90, 67, 0.04);
 }
 
 .back-link {
@@ -122,7 +122,7 @@ const handleSendCode = async () => {
   transition: color 0.15s ease;
 }
 .back-link:hover {
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
 }
 
 .step-text {

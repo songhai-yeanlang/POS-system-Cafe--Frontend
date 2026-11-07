@@ -3,11 +3,14 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
+import { useI18n } from '@/i18n'
+import LanguageSwitcher from '@/components/base/LanguageSwitcher.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
+const { t } = useI18n()
 
 const isSidebarCollapsed = ref(false)
 const isMobileSidebarOpen = ref(false)
@@ -26,35 +29,49 @@ watch(
   },
 )
 
+const pageTitle = computed(() => {
+  if (route.name) {
+    const key = `routeTitles.${String(route.name)}`
+    const translated = t(key)
+    if (translated !== key) return translated
+  }
+  return route.meta?.title || 'BrewPOS Workspace'
+})
+
+const roleLabel = computed(() => {
+  const role = authStore.user?.role || 'STAFF'
+  return role === 'OWNER' ? t('common.owner') : t('common.staff')
+})
+
 const navGroups = computed(() => {
   const role = authStore.user?.role || 'STAFF'
 
   const groups = [
     {
-      label: 'Operations',
+      label: t('nav.operations'),
       items: [
         {
-          name: 'POS Terminal',
+          name: t('nav.pos'),
           path: '/pos',
           icon: 'bi-calculator',
           roles: ['OWNER', 'STAFF'],
         },
         {
-          name: 'Orders & Receipts',
+          name: t('nav.orders'),
           path: '/orders',
           icon: 'bi-receipt',
           roles: ['OWNER', 'STAFF'],
         },
         {
-          name: 'Shifts & Drawer',
+          name: t('nav.shifts'),
           path: '/shifts',
           icon: 'bi-safe2',
           roles: ['OWNER', 'STAFF'],
-          badge: appStore.hasOpenShift ? 'OPEN' : null,
+          badge: appStore.hasOpenShift ? t('nav.openBadge') : null,
           badgeType: 'success',
         },
         {
-          name: 'Daily Expenses',
+          name: t('nav.expenses'),
           path: '/expenses',
           icon: 'bi-wallet2',
           roles: ['OWNER', 'STAFF'],
@@ -62,22 +79,22 @@ const navGroups = computed(() => {
       ],
     },
     {
-      label: 'Catalog & Stock',
+      label: t('nav.catalogStock'),
       items: [
         {
-          name: 'Products & Menu',
+          name: t('nav.products'),
           path: '/products',
           icon: 'bi-cup-hot',
           roles: ['OWNER', 'STAFF'],
         },
         {
-          name: 'Inventory & Stock',
+          name: t('nav.inventory'),
           path: '/inventory',
           icon: 'bi-boxes',
           roles: ['OWNER', 'STAFF'],
         },
         {
-          name: 'Drink Recipes',
+          name: t('nav.recipes'),
           path: '/recipes',
           icon: 'bi-journal-text',
           roles: ['OWNER', 'STAFF'],
@@ -85,28 +102,28 @@ const navGroups = computed(() => {
       ],
     },
     {
-      label: 'Analytics & Admin',
+      label: t('nav.analyticsAdmin'),
       items: [
         {
-          name: 'Dashboard',
+          name: t('nav.dashboard'),
           path: '/dashboard',
           icon: 'bi-grid-1x2',
           roles: ['OWNER'],
         },
         {
-          name: 'Reports',
+          name: t('nav.reports'),
           path: '/reports',
           icon: 'bi-bar-chart-line',
           roles: ['OWNER', 'STAFF'],
         },
         {
-          name: 'Staff & Users',
+          name: t('nav.users'),
           path: '/users',
           icon: 'bi-people',
           roles: ['OWNER'],
         },
         {
-          name: 'Audit Logs',
+          name: t('nav.auditLogs'),
           path: '/audit-logs',
           icon: 'bi-shield-check',
           roles: ['OWNER'],
@@ -188,7 +205,7 @@ const handleLogout = async () => {
             <div class="brand-name text-truncate">{{ appStore.shopName }}</div>
             <div class="brand-role-sub d-flex align-items-center gap-1">
               <span class="role-dot"></span>
-              <span>{{ authStore.user?.role || 'STAFF' }} PORTAL</span>
+              <span>{{ t('nav.portal', { role: roleLabel }) }}</span>
             </div>
           </div>
         </router-link>
@@ -239,11 +256,11 @@ const handleLogout = async () => {
           to="/settings"
           class="nav-item-link d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
           :class="{ active: isActiveRoute('/settings') }"
-          :title="isSidebarCollapsed ? 'Shop Settings' : ''"
+          :title="isSidebarCollapsed ? t('nav.settings') : ''"
         >
           <div class="d-flex align-items-center gap-3 text-truncate">
             <i class="bi bi-gear nav-icon"></i>
-            <span v-if="!isSidebarCollapsed" class="text-truncate">Shop Settings</span>
+            <span v-if="!isSidebarCollapsed" class="text-truncate">{{ t('nav.settings') }}</span>
           </div>
         </router-link>
 
@@ -252,11 +269,11 @@ const handleLogout = async () => {
           to="/profile"
           class="nav-item-link d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
           :class="{ active: isActiveRoute('/profile') }"
-          :title="isSidebarCollapsed ? 'My Profile' : ''"
+          :title="isSidebarCollapsed ? t('nav.profile') : ''"
         >
           <div class="d-flex align-items-center gap-3 text-truncate">
             <i class="bi bi-person-badge nav-icon"></i>
-            <span v-if="!isSidebarCollapsed" class="text-truncate">My Profile</span>
+            <span v-if="!isSidebarCollapsed" class="text-truncate">{{ t('nav.profile') }}</span>
           </div>
         </router-link>
       </div>
@@ -270,7 +287,7 @@ const handleLogout = async () => {
           <button
             type="button"
             class="btn btn-icon-toggle d-flex align-items-center justify-content-center"
-            title="Toggle navigation"
+            :title="t('nav.toggleNav')"
             @click="toggleSidebar"
           >
             <i class="bi bi-layout-sidebar-inset fs-5"></i>
@@ -278,17 +295,22 @@ const handleLogout = async () => {
 
           <div class="text-truncate">
             <h1 class="topbar-title mb-0 text-truncate">
-              {{ route.meta?.title || 'BrewPOS Workspace' }}
+              {{ pageTitle }}
             </h1>
           </div>
         </div>
 
         <!-- Topbar Right Indicators & Quick Actions -->
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2 gap-md-3">
+          <!-- Language Switcher -->
+          <LanguageSwitcher />
+
+          <span class="topbar-divider d-none d-sm-inline"></span>
+
           <!-- Exchange Rate -->
           <div
             class="topbar-rate d-none d-sm-inline-flex align-items-center gap-2"
-            title="Current Shop Exchange Rate"
+            :title="t('nav.exchangeRateTitle')"
           >
             <i class="bi bi-currency-exchange text-muted"></i>
             <span class="numeric-tabular fw-semibold text-dark">$1 = {{ formattedRate }} ៛</span>
@@ -301,13 +323,13 @@ const handleLogout = async () => {
             to="/shifts"
             class="topbar-shift-link d-inline-flex align-items-center gap-2 text-decoration-none"
             :class="appStore.hasOpenShift ? 'shift-open' : 'shift-closed'"
-            title="Click to manage shift & cash drawer"
+            :title="t('nav.manageShiftTitle')"
           >
             <span class="shift-dot"></span>
             <span v-if="appStore.hasOpenShift" class="numeric-tabular fw-semibold">
-              Shift #{{ appStore.currentShift?.id }} Open
+              {{ t('nav.shiftOpen', { id: appStore.currentShift?.id }) }}
             </span>
-            <span v-else class="fw-semibold">Shift Closed</span>
+            <span v-else class="fw-semibold">{{ t('nav.shiftClosed') }}</span>
           </router-link>
 
           <span class="topbar-divider"></span>
@@ -316,13 +338,13 @@ const handleLogout = async () => {
           <button
             type="button"
             class="btn-topbar-logout d-inline-flex align-items-center gap-2"
-            title="Sign out"
+            :title="t('nav.logout')"
             :disabled="isLoggingOut"
             @click="handleLogout"
           >
             <span v-if="isLoggingOut" class="spinner-border spinner-border-sm"></span>
             <i v-else class="bi bi-box-arrow-right"></i>
-            <span>Logout</span>
+            <span>{{ t('nav.logout') }}</span>
           </button>
         </div>
       </header>
@@ -368,7 +390,7 @@ const handleLogout = async () => {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
   color: var(--on-primary, #ffffff);
 }
 
@@ -396,6 +418,36 @@ const handleLogout = async () => {
 .sidebar-nav {
   overflow-y: auto;
   min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45, 90, 67, 0.16) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background-color: rgba(45, 90, 67, 0.14);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-nav:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(45, 90, 67, 0.28);
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary, #2d5a43) !important;
+}
+
+.sidebar-nav::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .sidebar-bottom {
@@ -436,7 +488,7 @@ const handleLogout = async () => {
 }
 
 .nav-item-link.active {
-  background-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
   color: var(--on-primary, #ffffff);
   font-weight: 600;
 }
@@ -455,7 +507,7 @@ const handleLogout = async () => {
 }
 
 .nav-item-link.active .nav-badge {
-  background-color: var(--secondary-fixed, #ffdcc5);
+  background-color: var(--secondary-fixed, #d6ede0);
   color: var(--on-secondary-fixed, #2b1707);
 }
 

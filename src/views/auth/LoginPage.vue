@@ -2,12 +2,15 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { useI18n } from '@/i18n'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
+import LanguageSwitcher from '@/components/base/LanguageSwitcher.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const form = reactive({
   email: '',
@@ -39,7 +42,7 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   if (!form.email || !form.password) {
-    errorMessage.value = 'Please enter both email and password'
+    errorMessage.value = t('auth.enterEmailPassword')
     return
   }
 
@@ -63,7 +66,7 @@ const handleLogin = async () => {
 
     router.push(redirectPath)
   } catch (err) {
-    errorMessage.value = err.message || 'Invalid email or password'
+    errorMessage.value = err.message || t('auth.invalidCredentials')
   } finally {
     isLoading.value = false
   }
@@ -74,16 +77,19 @@ const handleLogin = async () => {
   <div class="login-wrapper min-vh-100 d-flex align-items-center justify-content-center p-3 p-md-4">
     <div class="login-card row g-0 rounded-4 overflow-hidden bg-white">
       <div class="col-12 col-md-12 form-side d-flex flex-column justify-content-center p-4 p-md-5">
-        <div class="mb-4">
-          <h3 class="fw-semibold text-dark mb-1">Welcome back</h3>
-          <p class="text-secondary small mb-0">Sign in to your account</p>
+        <div class="d-flex align-items-start justify-content-between mb-4">
+          <div>
+            <h3 class="fw-semibold text-dark mb-1">{{ t('auth.welcomeBack') }}</h3>
+            <p class="text-secondary small mb-0">{{ t('auth.signInSubtitle') }}</p>
+          </div>
+          <LanguageSwitcher />
         </div>
 
         <form @submit.prevent="handleLogin">
           <BaseInput
             v-model="form.email"
             type="email"
-            label="Email address"
+            :label="t('auth.emailLabel')"
             placeholder="barista@brewpos.com"
             :error="!form.email && errorMessage ? errorMessage : ''"
             required
@@ -93,7 +99,7 @@ const handleLogin = async () => {
           <BaseInput
             v-model="form.password"
             type="password"
-            label="Password"
+            :label="t('auth.passwordLabel')"
             placeholder="••••••••"
             :error="
               errorMessage && form.email
@@ -113,16 +119,18 @@ const handleLogin = async () => {
                 class="form-check-input remember-check m-0"
                 type="checkbox"
               />
-              <label class="form-check-label remember-label" for="rememberMe"> Remember me </label>
+              <label class="form-check-label remember-label" for="rememberMe">
+                {{ t('auth.rememberMe') }}
+              </label>
             </div>
 
             <router-link to="/forgot-password" class="text-decoration-none small forgot-link">
-              Forgot password?
+              {{ t('auth.forgotPasswordLink') }}
             </router-link>
           </div>
 
           <BaseButton type="submit" variant="primary" size="lg" block :loading="isLoading">
-            Sign In
+            {{ t('auth.signInBtn') }}
           </BaseButton>
         </form>
 
@@ -147,7 +155,7 @@ const handleLogin = async () => {
 }
 
 .brand-side {
-  background-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
   color: var(--on-primary, #ffffff);
   min-height: 220px;
 }
@@ -165,7 +173,7 @@ const handleLogin = async () => {
 }
 
 .brand-subtitle {
-  color: var(--secondary-fixed, #ffdcc5);
+  color: var(--secondary-fixed, #d6ede0);
   font-size: 13px;
   font-weight: 400;
 }
@@ -184,13 +192,13 @@ const handleLogin = async () => {
 }
 
 .remember-check:checked {
-  background-color: var(--primary, #2c1810);
-  border-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
+  border-color: var(--primary, #2d5a43);
 }
 
 .remember-check:focus {
-  border-color: var(--primary, #2c1810);
-  box-shadow: 0 0 0 2px rgba(44, 24, 16, 0.15) !important;
+  border-color: var(--primary, #2d5a43);
+  box-shadow: 0 0 0 2px rgba(45, 90, 67, 0.15) !important;
 }
 
 .remember-label {
@@ -206,7 +214,7 @@ const handleLogin = async () => {
 }
 
 .forgot-link:hover {
-  color: var(--primary, #2c1810) !important;
+  color: var(--primary, #2d5a43) !important;
   text-decoration: underline !important;
 }
 

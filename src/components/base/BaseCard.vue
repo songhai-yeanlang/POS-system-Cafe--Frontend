@@ -117,7 +117,7 @@ const bodyPaddingClass = computed(() => {
 }
 
 .shadow-subtle {
-  box-shadow: 0 4px 12px rgba(44, 24, 16, 0.04);
+  box-shadow: 0 4px 12px rgba(45, 90, 67, 0.04);
 }
 
 .card-interactive {
@@ -126,6 +126,6 @@ const bodyPaddingClass = computed(() => {
 }
 
 .card-interactive:hover {
-  border-color: var(--primary, #2c1810) !important;
+  border-color: var(--primary, #2d5a43) !important;
 }
 </style>

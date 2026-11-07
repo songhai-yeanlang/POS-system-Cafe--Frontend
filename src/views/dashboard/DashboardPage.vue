@@ -11,7 +11,7 @@
           :class="{ active: activePreset === p.key }"
           @click="applyDatePreset(p.key)"
         >
-          {{ p.label }}
+          {{ $t(p.labelKey) }}
         </button>
       </div>
 
@@ -44,7 +44,7 @@
     <div class="kpi-grid-4 mb-3">
       <div class="kpi-box">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <span class="kpi-title">Net Sales</span>
+          <span class="kpi-title">{{ $t('dashboard.netSales') }}</span>
           <div class="kpi-badge bg-coffee-soft">
             <i class="bi bi-graph-up-arrow"></i>
           </div>
@@ -55,7 +55,7 @@
 
       <div class="kpi-box">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <span class="kpi-title">Net Profit</span>
+          <span class="kpi-title">{{ $t('dashboard.netProfit') }}</span>
           <div
             class="kpi-badge"
             :class="financials.net_operating_profit_usd >= 0 ? 'bg-success-soft' : 'bg-danger-soft'"
@@ -76,20 +76,20 @@
 
       <div class="kpi-box">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <span class="kpi-title">Paid Orders</span>
+          <span class="kpi-title">{{ $t('dashboard.paidOrders') }}</span>
           <div class="kpi-badge bg-info-soft">
             <i class="bi bi-receipt"></i>
           </div>
         </div>
         <div class="kpi-main-val">{{ ordersStats.paid_orders }}</div>
         <div class="kpi-sub-val">
-          Avg: {{ formatUsd(financials.average_order_value_usd) }}
+          {{ $t('dashboard.avgOrder', { amount: formatUsd(financials.average_order_value_usd) }) }}
         </div>
       </div>
 
       <div class="kpi-box">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <span class="kpi-title">Expenses</span>
+          <span class="kpi-title">{{ $t('dashboard.expenses') }}</span>
           <div class="kpi-badge bg-warning-soft">
             <i class="bi bi-wallet2"></i>
           </div>
@@ -98,7 +98,7 @@
           {{ formatUsd(financials.total_expenses_usd) }}
         </div>
         <div class="kpi-sub-val">
-          Refunds: {{ formatUsd(financials.total_refunded_usd) }}
+          {{ $t('dashboard.refunds', { amount: formatUsd(financials.total_refunded_usd) }) }}
         </div>
       </div>
     </div>
@@ -110,7 +110,7 @@
         <div class="clean-card h-100">
           <div class="card-header-clean">
             <div>
-              <h6 class="fw-bold mb-0 text-dark">Sales Trend</h6>
+              <h6 class="fw-bold mb-0 text-dark">{{ $t('dashboard.salesTrend') }}</h6>
             </div>
 
             <div class="preset-pills">
@@ -118,11 +118,11 @@
                 v-for="g in ['hour', 'day', 'month']"
                 :key="g"
                 type="button"
-                class="preset-pill text-capitalize"
+                class="preset-pill"
                 :class="{ active: trendGroupBy === g }"
                 @click="changeTrendGroupBy(g)"
               >
-                By {{ g }}
+                {{ g === 'hour' ? $t('dashboard.byHour') : g === 'day' ? $t('dashboard.byDay') : $t('dashboard.byMonth') }}
               </button>
             </div>
           </div>
@@ -130,7 +130,7 @@
           <div class="card-body-clean">
             <div v-if="salesTrend.data.length === 0" class="empty-box py-4">
               <i class="bi bi-bar-chart fs-3 text-muted d-block mb-1"></i>
-              <div class="small text-muted">No paid sales recorded in this period.</div>
+              <div class="small text-muted">{{ $t('dashboard.noPaidSales') }}</div>
             </div>
 
             <div v-else>
@@ -162,12 +162,12 @@
       <div class="col-lg-4">
         <div class="clean-card h-100">
           <div class="card-header-clean">
-            <h6 class="fw-bold mb-0 text-dark">Payment Channels</h6>
+            <h6 class="fw-bold mb-0 text-dark">{{ $t('dashboard.paymentChannels') }}</h6>
           </div>
 
           <div class="card-body-clean">
             <div v-if="paymentsBreakdown.length === 0" class="empty-box py-4">
-              <div class="small text-muted">No completed payments yet.</div>
+              <div class="small text-muted">{{ $t('dashboard.noCompletedPayments') }}</div>
             </div>
 
             <div v-else class="d-flex flex-column gap-2">
@@ -197,14 +197,14 @@
       <div class="col-lg-7">
         <div class="clean-card h-100">
           <div class="card-header-clean">
-            <h6 class="fw-bold mb-0 text-dark">Top Selling Items</h6>
+            <h6 class="fw-bold mb-0 text-dark">{{ $t('dashboard.topSellingItems') }}</h6>
             <router-link to="/reports" class="btn btn-light-coffee btn-xs">
-              Full Reports <i class="bi bi-arrow-right ms-1"></i>
+              {{ $t('dashboard.fullReports') }} <i class="bi bi-arrow-right ms-1"></i>
             </router-link>
           </div>
 
           <div v-if="topProducts.length === 0" class="empty-box py-4">
-            <div class="small text-muted">No product sales in this period.</div>
+            <div class="small text-muted">{{ $t('dashboard.noProductSales') }}</div>
           </div>
 
           <div v-else class="table-responsive">
@@ -212,10 +212,10 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th>Sold</th>
-                  <th class="text-end">Revenue</th>
+                  <th>{{ $t('dashboard.colProduct') }}</th>
+                  <th>{{ $t('dashboard.colCategory') }}</th>
+                  <th>{{ $t('dashboard.colSold') }}</th>
+                  <th class="text-end">{{ $t('dashboard.colRevenue') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -247,16 +247,16 @@
       <div class="col-lg-5">
         <div class="clean-card h-100">
           <div class="card-header-clean">
-            <h6 class="fw-bold mb-0 text-dark">Low-Stock Alerts</h6>
+            <h6 class="fw-bold mb-0 text-dark">{{ $t('dashboard.lowStockAlerts') }}</h6>
             <router-link to="/inventory" class="btn btn-light-coffee btn-xs">
-              Restock <i class="bi bi-arrow-right ms-1"></i>
+              {{ $t('dashboard.restock') }} <i class="bi bi-arrow-right ms-1"></i>
             </router-link>
           </div>
 
           <div v-if="lowStockItems.length === 0" class="empty-box py-4">
             <i class="bi bi-check2-circle fs-3 text-success d-block mb-1"></i>
-            <div class="fw-semibold text-dark small">All Ingredients Well Stocked</div>
-            <div class="small text-muted">No active ingredients are below minimum stock.</div>
+            <div class="fw-semibold text-dark small">{{ $t('dashboard.allWellStocked') }}</div>
+            <div class="small text-muted">{{ $t('dashboard.allWellStockedDesc') }}</div>
           </div>
 
           <div v-else class="card-body-clean d-flex flex-column gap-2">
@@ -268,7 +268,7 @@
               <div>
                 <div class="fw-bold small text-dark">{{ ing.name }}</div>
                 <div class="text-muted" style="font-size: 0.72rem">
-                  Min Required: {{ ing.minimum_stock }} {{ ing.unit }}
+                  {{ $t('dashboard.minRequired', { qty: ing.minimum_stock, unit: ing.unit }) }}
                 </div>
               </div>
               <div class="text-end">
@@ -276,7 +276,7 @@
                   class="stock-tag"
                   :class="Number(ing.current_stock) <= 0 ? 'out' : 'low'"
                 >
-                  {{ ing.current_stock }} {{ ing.unit }} left
+                  {{ $t('dashboard.leftStock', { qty: ing.current_stock, unit: ing.unit }) }}
                 </span>
               </div>
             </div>
@@ -301,10 +301,10 @@ const activePreset = ref('MONTH')
 const trendGroupBy = ref('day')
 
 const datePresets = [
-  { key: 'TODAY', label: 'Today' },
-  { key: '7D', label: 'Last 7 Days' },
-  { key: 'MONTH', label: 'This Month' },
-  { key: 'ALL', label: 'All Time' },
+  { key: 'TODAY', labelKey: 'dashboard.today' },
+  { key: '7D', labelKey: 'dashboard.last7Days' },
+  { key: 'MONTH', labelKey: 'dashboard.thisMonth' },
+  { key: 'ALL', labelKey: 'dashboard.allTime' },
 ]
 
 const filters = reactive({
@@ -493,7 +493,7 @@ onMounted(() => {
 }
 
 .preset-pill.active {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
 }
 
@@ -535,7 +535,7 @@ onMounted(() => {
 
 .bg-coffee-soft {
   background: #f4eee8;
-  color: #2c1810;
+  color: #2d5a43;
 }
 
 .bg-success-soft {
@@ -637,7 +637,7 @@ onMounted(() => {
 
 .trend-bar-fill {
   width: 100%;
-  background: #2c1810;
+  background: #2d5a43;
   border-radius: 6px 6px 0 0;
   transition: height 0.25s ease;
 }
@@ -674,7 +674,7 @@ onMounted(() => {
 .method-tag {
   font-size: 0.72rem;
   font-weight: 700;
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
   padding: 0.15rem 0.5rem;
   border-radius: 6px;
@@ -683,8 +683,8 @@ onMounted(() => {
 .currency-tag {
   font-size: 0.7rem;
   font-weight: 700;
-  background: #ffdcc5;
-  color: #2c1810;
+  background: #d6ede0;
+  color: #2d5a43;
   padding: 0.14rem 0.45rem;
   border-radius: 6px;
 }
@@ -694,7 +694,7 @@ onMounted(() => {
   height: 24px;
   border-radius: 6px;
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   font-weight: 800;
   font-size: 0.75rem;
   display: inline-flex;
@@ -731,7 +731,7 @@ onMounted(() => {
 
 .btn-light-coffee {
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   border: 1px solid #e6e1da;
   border-radius: 9px;
   font-weight: 600;

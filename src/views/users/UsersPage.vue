@@ -247,7 +247,7 @@ const handleConfirmDelete = async () => {
             <BaseInput
               v-model="searchQuery"
               type="search"
-              placeholder="Search name or email..."
+              :placeholder="$t('users.searchPlaceholder')"
               size="sm"
               clearable
               class="mb-0"
@@ -259,9 +259,9 @@ const handleConfirmDelete = async () => {
             class="form-select form-select-sm clean-select"
             style="width: auto; min-width: 140px"
           >
-            <option value="">All Roles</option>
-            <option value="OWNER">Owner</option>
-            <option value="STAFF">Staff</option>
+            <option value="">{{ $t('users.allRoles') }}</option>
+            <option value="OWNER">{{ $t('common.owner') }}</option>
+            <option value="STAFF">{{ $t('common.staff') }}</option>
           </select>
 
           <select
@@ -269,15 +269,15 @@ const handleConfirmDelete = async () => {
             class="form-select form-select-sm clean-select"
             style="width: auto; min-width: 130px"
           >
-            <option value="">All Status</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
+            <option value="">{{ $t('common.allStatus') }}</option>
+            <option value="true">{{ $t('common.active') }}</option>
+            <option value="false">{{ $t('common.inactive') }}</option>
           </select>
         </div>
 
         <BaseButton variant="primary" size="sm" @click="openCreateUser">
           <template #prefix><i class="bi bi-plus-lg"></i></template>
-          Add Staff
+          {{ $t('users.addStaff') }}
         </BaseButton>
       </div>
     </div>
@@ -286,24 +286,24 @@ const handleConfirmDelete = async () => {
     <div class="clean-card bg-white overflow-hidden">
       <div v-if="isLoading" class="text-center py-5 text-muted small">
         <span class="spinner-border spinner-border-sm me-2"></span>
-        Loading users...
+        {{ $t('users.loadingUsers') }}
       </div>
 
       <div v-else-if="users.length === 0" class="text-center py-5 px-3">
         <i class="bi bi-people fs-2 text-muted d-block mb-2"></i>
-        <div class="fw-semibold mb-1">No users found</div>
-        <p class="text-muted small mb-0">Try adjusting your search or filter criteria.</p>
+        <div class="fw-semibold mb-1">{{ $t('users.noUsersFound') }}</div>
+        <p class="text-muted small mb-0">{{ $t('users.noUsersFoundDesc') }}</p>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table align-middle mb-0 clean-table">
           <thead>
             <tr>
-              <th class="ps-4">User</th>
-              <th>Role</th>
-              <th>Last Login</th>
-              <th>Status</th>
-              <th class="text-end pe-4">Actions</th>
+              <th class="ps-4">{{ $t('users.colUser') }}</th>
+              <th>{{ $t('users.colRole') }}</th>
+              <th>{{ $t('users.colLastLogin') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th class="text-end pe-4">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -318,7 +318,7 @@ const handleConfirmDelete = async () => {
                   <div>
                     <div class="fw-semibold text-dark d-flex align-items-center gap-2">
                       <span>{{ u.name }}</span>
-                      <span v-if="isSelf(u.id)" class="you-badge">You</span>
+                      <span v-if="isSelf(u.id)" class="you-badge">{{ $t('common.you') }}</span>
                     </div>
                     <div class="text-muted small">{{ u.email }}</div>
                   </div>
@@ -330,7 +330,7 @@ const handleConfirmDelete = async () => {
                   class="role-pill"
                   :class="u.role === 'OWNER' ? 'role-pill--owner' : 'role-pill--staff'"
                 >
-                  {{ u.role }}
+                  {{ u.role === 'OWNER' ? $t('common.owner') : $t('common.staff') }}
                 </span>
               </td>
 
@@ -343,7 +343,7 @@ const handleConfirmDelete = async () => {
                   class="status-dot-badge"
                   :class="u.is_active ? 'status-active' : 'status-inactive'"
                 >
-                  {{ u.is_active ? 'Active' : 'Inactive' }}
+                  {{ u.is_active ? $t('common.active') : $t('common.inactive') }}
                 </span>
               </td>
 
@@ -352,7 +352,7 @@ const handleConfirmDelete = async () => {
                   <button
                     type="button"
                     class="btn-action"
-                    title="Edit user"
+                    :title="$t('common.edit')"
                     @click="openEditUser(u)"
                   >
                     <i class="bi bi-pencil"></i>
@@ -361,7 +361,7 @@ const handleConfirmDelete = async () => {
                     type="button"
                     class="btn-action btn-action--danger"
                     :disabled="isSelf(u.id)"
-                    :title="isSelf(u.id) ? 'Cannot delete your own account' : 'Delete user'"
+                    :title="isSelf(u.id) ? 'Cannot delete your own account' : $t('common.delete')"
                     @click="confirmDeleteUser(u)"
                   >
                     <i class="bi bi-trash3"></i>
@@ -378,7 +378,7 @@ const handleConfirmDelete = async () => {
         v-if="pagination.totalPages > 1"
         class="d-flex align-items-center justify-content-between px-4 py-3 border-top small text-muted"
       >
-        <span>Page {{ pagination.page }} of {{ pagination.totalPages }}</span>
+        <span>{{ $t('common.pageOf', { page: pagination.page, total: pagination.totalPages }) }}</span>
         <div class="d-flex gap-2">
           <BaseButton
             variant="secondary"
@@ -386,7 +386,7 @@ const handleConfirmDelete = async () => {
             :disabled="pagination.page <= 1"
             @click="fetchUsers(pagination.page - 1)"
           >
-            Previous
+            {{ $t('common.previous') }}
           </BaseButton>
           <BaseButton
             variant="secondary"
@@ -394,7 +394,7 @@ const handleConfirmDelete = async () => {
             :disabled="pagination.page >= pagination.totalPages"
             @click="fetchUsers(pagination.page + 1)"
           >
-            Next
+            {{ $t('common.next') }}
           </BaseButton>
         </div>
       </div>
@@ -411,7 +411,7 @@ const handleConfirmDelete = async () => {
         <div class="modal-card bg-white p-4" style="max-width: 440px">
           <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
             <h5 class="fw-semibold mb-0">
-              {{ editingUserId ? 'Edit Account' : 'New Staff Account' }}
+              {{ editingUserId ? $t('users.editAccount') : $t('users.newStaffAccount') }}
             </h5>
             <button type="button" class="btn-close btn-sm" @click="closeUserModal"></button>
           </div>
@@ -419,7 +419,7 @@ const handleConfirmDelete = async () => {
           <form @submit.prevent="handleSaveUser">
             <BaseInput
               v-model="form.name"
-              label="Full name"
+              :label="$t('users.fullNameLabel')"
               placeholder="e.g. Sokha Chan"
               :error="errors.name"
               required
@@ -429,7 +429,7 @@ const handleConfirmDelete = async () => {
             <BaseInput
               v-model="form.email"
               type="email"
-              label="Work email"
+              :label="$t('users.workEmailLabel')"
               placeholder="e.g. sokha@brewpos.com"
               :error="errors.email"
               required
@@ -438,14 +438,14 @@ const handleConfirmDelete = async () => {
             <BaseInput
               v-model="form.password"
               type="password"
-              :label="editingUserId ? 'New password (leave blank to keep current)' : 'Password'"
-              placeholder="At least 6 characters"
+              :label="editingUserId ? $t('users.newPasswordKeepCurrent') : $t('auth.password')"
+              :placeholder="$t('auth.min6Characters')"
               :error="errors.password"
               :required="!editingUserId"
             />
 
             <div class="mb-3">
-              <label class="form-label mb-1 fw-medium small text-dark">Role</label>
+              <label class="form-label mb-1 fw-medium small text-dark">{{ $t('users.colRole') }}</label>
               <div class="d-flex gap-2">
                 <button
                   type="button"
@@ -454,7 +454,7 @@ const handleConfirmDelete = async () => {
                   :disabled="isSelf(editingUserId)"
                   @click="form.role = 'STAFF'"
                 >
-                  STAFF (Cashier)
+                  {{ $t('users.staffCashier') }}
                 </button>
                 <button
                   type="button"
@@ -463,7 +463,7 @@ const handleConfirmDelete = async () => {
                   :disabled="isSelf(editingUserId)"
                   @click="form.role = 'OWNER'"
                 >
-                  OWNER (Admin)
+                  {{ $t('users.ownerAdmin') }}
                 </button>
               </div>
             </div>
@@ -477,16 +477,16 @@ const handleConfirmDelete = async () => {
                 :disabled="isSelf(editingUserId)"
               />
               <label for="userActive" class="form-check-label small fw-medium">
-                Account Active (allowed to sign in)
+                {{ $t('users.accountActiveCheck') }}
               </label>
             </div>
 
             <div class="d-flex justify-content-end gap-2 pt-3 border-top">
               <BaseButton type="button" variant="secondary" @click="closeUserModal">
-                Cancel
+                {{ $t('common.cancel') }}
               </BaseButton>
               <BaseButton type="submit" variant="primary" :loading="isSaving">
-                {{ editingUserId ? 'Save Changes' : 'Create Account' }}
+                {{ editingUserId ? $t('common.saveChanges') : $t('users.createAccount') }}
               </BaseButton>
             </div>
           </form>
@@ -503,9 +503,9 @@ const handleConfirmDelete = async () => {
         class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3"
       >
         <div class="modal-card bg-white p-4" style="max-width: 400px">
-          <h5 class="fw-semibold mb-2">Delete user account?</h5>
+          <h5 class="fw-semibold mb-2">{{ $t('users.deleteUserTitle') }}</h5>
           <p class="text-muted small mb-4">
-            Are you sure you want to delete <strong>{{ deleteModal.name }}</strong>? If this user has past sales history, deactivate their account instead.
+            {{ $t('users.deleteUserDesc', { name: deleteModal.name }) }}
           </p>
           <div class="d-flex justify-content-end gap-2">
             <BaseButton
@@ -514,7 +514,7 @@ const handleConfirmDelete = async () => {
               :disabled="deleteModal.isDeleting"
               @click="deleteModal.show = false"
             >
-              Cancel
+              {{ $t('common.cancel') }}
             </BaseButton>
             <BaseButton
               type="button"
@@ -522,7 +522,7 @@ const handleConfirmDelete = async () => {
               :loading="deleteModal.isDeleting"
               @click="handleConfirmDelete"
             >
-              Delete
+              {{ $t('common.delete') }}
             </BaseButton>
           </div>
         </div>
@@ -561,7 +561,7 @@ const handleConfirmDelete = async () => {
 }
 
 .clean-select:focus {
-  border-color: var(--primary, #2c1810);
+  border-color: var(--primary, #2d5a43);
 }
 
 .clean-table th {
@@ -593,7 +593,7 @@ const handleConfirmDelete = async () => {
   border-radius: 10px;
   background-color: var(--surface-container-low, #f6f3f2);
   border: 1px solid var(--border-hairline, #e6e4e0);
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   font-size: 13px;
   font-weight: 700;
 }
@@ -616,7 +616,7 @@ const handleConfirmDelete = async () => {
 }
 
 .role-pill--owner {
-  background-color: var(--secondary-fixed, #ffdcc5);
+  background-color: var(--secondary-fixed, #d6ede0);
   color: var(--on-secondary-fixed, #2b1707);
 }
 
@@ -712,8 +712,8 @@ const handleConfirmDelete = async () => {
 }
 
 .role-btn.active {
-  background-color: var(--primary, #2c1810);
-  border-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
+  border-color: var(--primary, #2d5a43);
   color: #ffffff;
 }
 
@@ -723,7 +723,7 @@ const handleConfirmDelete = async () => {
 }
 
 .custom-check:checked {
-  background-color: var(--primary, #2c1810);
-  border-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
+  border-color: var(--primary, #2d5a43);
 }
 </style>

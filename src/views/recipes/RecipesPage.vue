@@ -4,45 +4,48 @@
       <!-- ================= LEFT PANEL: PRODUCT LIST ================= -->
       <div class="products-sidebar-card">
         <div class="sidebar-header">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="sidebar-title fw-bold text-dark small text-uppercase tracking-wider">
+              {{ $t('recipes.productsCount', { count: filteredProducts.length }) }}
+            </span>
+            <span class="badge bg-light text-muted border smaller">{{ $t('recipes.catalog') }}</span>
+          </div>
+
           <div class="search-wrap mb-2">
             <i class="bi bi-search search-icon"></i>
             <input
               v-model="productSearch"
               type="text"
               class="form-control form-control-sm search-input"
-              placeholder="Search product..."
+              :placeholder="$t('recipes.searchProduct')"
             />
+            <button
+              v-if="productSearch"
+              type="button"
+              class="btn-search-clear"
+              :title="$t('common.clear')"
+              @click="productSearch = ''"
+            >
+              <i class="bi bi-x"></i>
+            </button>
           </div>
 
-          <div class="category-chips">
-            <button
-              type="button"
-              class="cat-chip"
-              :class="{ active: selectedCategoryId === 'ALL' }"
-              @click="selectedCategoryId = 'ALL'"
-            >
-              All
-            </button>
-            <button
-              v-for="cat in categories"
-              :key="cat.id"
-              type="button"
-              class="cat-chip"
-              :class="{ active: selectedCategoryId === cat.id }"
-              @click="selectedCategoryId = cat.id"
-            >
+          <select v-model="selectedCategoryId" class="form-select form-select-sm category-select">
+            <option value="ALL">{{ $t('recipes.allCategoriesCount', { count: products.length }) }}</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
               {{ cat.name }}
-            </button>
-          </div>
+            </option>
+          </select>
         </div>
 
         <div v-if="isLoadingProducts" class="empty-side">
           <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-          <div class="small text-muted">Loading products...</div>
+          <div class="small text-muted">{{ $t('products.loadingProducts') }}</div>
         </div>
 
         <div v-else-if="filteredProducts.length === 0" class="empty-side">
-          <div class="small text-muted">No products match your search.</div>
+          <i class="bi bi-inbox fs-3 text-muted mb-2 d-block"></i>
+          <div class="small text-muted">{{ $t('products.noProductsFound') }}</div>
         </div>
 
         <div v-else class="product-select-list">
@@ -63,13 +66,13 @@
               <i
                 v-else
                 class="bi"
-                :class="prod.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot-fill'"
+                :class="prod.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot'"
               ></i>
             </div>
 
             <div class="flex-grow-1 text-start overflow-hidden">
               <div class="prod-name-sm text-truncate">{{ prod.name }}</div>
-              <div class="prod-meta-sm">{{ prod.category_name }}</div>
+              <div class="prod-meta-sm text-muted text-truncate">{{ prod.category_name }}</div>
             </div>
 
             <span class="variant-pill-sm">
@@ -83,161 +86,191 @@
       <div class="variants-recipe-panel">
         <div v-if="!selectedProduct" class="clean-card empty-main">
           <i class="bi bi-journal-text fs-1 text-muted mb-2 d-block"></i>
-          <div class="fw-bold text-dark">Select a Product</div>
+          <div class="fw-bold text-dark">{{ $t('recipes.selectAProduct') }}</div>
           <div class="small text-muted">
-            Choose any drink, food, or add-on on the left to view or configure its variant recipes.
+            {{ $t('recipes.selectAProductDesc') }}
           </div>
         </div>
 
         <template v-else>
           <!-- Selected Product Banner -->
-          <div class="clean-card product-banner mb-3">
-            <div class="d-flex align-items-center gap-3">
-              <div class="prod-thumb-lg">
-                <img
-                  v-if="selectedProduct.image"
-                  :src="getAssetUrl(selectedProduct.image)"
-                  :alt="selectedProduct.name"
-                />
-                <i
-                  v-else
-                  class="bi"
-                  :class="selectedProduct.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot-fill'"
-                ></i>
-              </div>
-              <div>
-                <div class="d-flex align-items-center gap-2">
-                  <h6 class="fw-bold mb-0 text-dark">{{ selectedProduct.name }}</h6>
-                  <span class="type-pill">{{ selectedProduct.product_type }}</span>
+          <div class="clean-card product-banner mb-3 p-3 px-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="prod-thumb-lg">
+                  <img
+                    v-if="selectedProduct.image"
+                    :src="getAssetUrl(selectedProduct.image)"
+                    :alt="selectedProduct.name"
+                  />
+                  <i
+                    v-else
+                    class="bi"
+                    :class="selectedProduct.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot'"
+                  ></i>
                 </div>
-                <div class="small text-muted mt-1">
-                  {{ selectedProduct.category_name }} • {{ productVariantsRecipes.length }} variant(s)
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <h5 class="fw-bold mb-0 text-dark">{{ selectedProduct.name }}</h5>
+                    <span class="type-pill" :class="selectedProduct.product_type?.toLowerCase()">
+                      {{ selectedProduct.product_type }}
+                    </span>
+                  </div>
+                  <div class="small text-muted d-flex align-items-center flex-wrap gap-2">
+                    <span>{{ selectedProduct.category_name }}</span>
+                    <span>•</span>
+                    <span>{{ productVariantsRecipes.length }} variant(s)</span>
+                    <span>•</span>
+                    <span
+                      class="badge rounded-pill px-2 py-1 small"
+                      :class="configuredRecipesCount === productVariantsRecipes.length && productVariantsRecipes.length > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'"
+                    >
+                      <i class="bi" :class="configuredRecipesCount === productVariantsRecipes.length && productVariantsRecipes.length > 0 ? 'bi-check-circle-fill me-1' : 'bi-exclamation-circle me-1'"></i>
+                      {{ $t('recipes.configuredCount', { configured: configuredRecipesCount, total: productVariantsRecipes.length }) }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div class="d-flex align-items-center gap-2">
-              <router-link to="/inventory" class="btn btn-light-coffee btn-sm">
-                <i class="bi bi-boxes me-1"></i>Ingredients
-              </router-link>
-              <button
-                type="button"
-                class="btn btn-light-coffee btn-sm"
-                :disabled="isLoadingProductRecipes"
-                @click="fetchProductRecipes(selectedProduct.id)"
-              >
-                <i class="bi bi-arrow-clockwise"></i>
-              </button>
+              <div class="d-flex align-items-center gap-2">
+                <router-link to="/inventory" class="btn btn-outline-coffee btn-sm d-inline-flex align-items-center gap-1">
+                  <i class="bi bi-boxes"></i>
+                  <span>{{ $t('inventory.tabIngredients') }}</span>
+                </router-link>
+                <button
+                  type="button"
+                  class="btn btn-light-coffee btn-sm"
+                  :title="$t('common.refresh')"
+                  :disabled="isLoadingProductRecipes"
+                  @click="fetchProductRecipes(selectedProduct.id)"
+                >
+                  <i class="bi bi-arrow-clockwise" :class="{ 'spin-icon': isLoadingProductRecipes }"></i>
+                </button>
+              </div>
             </div>
           </div>
 
           <!-- Variants Loading -->
           <div v-if="isLoadingProductRecipes" class="clean-card empty-main">
             <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-            <div class="small text-muted">Loading variant recipes...</div>
+            <div class="small text-muted">{{ $t('recipes.loadingVariantRecipes') }}</div>
           </div>
 
-          <!-- Variant Recipe Cards -->
-          <div v-else class="variants-grid">
-            <div
-              v-for="v in productVariantsRecipes"
-              :key="v.id"
-              class="clean-card variant-recipe-card"
-            >
-              <div class="variant-card-header">
-                <div>
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="fw-bold text-dark">{{ v.variant_name }}</span>
-                    <span
-                      v-if="v.temperature && v.temperature !== 'NONE'"
-                      class="temp-badge"
-                      :class="v.temperature.toLowerCase()"
-                    >
-                      {{ v.temperature }}
-                    </span>
-                    <span v-if="v.size" class="size-badge">{{ v.size }}</span>
-                  </div>
-                  <div class="small text-muted mt-1">
-                    Selling Price: <strong class="text-dark">{{ formatUsd(v.price) }}</strong>
-                    <span v-if="v.recipe.length > 0" class="ms-2">
-                      • Est. Makeable:
-                      <strong :class="getMaxMakeableUnits(v.recipe) <= 5 ? 'text-danger' : 'text-success'">
-                        {{ getMaxMakeableUnits(v.recipe) }} cup(s)
-                      </strong>
-                    </span>
-                  </div>
-                </div>
+          <!-- Empty Variants -->
+          <div v-else-if="productVariantsRecipes.length === 0" class="clean-card empty-main">
+            <i class="bi bi-box-seam fs-1 text-muted mb-2 d-block"></i>
+            <div class="fw-bold text-dark">{{ $t('recipes.noVariantsAvailable') }}</div>
+            <div class="small text-muted">
+              {{ $t('recipes.noVariantsAvailableDesc') }}
+            </div>
+          </div>
 
-                <div v-if="authStore.isOwner" class="d-flex gap-1">
-                  <button
-                    type="button"
-                    class="btn btn-coffee btn-sm"
-                    @click="openRecipeBuilderModal(v)"
-                  >
-                    <i class="bi bi-sliders me-1"></i>
-                    {{ v.recipe.length > 0 ? 'Edit Recipe' : 'Set Recipe' }}
-                  </button>
-                  <button
-                    v-if="v.recipe.length > 0"
-                    type="button"
-                    class="btn btn-outline-danger btn-sm"
-                    title="Clear Recipe"
-                    @click="handleDeleteVariantRecipe(v)"
-                  >
-                    <i class="bi bi-trash3"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Recipe Ingredients Table -->
-              <div v-if="v.recipe.length === 0" class="no-recipe-box">
-                <i class="bi bi-info-circle me-1 text-muted"></i>
-                <span class="small text-muted">
-                  No recipe configured yet. Selling this variant will not deduct any stock.
-                </span>
-              </div>
-
-              <div v-else class="table-responsive">
-                <table class="table clean-subtable align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>Ingredient</th>
-                      <th>Qty per 1 Unit</th>
-                      <th>Current Stock</th>
-                      <th class="text-end">Max Servings</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in v.recipe" :key="item.id">
-                      <td>
-                        <span class="fw-semibold text-dark">{{ item.ingredient_name }}</span>
-                      </td>
-                      <td>
-                        <span class="qty-chip">
-                          {{ formatQty(item.quantity) }} {{ item.unit }}
-                        </span>
-                      </td>
-                      <td>
-                        <span class="small text-muted">
-                          {{ formatQty(item.current_stock) }} {{ item.unit }}
-                        </span>
-                      </td>
-                      <td class="text-end">
+          <!-- Variants Recipe Table View -->
+          <div v-else class="clean-card">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-head-clean">
+                  <tr>
+                    <th style="min-width: 170px;">{{ $t('recipes.colVariant') }}</th>
+                    <th style="min-width: 90px;">{{ $t('recipes.colPrice') }}</th>
+                    <th style="min-width: 290px;">{{ $t('recipes.colRecipeIngredients') }}</th>
+                    <th style="min-width: 120px;">{{ $t('recipes.colEstYield') }}</th>
+                    <th style="min-width: 120px;" class="text-end">{{ $t('common.actions') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="v in productVariantsRecipes" :key="v.id">
+                    <!-- Variant Name & Spec -->
+                    <td>
+                      <div class="fw-semibold text-dark">{{ v.variant_name }}</div>
+                      <div class="small text-muted d-flex align-items-center gap-1 mt-0.5">
                         <span
-                          class="small fw-bold"
-                          :class="
-                            Math.floor(Number(item.current_stock) / Number(item.quantity)) <= 5
-                              ? 'text-danger'
-                              : 'text-success'
-                          "
+                          v-if="v.temperature && v.temperature !== 'NONE'"
+                          class="badge-variant-temp"
+                          :class="v.temperature.toLowerCase()"
                         >
-                          {{ Math.max(0, Math.floor(Number(item.current_stock) / Number(item.quantity))) }}
+                          {{ v.temperature }}
                         </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                        <span v-if="v.size" class="badge-variant-size">{{ v.size }}</span>
+                      </div>
+                    </td>
+
+                    <!-- Price -->
+                    <td>
+                      <span class="fw-semibold text-dark font-monospace">{{ formatUsd(v.price) }}</span>
+                    </td>
+
+                    <!-- Recipe Ingredients -->
+                    <td>
+                      <div v-if="!v.recipe || v.recipe.length === 0" class="d-flex align-items-center flex-wrap gap-2">
+                        <span class="badge bg-light text-muted border fw-normal">{{ $t('recipes.noRecipeSet') }}</span>
+                        <div v-if="getSiblingsWithRecipes(v).length > 0" class="d-inline-flex align-items-center gap-1">
+                          <span class="smaller text-muted">{{ $t('recipes.copy') }}</span>
+                          <button
+                            v-for="sib in getSiblingsWithRecipes(v)"
+                            :key="sib.id"
+                            type="button"
+                            class="btn btn-xs btn-outline-secondary py-0 px-1.5"
+                            :title="`Copy recipe from ${sib.variant_name}`"
+                            @click="quickCopyRecipe(sib, v)"
+                          >
+                            <i class="bi bi-copy me-1"></i>{{ sib.variant_name }}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div v-else class="d-flex flex-wrap gap-1">
+                        <span
+                          v-for="item in v.recipe"
+                          :key="item.id"
+                          class="recipe-ing-tag"
+                          :title="`Stock: ${formatQty(item.current_stock)} ${item.unit}`"
+                        >
+                          <span class="ing-name">{{ item.ingredient_name }}</span>
+                          <span class="ing-qty">{{ formatQty(item.quantity) }} {{ item.unit }}</span>
+                        </span>
+                      </div>
+                    </td>
+
+                    <!-- Est. Yield -->
+                    <td>
+                      <template v-if="v.recipe && v.recipe.length > 0">
+                        <span
+                          class="badge rounded-pill fw-semibold px-2 py-1"
+                          :class="getMaxMakeableUnits(v.recipe) <= 5 ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success border border-success-subtle'"
+                        >
+                          {{ $t('recipes.cupsCount', { count: getMaxMakeableUnits(v.recipe) }) }}
+                        </span>
+                      </template>
+                      <span v-else class="text-muted small">—</span>
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="text-end">
+                      <div v-if="authStore.isOwner" class="d-inline-flex align-items-center gap-1">
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          :class="v.recipe && v.recipe.length > 0 ? 'btn-outline-coffee' : 'btn-coffee'"
+                          @click="openRecipeBuilderModal(v)"
+                        >
+                          <i class="bi" :class="v.recipe && v.recipe.length > 0 ? 'bi-pencil' : 'bi-plus-lg'"></i>
+                          <span class="ms-1">{{ v.recipe && v.recipe.length > 0 ? $t('common.edit') : $t('recipes.setRecipe') }}</span>
+                        </button>
+                        <button
+                          v-if="v.recipe && v.recipe.length > 0"
+                          type="button"
+                          class="btn btn-sm btn-outline-danger"
+                          :title="$t('common.clear')"
+                          @click="handleDeleteVariantRecipe(v)"
+                        >
+                          <i class="bi bi-trash3"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </template>
@@ -249,11 +282,11 @@
       <div class="modal-card-custom modal-lg-custom">
         <div class="modal-header-custom">
           <div>
-            <h6 class="mb-0 fw-bold">
-              Recipe Builder — {{ selectedProduct?.name }} ({{ editingVariant.variant_name }})
+            <h6 class="mb-0 fw-bold text-dark">
+              {{ $t('recipes.recipeBuilderTitle', { product: selectedProduct?.name, variant: editingVariant.variant_name }) }}
             </h6>
             <div class="small text-muted">
-              Specify exact ingredient quantities deducted per 1 unit sold.
+              {{ $t('recipes.recipeBuilderSubtitle') }}
             </div>
           </div>
           <button type="button" class="btn-close-custom" @click="showBuilderModal = false">
@@ -265,7 +298,7 @@
           <!-- Toolbar: Copy from sibling variant or Add Ingredient Row -->
           <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div v-if="siblingVariantsWithRecipes.length > 0" class="d-flex align-items-center gap-2">
-              <span class="small text-muted">Copy from:</span>
+              <span class="small text-muted">{{ $t('recipes.copyFrom') }}</span>
               <button
                 v-for="sib in siblingVariantsWithRecipes"
                 :key="sib.id"
@@ -282,17 +315,17 @@
               class="btn btn-outline-coffee btn-sm ms-auto"
               @click="addBuilderRow"
             >
-              <i class="bi bi-plus-lg me-1"></i>Add Ingredient Row
+              <i class="bi bi-plus-lg me-1"></i>{{ $t('recipes.addIngredientRow') }}
             </button>
           </div>
 
           <div v-if="builderItems.length === 0" class="empty-builder-box">
-            <div class="fw-semibold text-dark mb-1">No Ingredients in Recipe</div>
-            <div class="small text-muted mb-2">
-              Click "Add Ingredient Row" to add raw materials (coffee beans, milk, syrup, cup) to this variant.
+            <div class="fw-semibold text-dark mb-1">{{ $t('recipes.noIngredientsInRecipe') }}</div>
+            <div class="small text-muted mb-3">
+              {{ $t('recipes.noIngredientsInRecipeDesc') }}
             </div>
             <button type="button" class="btn btn-coffee btn-sm" @click="addBuilderRow">
-              <i class="bi bi-plus-lg me-1"></i>Add First Ingredient
+              <i class="bi bi-plus-lg me-1"></i>{{ $t('recipes.addFirstIngredient') }}
             </button>
           </div>
 
@@ -303,26 +336,26 @@
               class="builder-row"
             >
               <div class="flex-grow-1">
-                <label class="form-label-xs">Ingredient</label>
+                <label class="form-label-xs">{{ $t('inventory.colIngredient') }}</label>
                 <select
                   v-model.number="row.ingredient_id"
                   class="form-select form-select-sm form-control-clean"
                   required
                 >
-                  <option :value="null" disabled>Choose active ingredient...</option>
+                  <option :value="null" disabled>{{ $t('recipes.chooseActiveIngredient') }}</option>
                   <option
                     v-for="ing in activeIngredients"
                     :key="ing.id"
                     :value="ing.id"
                     :disabled="isIngredientUsedInOtherRow(ing.id, idx)"
                   >
-                    {{ ing.name }} ({{ ing.unit }} — Stock: {{ formatQty(ing.current_stock) }})
+                    {{ ing.name }} ({{ ing.unit }} — {{ formatQty(ing.current_stock) }})
                   </option>
                 </select>
               </div>
 
               <div style="width: 170px">
-                <label class="form-label-xs">Quantity Required</label>
+                <label class="form-label-xs">{{ $t('recipes.quantityRequired') }}</label>
                 <div class="input-group input-group-sm">
                   <input
                     v-model.number="row.quantity"
@@ -333,7 +366,7 @@
                     placeholder="0.00"
                     required
                   />
-                  <span class="input-group-text bg-light">
+                  <span class="input-group-text bg-light text-muted small">
                     {{ getIngredientUnit(row.ingredient_id) || 'Unit' }}
                   </span>
                 </div>
@@ -343,7 +376,7 @@
                 <button
                   type="button"
                   class="btn btn-action-icon text-danger"
-                  title="Remove Row"
+                  :title="$t('common.remove')"
                   @click="removeBuilderRow(idx)"
                 >
                   <i class="bi bi-trash3"></i>
@@ -355,7 +388,7 @@
 
         <div class="modal-footer-custom">
           <button type="button" class="btn btn-light-coffee" @click="showBuilderModal = false">
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button
             type="button"
@@ -365,7 +398,7 @@
           >
             <span v-if="isSavingRecipe" class="spinner-border spinner-border-sm me-1"></span>
             <i v-else class="bi bi-check2-circle me-1"></i>
-            Save Recipe ({{ builderItems.length }} ingredient{{ builderItems.length === 1 ? '' : 's' }})
+            {{ $t('recipes.saveRecipeBtn', { count: builderItems.length }) }}
           </button>
         </div>
       </div>
@@ -430,6 +463,34 @@ const siblingVariantsWithRecipes = computed(() => {
     (v) => v.id !== editingVariant.value.id && v.recipe && v.recipe.length > 0
   )
 })
+
+const configuredRecipesCount = computed(() => {
+  return productVariantsRecipes.value.filter((v) => v.recipe && v.recipe.length > 0).length
+})
+
+const getSiblingsWithRecipes = (currentVariant) => {
+  return productVariantsRecipes.value.filter(
+    (v) => v.id !== currentVariant.id && v.recipe && v.recipe.length > 0
+  )
+}
+
+const quickCopyRecipe = async (sibling, targetVariant) => {
+  if (!sibling.recipe || sibling.recipe.length === 0) return
+  if (!window.confirm(`Copy recipe from "${sibling.variant_name}" to "${targetVariant.variant_name}"?`)) return
+  try {
+    const payload = {
+      items: sibling.recipe.map((r) => ({
+        ingredient_id: Number(r.ingredient_id),
+        quantity: Number(r.quantity),
+      })),
+    }
+    await api.put(`/inventory/recipes/variant/${targetVariant.id}`, payload)
+    toast.success(`Copied recipe from ${sibling.variant_name} to ${targetVariant.variant_name}`)
+    await fetchProductRecipes(selectedProduct.value.id)
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Failed to copy recipe')
+  }
+}
 
 // ================= METHODS =================
 const formatQty = (val) => {
@@ -585,18 +646,14 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page-header-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
+.recipes-page {
+  width: 100%;
 }
 
 .recipes-layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 1rem;
+  grid-template-columns: 310px 1fr;
+  gap: 1.25rem;
   align-items: start;
 }
 
@@ -606,7 +663,7 @@ onMounted(async () => {
   }
 }
 
-/* Left Sidebar */
+/* Left Sidebar: Product Navigator */
 .products-sidebar-card {
   background: #ffffff;
   border: 1px solid var(--border-hairline, #e6e4e0);
@@ -614,13 +671,16 @@ onMounted(async () => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 165px);
+  max-height: calc(100vh - 120px);
+  box-shadow: 0 1px 3px rgba(45, 90, 67, 0.04), 0 4px 14px rgba(45, 90, 67, 0.02);
+  position: sticky;
+  top: 1rem;
 }
 
 .sidebar-header {
-  padding: 0.9rem;
-  border-bottom: 1px solid #eeeae4;
-  background: #fcfbfa;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-hairline, #eeeae4);
+  background: #ffffff;
 }
 
 .search-wrap {
@@ -629,46 +689,60 @@ onMounted(async () => {
 
 .search-icon {
   position: absolute;
-  left: 10px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
   color: #8a7f78;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  pointer-events: none;
 }
 
 .search-input {
-  padding-left: 30px;
+  padding-left: 32px;
+  padding-right: 30px;
+  border-radius: 10px;
+  border: 1px solid #dedad4;
+  height: 38px;
+  font-size: 0.85rem;
+}
+
+.search-input:focus {
+  border-color: #2d5a43;
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.btn-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #8a7f78;
+  padding: 0 4px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Category Select (Clean Dropdown) */
+.category-select {
   border-radius: 9px;
   border: 1px solid #dedad4;
+  font-size: 0.82rem;
+  color: #44403c;
+  background-color: #faf9f7;
+  height: 36px;
 }
 
-.category-chips {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  padding-bottom: 2px;
+.category-select:focus {
+  border-color: #2d5a43;
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
-.cat-chip {
-  border: 1px solid #e2ddd6;
-  background: #ffffff;
-  color: #574c45;
-  border-radius: 999px;
-  padding: 0.2rem 0.65rem;
-  font-size: 0.74rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.cat-chip.active {
-  background: #2c1810;
-  color: #ffffff;
-  border-color: #2c1810;
-}
-
+/* Product list */
 .product-select-list {
   overflow-y: auto;
-  padding: 0.5rem;
+  padding: 0.65rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -676,13 +750,16 @@ onMounted(async () => {
 
 .product-select-item {
   border: 1px solid transparent;
-  background: transparent;
-  border-radius: 11px;
-  padding: 0.55rem 0.65rem;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 0.6rem 0.75rem;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  transition: all 0.14s ease;
+  gap: 0.75rem;
+  transition: all 0.15s ease;
+  width: 100%;
+  cursor: pointer;
+  outline: none !important;
 }
 
 .product-select-item:hover {
@@ -690,14 +767,20 @@ onMounted(async () => {
 }
 
 .product-select-item.active {
-  background: #fff6ee;
-  border-color: #2c1810;
+  background: #f2f7f4;
+  border-color: #2d5a43;
+  box-shadow: 0 1px 3px rgba(45, 90, 67, 0.08);
+}
+
+.product-select-item.active .prod-name-sm {
+  color: #1b3829;
+  font-weight: 700;
 }
 
 .prod-thumb-sm {
-  width: 38px;
-  height: 38px;
-  border-radius: 9px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: #f2efeb;
   color: #8c6d58;
   display: flex;
@@ -705,6 +788,8 @@ onMounted(async () => {
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
+  font-size: 1.1rem;
+  border: 1px solid #ebe6df;
 }
 
 .prod-thumb-sm img {
@@ -714,61 +799,64 @@ onMounted(async () => {
 }
 
 .prod-name-sm {
-  font-weight: 700;
-  font-size: 0.85rem;
+  font-weight: 600;
+  font-size: 0.875rem;
   color: #1c1917;
+  line-height: 1.25;
 }
 
 .prod-meta-sm {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: #78716c;
+  margin-top: 2px;
 }
 
 .variant-pill-sm {
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   background: #f2efeb;
   color: #574c45;
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  white-space: nowrap;
 }
 
 .empty-side {
-  padding: 2.5rem 1rem;
+  padding: 3rem 1rem;
   text-align: center;
 }
 
-/* Right Panel */
+/* Right Panel: Clean Card & Banners */
 .clean-card {
   background: #ffffff;
   border: 1px solid var(--border-hairline, #e6e4e0);
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(45, 90, 67, 0.04), 0 4px 14px rgba(45, 90, 67, 0.02);
 }
 
 .empty-main {
-  padding: 4rem 1.5rem;
+  padding: 4.5rem 1.5rem;
   text-align: center;
 }
 
 .product-banner {
-  padding: 1rem 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  border-radius: 16px;
 }
 
 .prod-thumb-lg {
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   overflow: hidden;
+  border: 1px solid #e8e4de;
+  flex-shrink: 0;
 }
 
 .prod-thumb-lg img {
@@ -778,78 +866,153 @@ onMounted(async () => {
 }
 
 .type-pill {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  background: #ffdcc5;
-  color: #2c1810;
-  padding: 0.15rem 0.5rem;
+  background: #f3efe9;
+  color: #2d5a43;
+  padding: 0.2rem 0.55rem;
   border-radius: 6px;
+  text-transform: uppercase;
 }
 
-.variants-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-}
-
-.variant-card-header {
-  padding: 0.95rem 1.2rem;
-  border-bottom: 1px solid #eeeae4;
-  background: #fcfbfa;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.temp-badge,
-.size-badge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 0.14rem 0.45rem;
-  border-radius: 6px;
-  background: #f2efeb;
-  color: #4f433d;
-}
-
-.temp-badge.hot {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.temp-badge.iced,
-.temp-badge.frappe {
+.type-pill.drink {
   background: #e0f2fe;
   color: #0369a1;
 }
 
-.no-recipe-box {
-  padding: 1.25rem;
-  background: #faf9f7;
+.type-pill.food {
+  background: #fef3c7;
+  color: #92400e;
 }
 
-.clean-subtable th {
-  background: #faf9f7;
+.type-pill.addon {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+/* Table View Styles */
+.table-head-clean th {
+  background-color: #faf9f7;
   font-size: 0.72rem;
   text-transform: uppercase;
-  color: #6b5b52;
-  font-weight: 700;
-  padding: 0.6rem 1.2rem;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.clean-subtable td {
-  padding: 0.65rem 1.2rem;
-  font-size: 0.84rem;
+.badge-variant-temp {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.qty-chip {
-  background: #fff6ee;
-  border: 1px solid #f5d0b5;
-  color: #2c1810;
-  font-weight: 700;
-  font-size: 0.78rem;
-  padding: 0.18rem 0.55rem;
+.badge-variant-temp.hot {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-variant-temp.iced,
+.badge-variant-temp.frappe {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge-variant-size {
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.recipe-ing-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8faf9;
+  border: 1px solid #d9e3dc;
   border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.76rem;
+  line-height: 1.25;
+}
+
+.recipe-ing-tag .ing-name {
+  color: #374151;
+  font-weight: 500;
+}
+
+.recipe-ing-tag .ing-qty {
+  color: #2d5a43;
+  font-weight: 700;
+}
+
+/* Buttons */
+.btn-coffee {
+  background: #2d5a43;
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  font-weight: 500;
+  padding: 0.4rem 0.9rem;
+  transition: all 0.15s ease;
+}
+
+.btn-coffee:hover {
+  background: #244a37;
+  color: #ffffff;
+}
+
+.btn-outline-coffee {
+  background: #ffffff;
+  color: #2d5a43;
+  border: 1px solid #2d5a43;
+  border-radius: 9px;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.btn-outline-coffee:hover {
+  background: #f7f4f0;
+  color: #2d5a43;
+}
+
+.btn-light-coffee {
+  background: #f4f1ed;
+  color: #2d5a43;
+  border: 1px solid #e6e1da;
+  border-radius: 9px;
+  font-weight: 500;
+  padding: 0.4rem 0.75rem;
+  transition: all 0.15s ease;
+}
+
+.btn-light-coffee:hover {
+  background: #e9e4dc;
+  color: #2d5a43;
+}
+
+.btn-xs {
+  font-size: 0.72rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+}
+
+.spin-icon {
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Builder Modal */
@@ -882,7 +1045,7 @@ onMounted(async () => {
 }
 
 .modal-header-custom {
-  padding: 1rem 1.25rem;
+  padding: 1.15rem 1.4rem;
   border-bottom: 1px solid #eeeae4;
   display: flex;
   align-items: center;
@@ -890,16 +1053,16 @@ onMounted(async () => {
 }
 
 .modal-body-custom {
-  padding: 1.15rem 1.25rem;
+  padding: 1.25rem 1.4rem;
   overflow-y: auto;
 }
 
 .modal-footer-custom {
-  padding: 0.85rem 1.25rem;
+  padding: 1rem 1.4rem;
   border-top: 1px solid #eeeae4;
   background: #faf9f7;
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .btn-close-custom {
@@ -908,12 +1071,22 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #716762;
+  transition: all 0.15s ease;
+}
+
+.btn-close-custom:hover {
+  background: #e8e3dc;
+  color: #1c1b1b;
 }
 
 .empty-builder-box {
   border: 1px dashed #d8d2c9;
   border-radius: 12px;
-  padding: 2rem 1rem;
+  padding: 2.5rem 1.5rem;
   text-align: center;
   background: #faf9f7;
 }
@@ -921,24 +1094,24 @@ onMounted(async () => {
 .builder-rows {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.65rem;
 }
 
 .builder-row {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
   background: #faf9f7;
   border: 1px solid #e8e4de;
   border-radius: 11px;
-  padding: 0.65rem 0.85rem;
+  padding: 0.75rem 0.9rem;
 }
 
 .form-label-xs {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 600;
   color: #6b5b52;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   display: block;
 }
 
@@ -947,43 +1120,34 @@ onMounted(async () => {
   border: 1px solid #dedad4;
 }
 
+.form-control-clean:focus {
+  border-color: #2d5a43;
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
 .btn-action-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   border: 1px solid #e6e2dc;
   background: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s ease;
 }
 
-.btn-coffee {
-  background: #2c1810;
-  color: #ffffff;
-  border: none;
-  border-radius: 9px;
-  font-weight: 600;
+.btn-action-icon:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
 }
 
-.btn-outline-coffee {
-  background: #ffffff;
-  color: #2c1810;
-  border: 1px solid #2c1810;
-  border-radius: 9px;
-  font-weight: 600;
+.smaller {
+  font-size: 11px;
 }
 
-.btn-light-coffee {
-  background: #f4f1ed;
-  color: #2c1810;
-  border: 1px solid #e6e1da;
-  border-radius: 9px;
-  font-weight: 600;
-}
-
-.btn-xs {
-  font-size: 0.74rem;
-  padding: 0.2rem 0.55rem;
+.tracking-wider {
+  letter-spacing: 0.5px;
 }
 </style>

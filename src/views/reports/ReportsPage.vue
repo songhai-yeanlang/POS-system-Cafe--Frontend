@@ -10,7 +10,7 @@
           :class="{ active: activeTab === 'TOP_PRODUCTS' }"
           @click="switchTab('TOP_PRODUCTS')"
         >
-          <i class="bi bi-trophy me-1"></i>Top Products
+          <i class="bi bi-trophy me-1"></i>{{ $t('reports.tabTopProducts') }}
         </button>
 
         <button
@@ -19,7 +19,7 @@
           :class="{ active: activeTab === 'INVENTORY_USAGE' }"
           @click="switchTab('INVENTORY_USAGE')"
         >
-          <i class="bi bi-boxes me-1"></i>Inventory Usage
+          <i class="bi bi-boxes me-1"></i>{{ $t('reports.tabInventoryUsage') }}
         </button>
 
         <template v-if="authStore.isOwner">
@@ -29,7 +29,7 @@
             :class="{ active: activeTab === 'CATEGORIES' }"
             @click="switchTab('CATEGORIES')"
           >
-            <i class="bi bi-tags me-1"></i>Categories
+            <i class="bi bi-tags me-1"></i>{{ $t('reports.tabCategories') }}
           </button>
 
           <button
@@ -38,7 +38,7 @@
             :class="{ active: activeTab === 'PAYMENT_METHODS' }"
             @click="switchTab('PAYMENT_METHODS')"
           >
-            <i class="bi bi-credit-card me-1"></i>Payments
+            <i class="bi bi-credit-card me-1"></i>{{ $t('reports.tabPayments') }}
           </button>
 
           <button
@@ -47,7 +47,7 @@
             :class="{ active: activeTab === 'STAFF_PERFORMANCE' }"
             @click="switchTab('STAFF_PERFORMANCE')"
           >
-            <i class="bi bi-people me-1"></i>Staff
+            <i class="bi bi-people me-1"></i>{{ $t('reports.tabStaff') }}
           </button>
         </template>
       </div>
@@ -62,7 +62,7 @@
             :class="{ active: activePreset === p.key }"
             @click="applyPreset(p.key)"
           >
-            {{ p.label }}
+            {{ $t(p.labelKey) }}
           </button>
         </div>
 
@@ -94,9 +94,9 @@
     <div v-if="activeTab === 'TOP_PRODUCTS'" class="clean-card">
       <div class="card-toolbar">
         <div>
-          <span class="fw-bold text-dark">Top Selling Variants</span>
+          <span class="fw-bold text-dark">{{ $t('reports.topSellingVariants') }}</span>
           <span class="small text-muted ms-2">
-            Total Revenue in List: <strong>{{ formatUsd(topProductsData.total_revenue_sum) }}</strong>
+            {{ $t('reports.totalRevenueInList') }} <strong>{{ formatUsd(topProductsData.total_revenue_sum) }}</strong>
           </span>
         </div>
 
@@ -106,33 +106,33 @@
             class="form-select form-select-sm filter-select"
             @change="loadCurrentTabReport"
           >
-            <option :value="10">Top 10</option>
-            <option :value="25">Top 25</option>
-            <option :value="50">Top 50</option>
+            <option :value="10">{{ $t('reports.topN', { n: 10 }) }}</option>
+            <option :value="25">{{ $t('reports.topN', { n: 25 }) }}</option>
+            <option :value="50">{{ $t('reports.topN', { n: 50 }) }}</option>
           </select>
         </div>
       </div>
 
       <div v-if="isLoading" class="empty-box">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-        <div class="small text-muted">Loading report...</div>
+        <div class="small text-muted">{{ $t('reports.loadingReport') }}</div>
       </div>
 
       <div v-else-if="topProductsData.products.length === 0" class="empty-box">
-        <div class="small text-muted">No product sales recorded in the selected date range.</div>
+        <div class="small text-muted">{{ $t('reports.noProductSales') }}</div>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Rank</th>
-              <th>Product</th>
-              <th>Variant</th>
-              <th>Category</th>
-              <th>Units Sold</th>
-              <th>Revenue</th>
-              <th style="width: 180px">Revenue Share</th>
+              <th>{{ $t('reports.colRank') }}</th>
+              <th>{{ $t('reports.colProduct') }}</th>
+              <th>{{ $t('reports.colVariant') }}</th>
+              <th>{{ $t('reports.colCategory') }}</th>
+              <th>{{ $t('reports.colUnitsSold') }}</th>
+              <th>{{ $t('reports.colRevenue') }}</th>
+              <th style="width: 180px">{{ $t('reports.colRevenueShare') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -172,9 +172,9 @@
     <div v-if="activeTab === 'INVENTORY_USAGE'" class="clean-card">
       <div class="card-toolbar">
         <div>
-          <span class="fw-bold text-dark">Ingredient Consumption & Stock Ledger Summary</span>
+          <span class="fw-bold text-dark">{{ $t('reports.ingredientConsumptionTitle') }}</span>
           <span class="small text-muted ms-2">
-            ({{ inventoryUsageData.low_stock_alert_count }} low-stock alert(s))
+            {{ $t('reports.lowStockAlertsCount', { count: inventoryUsageData.low_stock_alert_count }) }}
           </span>
         </div>
 
@@ -184,37 +184,37 @@
           :class="inventoryLowStockOnly ? 'btn-warning text-dark fw-bold' : 'btn-light-coffee'"
           @click="inventoryLowStockOnly = !inventoryLowStockOnly; loadCurrentTabReport()"
         >
-          <i class="bi bi-exclamation-triangle me-1"></i>Low Stock Only
+          <i class="bi bi-exclamation-triangle me-1"></i>{{ $t('inventory.lowStockOnly') }}
         </button>
       </div>
 
       <div v-if="isLoading" class="empty-box">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-        <div class="small text-muted">Loading inventory usage...</div>
+        <div class="small text-muted">{{ $t('reports.loadingReport') }}</div>
       </div>
 
       <div v-else-if="inventoryUsageData.ingredients.length === 0" class="empty-box">
-        <div class="small text-muted">No matching ingredients found.</div>
+        <div class="small text-muted">{{ $t('inventory.noIngredientsFound') }}</div>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Ingredient</th>
-              <th>Current Stock</th>
-              <th>Consumed (Sales)</th>
-              <th>Purchased (+)</th>
-              <th>Wasted (-)</th>
-              <th>Returned (+)</th>
-              <th>Status</th>
+              <th>{{ $t('inventory.colIngredient') }}</th>
+              <th>{{ $t('inventory.colCurrentStock') }}</th>
+              <th>{{ $t('reports.colConsumedSales') }}</th>
+              <th>{{ $t('reports.colPurchased') }}</th>
+              <th>{{ $t('reports.colWasted') }}</th>
+              <th>{{ $t('reports.colReturned') }}</th>
+              <th>{{ $t('common.status') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="ing in inventoryUsageData.ingredients" :key="ing.ingredient_id">
               <td>
                 <div class="fw-bold text-dark">{{ ing.ingredient_name }}</div>
-                <div class="small text-muted">Min Alert: {{ ing.minimum_stock }} {{ ing.unit }}</div>
+                <div class="small text-muted">{{ $t('inventory.colMinAlert') }}: {{ ing.minimum_stock }} {{ ing.unit }}</div>
               </td>
               <td>
                 <span class="fw-bold" :class="ing.is_low_stock ? 'text-danger' : 'text-dark'">
@@ -232,8 +232,8 @@
               </td>
               <td>{{ ing.total_returned }} {{ ing.unit }}</td>
               <td>
-                <span v-if="ing.is_low_stock" class="status-tag low">Low Stock</span>
-                <span v-else class="status-tag ok">Healthy</span>
+                <span v-if="ing.is_low_stock" class="status-tag low">{{ $t('inventory.lowStock') }}</span>
+                <span v-else class="status-tag ok">{{ $t('reports.healthy') }}</span>
               </td>
             </tr>
           </tbody>
@@ -245,9 +245,9 @@
     <div v-if="activeTab === 'CATEGORIES'" class="clean-card">
       <div class="card-toolbar">
         <div>
-          <span class="fw-bold text-dark">Sales by Category</span>
+          <span class="fw-bold text-dark">{{ $t('reports.salesByCategory') }}</span>
           <span class="small text-muted ms-2">
-            Total Revenue: <strong>{{ formatUsd(categoriesData.total_revenue_sum) }}</strong>
+            {{ $t('reports.totalRevenue') }} <strong>{{ formatUsd(categoriesData.total_revenue_sum) }}</strong>
           </span>
         </div>
       </div>
@@ -260,11 +260,11 @@
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Category Name</th>
-              <th>Items Sold</th>
-              <th>Total Revenue (USD)</th>
-              <th>Equivalent (KHR)</th>
-              <th style="width: 220px">Share of Revenue</th>
+              <th>{{ $t('products.colCategoryName') }}</th>
+              <th>{{ $t('reports.colItemsSold') }}</th>
+              <th>{{ $t('reports.colTotalRevenueUsd') }}</th>
+              <th>{{ $t('reports.colEquivalentKhr') }}</th>
+              <th style="width: 220px">{{ $t('reports.colShareOfRevenue') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -294,15 +294,15 @@
     <div v-if="activeTab === 'PAYMENT_METHODS'" class="clean-card">
       <div class="card-toolbar">
         <div class="d-flex flex-wrap gap-3 align-items-center">
-          <span class="fw-bold text-dark">Payment Methods Breakdown</span>
+          <span class="fw-bold text-dark">{{ $t('reports.paymentMethodsBreakdown') }}</span>
           <span class="small text-muted">
-            Gross: <strong>{{ formatUsd(paymentMethodsData.summary.total_gross_amount_usd) }}</strong>
+            {{ $t('reports.gross') }} <strong>{{ formatUsd(paymentMethodsData.summary.total_gross_amount_usd) }}</strong>
           </span>
           <span class="small text-danger">
-            Refunded: <strong>-{{ formatUsd(paymentMethodsData.summary.total_refunded_usd) }}</strong>
+            {{ $t('reports.refunded') }} <strong>-{{ formatUsd(paymentMethodsData.summary.total_refunded_usd) }}</strong>
           </span>
           <span class="small text-success">
-            Net Collected: <strong>{{ formatUsd(paymentMethodsData.summary.total_net_amount_usd) }}</strong>
+            {{ $t('reports.netCollected') }} <strong>{{ formatUsd(paymentMethodsData.summary.total_net_amount_usd) }}</strong>
           </span>
         </div>
       </div>
@@ -312,20 +312,20 @@
       </div>
 
       <div v-else-if="paymentMethodsData.payment_methods.length === 0" class="empty-box">
-        <div class="small text-muted">No completed payments in this period.</div>
+        <div class="small text-muted">{{ $t('dashboard.noCompletedPayments') }}</div>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Method</th>
-              <th>Currency</th>
-              <th>Transactions</th>
-              <th>Raw Gross Amount</th>
-              <th>Refunded (USD)</th>
-              <th>Net Revenue (USD)</th>
-              <th style="width: 180px">Net Share</th>
+              <th>{{ $t('orders.colMethod') }}</th>
+              <th>{{ $t('expenses.currencyLabel') }}</th>
+              <th>{{ $t('reports.colTransactions') }}</th>
+              <th>{{ $t('reports.colRawGross') }}</th>
+              <th>{{ $t('reports.colRefundedUsd') }}</th>
+              <th>{{ $t('reports.colNetRevenueUsd') }}</th>
+              <th style="width: 180px">{{ $t('reports.colNetShare') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -360,7 +360,7 @@
     <!-- ================= TAB 5: STAFF PERFORMANCE (OWNER) ================= -->
     <div v-if="activeTab === 'STAFF_PERFORMANCE'" class="clean-card">
       <div class="card-toolbar">
-        <span class="fw-bold text-dark">Cashier & Staff Sales Performance</span>
+        <span class="fw-bold text-dark">{{ $t('reports.staffPerformanceTitle') }}</span>
       </div>
 
       <div v-if="isLoading" class="empty-box">
@@ -371,13 +371,13 @@
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Staff Member</th>
-              <th>Role</th>
-              <th>Shifts Opened</th>
-              <th>Paid Orders</th>
-              <th>Avg. Order Value</th>
-              <th>Discounts Given</th>
-              <th class="text-end">Total Paid Sales</th>
+              <th>{{ $t('reports.colStaffMember') }}</th>
+              <th>{{ $t('reports.colRole') }}</th>
+              <th>{{ $t('reports.colShiftsOpened') }}</th>
+              <th>{{ $t('reports.colPaidOrders') }}</th>
+              <th>{{ $t('reports.colAvgOrderValue') }}</th>
+              <th>{{ $t('reports.colDiscountsGiven') }}</th>
+              <th class="text-end">{{ $t('reports.colTotalPaidSales') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -423,10 +423,10 @@ const activePreset = ref('MONTH')
 const isLoading = ref(false)
 
 const datePresets = [
-  { key: 'TODAY', label: 'Today' },
-  { key: '7D', label: 'Last 7 Days' },
-  { key: 'MONTH', label: 'This Month' },
-  { key: 'ALL', label: 'All Time' },
+  { key: 'TODAY', labelKey: 'dashboard.today' },
+  { key: '7D', labelKey: 'dashboard.last7Days' },
+  { key: 'MONTH', labelKey: 'dashboard.thisMonth' },
+  { key: 'ALL', labelKey: 'dashboard.allTime' },
 ]
 
 const dateRange = reactive({
@@ -586,7 +586,7 @@ onMounted(() => {
 }
 
 .preset-pill.active {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
 }
 
@@ -615,9 +615,9 @@ onMounted(() => {
 }
 
 .report-tab.active {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
-  border-color: #2c1810;
+  border-color: #2d5a43;
 }
 
 .clean-card {
@@ -669,8 +669,8 @@ onMounted(() => {
 }
 
 .rank-pill.top3 {
-  background: #ffdcc5;
-  color: #2c1810;
+  background: #d6ede0;
+  color: #2d5a43;
 }
 
 .share-bar-track {
@@ -682,13 +682,13 @@ onMounted(() => {
 
 .share-bar-fill {
   height: 100%;
-  background: #2c1810;
+  background: #2d5a43;
   border-radius: 999px;
 }
 
 .method-pill {
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.2rem 0.55rem;
@@ -714,7 +714,7 @@ onMounted(() => {
 
 .btn-light-coffee {
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   border: 1px solid #e6e1da;
   border-radius: 9px;
   font-weight: 600;

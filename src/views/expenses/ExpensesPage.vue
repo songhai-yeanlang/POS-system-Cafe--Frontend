@@ -10,7 +10,7 @@
           :class="{ active: filters.status === '' }"
           @click="setStatusFilter('')"
         >
-          <span>All Expenses</span>
+          <span>{{ $t('expenses.allExpenses') }}</span>
           <span v-if="filters.status === '' && pagination.total_items > 0" class="tab-badge">
             {{ pagination.total_items }}
           </span>
@@ -21,7 +21,7 @@
           :class="{ active: filters.status === 'ACTIVE' }"
           @click="setStatusFilter('ACTIVE')"
         >
-          <span>Active</span>
+          <span>{{ $t('expenses.active') }}</span>
         </button>
         <button
           type="button"
@@ -29,14 +29,14 @@
           :class="{ active: filters.status === 'VOIDED' }"
           @click="setStatusFilter('VOIDED')"
         >
-          <span>Voided</span>
+          <span>{{ $t('expenses.voided') }}</span>
         </button>
       </div>
 
       <!-- Right Action & Summary -->
       <div class="d-flex align-items-center gap-3 pb-2">
         <div class="total-summary-tag d-none d-sm-inline-flex align-items-center gap-1.5">
-          <span class="text-muted small">Total:</span>
+          <span class="text-muted small">{{ $t('common.total') }}:</span>
           <span class="fw-bold text-dark numeric-tabular">{{ formatUsd(summaryTotals.total_equivalent_usd) }}</span>
           <span v-if="summaryTotals.total_khr > 0" class="text-muted small numeric-tabular">
             ({{ Number(summaryTotals.total_khr).toLocaleString() }} ៛)
@@ -49,7 +49,7 @@
           @click="openCreateModal"
         >
           <i class="bi bi-plus-lg"></i>
-          <span>Record Expense</span>
+          <span>{{ $t('expenses.recordExpense') }}</span>
         </button>
       </div>
     </div>
@@ -65,7 +65,7 @@
               v-model="filters.search"
               type="text"
               class="form-control form-control-sm search-input"
-              placeholder="Search description, category..."
+              :placeholder="$t('expenses.searchPlaceholder')"
               @keyup.enter="applyFilters"
             />
           </div>
@@ -75,9 +75,9 @@
             class="form-select form-select-sm filter-select"
             @change="applyFilters"
           >
-            <option value="">All Categories</option>
+            <option value="">{{ $t('common.allCategories') }}</option>
             <option v-for="cat in expenseCategories" :key="cat" :value="cat">
-              {{ cat }}
+              {{ $t(`expenses.categories.${cat}`) !== `expenses.categories.${cat}` ? $t(`expenses.categories.${cat}`) : cat }}
             </option>
           </select>
 
@@ -86,10 +86,10 @@
             class="form-select form-select-sm filter-select"
             @change="applyFilters"
           >
-            <option value="">All Methods</option>
-            <option value="CASH">Cash</option>
-            <option value="KHQR">KHQR</option>
-            <option value="BANK_TRANSFER">Bank Transfer</option>
+            <option value="">{{ $t('common.allMethods') }}</option>
+            <option value="CASH">{{ $t('common.cash') }}</option>
+            <option value="KHQR">{{ $t('common.khqr') }}</option>
+            <option value="BANK_TRANSFER">{{ $t('common.bankTransfer') }}</option>
           </select>
 
           <div class="d-flex align-items-center gap-1">
@@ -97,15 +97,13 @@
               v-model="filters.start_date"
               type="date"
               class="form-control form-control-sm filter-date"
-              title="Start Date"
               @change="applyFilters"
             />
-            <span class="text-muted small">to</span>
+            <span class="text-muted small">{{ $t('expenses.to') }}</span>
             <input
               v-model="filters.end_date"
               type="date"
               class="form-control form-control-sm filter-date"
-              title="End Date"
               @change="applyFilters"
             />
           </div>
@@ -115,48 +113,46 @@
             type="button"
             class="btn btn-sm"
             :class="filters.currentShiftOnly ? 'btn-coffee' : 'btn-light-coffee'"
-            title="Show only expenses from current open shift"
             @click="toggleCurrentShiftOnly"
           >
-            Current Shift
+            {{ $t('expenses.currentShift') }}
           </button>
         </div>
 
         <button
           type="button"
           class="btn btn-light-coffee btn-sm d-inline-flex align-items-center gap-1"
-          title="Reset Filters"
           @click="resetFilters"
         >
           <i class="bi bi-arrow-counterclockwise"></i>
-          <span>Reset</span>
+          <span>{{ $t('common.reset') }}</span>
         </button>
       </div>
 
       <!-- Loading / Empty / Table -->
       <div v-if="isLoading" class="empty-box">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-        <div class="small text-muted">Loading expenses...</div>
+        <div class="small text-muted">{{ $t('expenses.loadingExpenses') }}</div>
       </div>
 
       <div v-else-if="expensesList.length === 0" class="empty-box">
         <i class="bi bi-wallet2 fs-2 text-muted mb-2 d-block"></i>
-        <div class="fw-semibold text-dark">No Expenses Found</div>
-        <div class="small text-muted">Click "Record Expense" to log daily shop costs.</div>
+        <div class="fw-semibold text-dark">{{ $t('expenses.noExpensesFound') }}</div>
+        <div class="small text-muted">{{ $t('expenses.noExpensesFoundDesc') }}</div>
       </div>
 
       <div v-else class="table-responsive">
         <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Date / Shift</th>
-              <th>Category</th>
-              <th>Description</th>
-              <th>Method</th>
-              <th>Amount</th>
-              <th>Recorded By</th>
-              <th>Status</th>
-              <th class="text-end">Actions</th>
+              <th>{{ $t('expenses.colDateShift') }}</th>
+              <th>{{ $t('expenses.colCategory') }}</th>
+              <th>{{ $t('expenses.colDescription') }}</th>
+              <th>{{ $t('expenses.colMethod') }}</th>
+              <th>{{ $t('expenses.colAmount') }}</th>
+              <th>{{ $t('expenses.colRecordedBy') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th class="text-end">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -169,12 +165,12 @@
                 <div class="small text-dark fw-semibold">{{ formatDateTime(exp.incurred_at) }}</div>
               </td>
               <td>
-                <span class="cat-badge">{{ exp.category }}</span>
+                <span class="cat-badge">{{ $t(`expenses.categories.${exp.category}`) !== `expenses.categories.${exp.category}` ? $t(`expenses.categories.${exp.category}`) : exp.category }}</span>
               </td>
               <td>
                 <div class="text-dark" style="max-width: 280px">{{ exp.description }}</div>
                 <div v-if="exp.status === 'VOIDED' && exp.void_reason" class="small text-danger mt-1">
-                  Voided: {{ exp.void_reason }}
+                  {{ $t('expenses.voided') }}: {{ exp.void_reason }}
                 </div>
               </td>
               <td>
@@ -201,7 +197,6 @@
                   <button
                     type="button"
                     class="btn btn-action-icon text-primary"
-                    title="Edit Expense"
                     @click="openEditModal(exp)"
                   >
                     <i class="bi bi-pencil"></i>
@@ -209,7 +204,6 @@
                   <button
                     type="button"
                     class="btn btn-action-icon text-danger"
-                    title="Void Expense"
                     @click="openVoidModal(exp)"
                   >
                     <i class="bi bi-x-circle"></i>
@@ -225,8 +219,7 @@
       <!-- Pagination -->
       <div v-if="pagination.total_pages > 1" class="pagination-bar">
         <div class="small text-muted">
-          Page {{ pagination.current_page }} of {{ pagination.total_pages }}
-          ({{ pagination.total_items }} records)
+          {{ $t('common.pageOf', { page: pagination.current_page, total: pagination.total_pages }) }}
         </div>
         <div class="d-flex gap-1">
           <button
@@ -235,7 +228,7 @@
             :disabled="pagination.current_page <= 1"
             @click="fetchExpenses(pagination.current_page - 1)"
           >
-            Prev
+            {{ $t('common.prev') }}
           </button>
           <button
             type="button"
@@ -243,7 +236,7 @@
             :disabled="pagination.current_page >= pagination.total_pages"
             @click="fetchExpenses(pagination.current_page + 1)"
           >
-            Next
+            {{ $t('common.next') }}
           </button>
         </div>
       </div>
@@ -254,7 +247,7 @@
       <div class="modal-card-custom modal-sm-custom">
         <div class="modal-header-custom">
           <h6 class="mb-0 fw-bold">
-            {{ editingExpense ? `Edit Expense #${editingExpense.id}` : 'Record New Expense' }}
+            {{ editingExpense ? $t('expenses.editExpenseTitle', { id: editingExpense.id }) : $t('expenses.recordNewExpenseTitle') }}
           </h6>
           <button type="button" class="btn-close-custom" @click="showFormModal = false">
             <i class="bi bi-x-lg"></i>
@@ -269,20 +262,20 @@
               class="alert alert-warning py-2 px-3 small mb-3"
             >
               <i class="bi bi-exclamation-triangle me-1"></i>
-              Cash expenses require an active open shift so the amount can be deducted from the cash drawer.
+              {{ $t('expenses.cashShiftWarning') }}
             </div>
 
             <div class="mb-3">
-              <label class="form-label-clean">Category <span class="text-danger">*</span></label>
+              <label class="form-label-clean">{{ $t('expenses.categoryLabel') }} <span class="text-danger">*</span></label>
               <select v-model="form.category" class="form-select form-control-clean" required>
                 <option v-for="cat in expenseCategories" :key="cat" :value="cat">
-                  {{ cat }}
+                  {{ $t(`expenses.categories.${cat}`) !== `expenses.categories.${cat}` ? $t(`expenses.categories.${cat}`) : cat }}
                 </option>
               </select>
             </div>
 
             <div class="mb-3">
-              <label class="form-label-clean">Payment Method <span class="text-danger">*</span></label>
+              <label class="form-label-clean">{{ $t('expenses.paymentMethodLabel') }} <span class="text-danger">*</span></label>
               <div class="option-pills">
                 <button
                   type="button"
@@ -290,7 +283,7 @@
                   :class="{ active: form.payment_method === 'CASH' }"
                   @click="form.payment_method = 'CASH'"
                 >
-                  Cash
+                  {{ $t('common.cash') }}
                 </button>
                 <button
                   type="button"
@@ -298,7 +291,7 @@
                   :class="{ active: form.payment_method === 'KHQR' }"
                   @click="form.payment_method = 'KHQR'"
                 >
-                  KHQR
+                  {{ $t('common.khqr') }}
                 </button>
                 <button
                   type="button"
@@ -306,14 +299,14 @@
                   :class="{ active: form.payment_method === 'BANK_TRANSFER' }"
                   @click="form.payment_method = 'BANK_TRANSFER'"
                 >
-                  Bank Transfer
+                  {{ $t('common.bankTransfer') }}
                 </button>
               </div>
             </div>
 
             <div class="row g-2 mb-3">
               <div class="col-5">
-                <label class="form-label-clean">Currency <span class="text-danger">*</span></label>
+                <label class="form-label-clean">{{ $t('expenses.currencyLabel') }} <span class="text-danger">*</span></label>
                 <div class="option-pills">
                   <button
                     type="button"
@@ -336,7 +329,7 @@
 
               <div class="col-7">
                 <label class="form-label-clean">
-                  Amount ({{ form.currency }}) <span class="text-danger">*</span>
+                  {{ $t('expenses.amountLabel', { currency: form.currency }) }} <span class="text-danger">*</span>
                 </label>
                 <input
                   v-model.number="form.amount"
@@ -351,12 +344,12 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label-clean">Description <span class="text-danger">*</span></label>
+              <label class="form-label-clean">{{ $t('expenses.descriptionLabel') }} <span class="text-danger">*</span></label>
               <textarea
                 v-model="form.description"
                 rows="2"
                 class="form-control form-control-clean"
-                placeholder="e.g. Bought 5 bags of ice, electricity bill, cup sleeves..."
+                :placeholder="$t('expenses.descriptionPlaceholder')"
                 maxlength="500"
                 required
               ></textarea>
@@ -365,11 +358,11 @@
 
           <div class="modal-footer-custom">
             <button type="button" class="btn btn-light-coffee" @click="showFormModal = false">
-              Cancel
+              {{ $t('common.cancel') }}
             </button>
             <button type="submit" class="btn btn-coffee flex-grow-1" :disabled="isSubmitting">
               <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
-              {{ editingExpense ? 'Save Changes' : 'Record Expense' }}
+              {{ editingExpense ? $t('common.saveChanges') : $t('expenses.recordExpense') }}
             </button>
           </div>
         </form>
@@ -380,7 +373,7 @@
     <div v-if="showVoidModal && voidingExpense" class="modal-backdrop-custom" @click.self="showVoidModal = false">
       <div class="modal-card-custom modal-sm-custom">
         <div class="modal-header-custom">
-          <h6 class="mb-0 fw-bold text-danger">Void Expense #{{ voidingExpense.id }}</h6>
+          <h6 class="mb-0 fw-bold text-danger">{{ $t('expenses.voidExpenseTitle', { id: voidingExpense.id }) }}</h6>
           <button type="button" class="btn-close-custom" @click="showVoidModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
@@ -389,23 +382,23 @@
         <form @submit.prevent="handleConfirmVoid">
           <div class="modal-body-custom">
             <p class="small text-muted mb-3">
-              Voiding this
-              <strong>
-                {{
-                  voidingExpense.currency === 'USD'
-                    ? formatUsd(voidingExpense.amount)
-                    : formatKhr(voidingExpense.amount)
-                }}
-              </strong>
-              ({{ voidingExpense.category }}) expense will restore the amount to the shift drawer if paid by Cash.
+              {{
+                $t('expenses.voidExpenseDesc', {
+                  amount:
+                    voidingExpense.currency === 'USD'
+                      ? formatUsd(voidingExpense.amount)
+                      : formatKhr(voidingExpense.amount),
+                  category: voidingExpense.category,
+                })
+              }}
             </p>
 
-            <label class="form-label-clean">Void Reason (Min 3 chars) <span class="text-danger">*</span></label>
+            <label class="form-label-clean">{{ $t('expenses.voidReasonLabel') }} <span class="text-danger">*</span></label>
             <textarea
               v-model="voidReason"
               rows="2"
               class="form-control form-control-clean"
-              placeholder="e.g. Entered wrong amount, duplicate entry..."
+              :placeholder="$t('expenses.voidReasonPlaceholder')"
               minlength="3"
               maxlength="255"
               required
@@ -414,11 +407,11 @@
 
           <div class="modal-footer-custom">
             <button type="button" class="btn btn-light-coffee" @click="showVoidModal = false">
-              Keep Active
+              {{ $t('expenses.keepActive') }}
             </button>
             <button type="submit" class="btn btn-danger flex-grow-1" :disabled="isVoiding">
               <span v-if="isVoiding" class="spinner-border spinner-border-sm me-1"></span>
-              Confirm Void
+              {{ $t('expenses.confirmVoid') }}
             </button>
           </div>
         </form>
@@ -737,7 +730,7 @@ onMounted(async () => {
 
 .bg-coffee-soft {
   background: #f4eee8;
-  color: #2c1810;
+  color: #2d5a43;
 }
 
 .bg-warning-soft {
@@ -793,9 +786,9 @@ onMounted(async () => {
 }
 
 .nav-tab-btn.active {
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   font-weight: 600;
-  border-bottom-color: var(--primary, #2c1810);
+  border-bottom-color: var(--primary, #2d5a43);
 }
 
 .tab-badge {
@@ -808,7 +801,7 @@ onMounted(async () => {
 }
 
 .nav-tab-btn.active .tab-badge {
-  background-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
   color: #ffffff;
 }
 
@@ -888,9 +881,9 @@ onMounted(async () => {
 }
 
 .cat-badge {
-  background: #fff6ee;
+  background: #edf7f1;
   border: 1px solid #f5d0b5;
-  color: #2c1810;
+  color: #2d5a43;
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.18rem 0.55rem;
@@ -948,7 +941,7 @@ onMounted(async () => {
 }
 
 .btn-coffee {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
   border: none;
   border-radius: 9px;
@@ -957,7 +950,7 @@ onMounted(async () => {
 
 .btn-light-coffee {
   background: #f4f1ed;
-  color: #2c1810;
+  color: #2d5a43;
   border: 1px solid #e6e1da;
   border-radius: 9px;
   font-weight: 600;
@@ -1052,8 +1045,8 @@ onMounted(async () => {
 }
 
 .opt-pill.active {
-  background: #2c1810;
+  background: #2d5a43;
   color: #ffffff;
-  border-color: #2c1810;
+  border-color: #2d5a43;
 }
 </style>

@@ -90,18 +90,18 @@ const handleUpdatePassword = async () => {
   <div class="reset-wrapper min-vh-100 d-flex align-items-center justify-content-center p-3">
     <div class="reset-card bg-white p-4 p-sm-5">
       <div class="d-flex align-items-center justify-content-between pb-3 mb-4">
-        <span class="step-header-text">Reset password</span>
-        <span class="step-number-text">Step 3</span>
+        <span class="step-header-text">{{ $t('auth.resetHeader') }}</span>
+        <span class="step-number-text">{{ $t('auth.step3') }}</span>
       </div>
 
-      <h3 class="title-text fw-bold mb-2">Set password</h3>
-      <p class="subtitle-text mb-4">Choose a strong password with 8+ characters.</p>
+      <h3 class="title-text fw-bold mb-2">{{ $t('auth.setPasswordTitle') }}</h3>
+      <p class="subtitle-text mb-4">{{ $t('auth.setPasswordSubtitle') }}</p>
 
       <form @submit.prevent="handleUpdatePassword">
         <BaseInput
           v-model="newPassword"
           type="password"
-          label="New password"
+          :label="$t('auth.newPasswordLabel')"
           placeholder="••••••••••••"
           :error="newPasswordError"
           required
@@ -111,7 +111,7 @@ const handleUpdatePassword = async () => {
         <BaseInput
           v-model="confirmPassword"
           type="password"
-          label="Confirm password"
+          :label="$t('auth.confirmPasswordLabel')"
           placeholder="••••••••••••"
           :error="confirmPasswordError"
           class="mb-4"
@@ -126,7 +126,7 @@ const handleUpdatePassword = async () => {
           class="mb-4"
           :loading="isLoading"
         >
-          Update Password
+          {{ $t('auth.updatePasswordBtn') }}
         </BaseButton>
       </form>
     </div>
@@ -144,7 +144,7 @@ const handleUpdatePassword = async () => {
   max-width: 440px;
   border-radius: 16px;
   border: 1px solid var(--border-hairline, #e6e4e0);
-  box-shadow: 0 4px 20px -2px rgba(44, 24, 16, 0.04);
+  box-shadow: 0 4px 20px -2px rgba(45, 90, 67, 0.04);
 }
 
 .step-header-text {

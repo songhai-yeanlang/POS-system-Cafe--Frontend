@@ -176,7 +176,7 @@ const handleLogoutAllDevices = async () => {
           <div class="text-muted small">
             {{ authStore.user?.email }} •
             <span class="text-dark fw-medium">
-              {{ authStore.user?.role === 'OWNER' ? 'Shop Owner' : 'Staff Cashier' }}
+              {{ authStore.user?.role === 'OWNER' ? $t('settings.shopOwnerBadge') : $t('settings.staffCashierBadge') }}
             </span>
           </div>
         </div>
@@ -185,15 +185,15 @@ const handleLogoutAllDevices = async () => {
       <!-- SECTION 1: Personal Information -->
       <form class="mb-5" @submit.prevent="handleUpdateProfile">
         <div class="mb-3">
-          <h6 class="section-title mb-1">Personal Details</h6>
-          <p class="section-desc mb-3">Your display name appears on receipts and orders.</p>
+          <h6 class="section-title mb-1">{{ $t('settings.personalDetails') }}</h6>
+          <p class="section-desc mb-3">{{ $t('settings.personalDetailsDesc') }}</p>
         </div>
 
         <div class="row g-3">
           <div class="col-12 col-md-6">
             <BaseInput
               v-model="name"
-              label="Full name"
+              :label="$t('users.fullNameLabel')"
               placeholder="Your full name"
               :error="nameError"
               required
@@ -203,7 +203,7 @@ const handleLogoutAllDevices = async () => {
           <div class="col-12 col-md-6">
             <BaseInput
               :model-value="authStore.user?.email || ''"
-              label="Email address"
+              :label="$t('auth.emailLabel')"
               disabled
             />
           </div>
@@ -217,7 +217,7 @@ const handleLogoutAllDevices = async () => {
             :disabled="!isProfileDirty || isSavingProfile"
             :loading="isSavingProfile"
           >
-            Save Changes
+            {{ $t('common.saveChanges') }}
           </BaseButton>
         </div>
       </form>
@@ -225,15 +225,15 @@ const handleLogoutAllDevices = async () => {
       <!-- SECTION 2: Change Password -->
       <form class="pt-4 border-top mb-5" @submit.prevent="handleChangePassword">
         <div class="mb-3">
-          <h6 class="section-title mb-1">Password</h6>
-          <p class="section-desc mb-3">Change your password to keep your account safe.</p>
+          <h6 class="section-title mb-1">{{ $t('settings.passwordSecurity') }}</h6>
+          <p class="section-desc mb-3">{{ $t('settings.passwordSecurityDesc') }}</p>
         </div>
 
         <div class="mb-3">
           <BaseInput
             v-model="passwordForm.currentPassword"
             type="password"
-            label="Current password"
+            :label="$t('settings.currentPassword')"
             placeholder="••••••••"
             :error="passwordErrors.currentPassword"
             required
@@ -245,8 +245,8 @@ const handleLogoutAllDevices = async () => {
             <BaseInput
               v-model="passwordForm.newPassword"
               type="password"
-              label="New password"
-              placeholder="At least 6 characters"
+              :label="$t('settings.newPassword')"
+              placeholder="••••••••"
               :error="passwordErrors.newPassword"
               required
             />
@@ -256,7 +256,7 @@ const handleLogoutAllDevices = async () => {
             <BaseInput
               v-model="passwordForm.confirmPassword"
               type="password"
-              label="Confirm new password"
+              :label="$t('settings.confirmNewPassword')"
               placeholder="••••••••"
               :error="passwordErrors.confirmPassword"
               required
@@ -271,7 +271,7 @@ const handleLogoutAllDevices = async () => {
             size="sm"
             :loading="isChangingPassword"
           >
-            Update Password
+            {{ $t('settings.updatePassword') }}
           </BaseButton>
         </div>
       </form>
@@ -280,8 +280,8 @@ const handleLogoutAllDevices = async () => {
       <div class="pt-4 border-top">
         <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
           <div>
-            <h6 class="section-title mb-1">Active Sessions</h6>
-            <p class="section-desc mb-0">Log out of your account from all browsers and POS terminals.</p>
+            <h6 class="section-title mb-1">{{ $t('settings.activeSessions') }}</h6>
+            <p class="section-desc mb-0">{{ $t('settings.activeSessionsDesc') }}</p>
           </div>
 
           <BaseButton
@@ -292,7 +292,7 @@ const handleLogoutAllDevices = async () => {
             :loading="isLoggingOutAll"
             @click="handleLogoutAllDevices"
           >
-            Sign out everywhere
+            {{ $t('settings.signOutEverywhere') }}
           </BaseButton>
         </div>
       </div>
@@ -316,7 +316,7 @@ const handleLogoutAllDevices = async () => {
   border-radius: 50%;
   background-color: var(--surface-container-low, #f6f3f2);
   border: 1px solid var(--border-hairline, #e6e4e0);
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   font-size: 15px;
   font-weight: 700;
   display: flex;

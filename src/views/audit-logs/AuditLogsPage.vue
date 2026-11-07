@@ -11,7 +11,7 @@
               v-model="searchQuery"
               type="text"
               class="form-control form-control-clean ps-5"
-              placeholder="Filter user, IP, details..."
+              :placeholder="$t('auditLogs.filterPlaceholder')"
             />
           </div>
 
@@ -21,7 +21,7 @@
             style="width: auto; min-width: 145px"
             @change="fetchAuditLogs(1)"
           >
-            <option value="">All Modules</option>
+            <option value="">{{ $t('auditLogs.allModules') }}</option>
             <option v-for="mod in moduleOptions" :key="mod.value" :value="mod.value">
               {{ mod.label }}
             </option>
@@ -33,7 +33,7 @@
             style="width: auto; min-width: 165px"
             @change="fetchAuditLogs(1)"
           >
-            <option value="">All Actions</option>
+            <option value="">{{ $t('auditLogs.allActions') }}</option>
             <optgroup
               v-for="group in actionGroups"
               :key="group.label"
@@ -51,7 +51,7 @@
             style="width: auto; min-width: 140px"
             @change="fetchAuditLogs(1)"
           >
-            <option value="">All Users</option>
+            <option value="">{{ $t('auditLogs.allUsers') }}</option>
             <option v-for="u in usersList" :key="u.id" :value="u.id">
               {{ u.name }}
             </option>
@@ -79,7 +79,7 @@
             v-if="activeFilterCount > 0 || searchQuery"
             type="button"
             class="btn btn-light-coffee btn-sm"
-            title="Reset Filters"
+            :title="$t('auditLogs.resetFilters')"
             @click="resetFilters"
           >
             <i class="bi bi-arrow-counterclockwise"></i>
@@ -94,20 +94,20 @@
         >
           <span v-if="isLoading" class="spinner-border spinner-border-sm me-1"></span>
           <i v-else class="bi bi-arrow-clockwise me-1"></i>
-          Refresh
+          {{ $t('common.refresh') }}
         </button>
       </div>
 
       <div v-if="isLoading" class="text-center py-5">
         <div class="spinner-border text-secondary" role="status"></div>
-        <p class="text-muted small mt-2 mb-0">Loading audit logs...</p>
+        <p class="text-muted small mt-2 mb-0">{{ $t('auditLogs.loadingAuditLogs') }}</p>
       </div>
 
       <div v-else-if="filteredLogs.length === 0" class="empty-state py-5 text-center">
         <i class="bi bi-shield-slash fs-2 text-muted d-block mb-2"></i>
-        <div class="fw-semibold text-dark">No Audit Logs Found</div>
+        <div class="fw-semibold text-dark">{{ $t('auditLogs.noAuditLogsFound') }}</div>
         <p class="text-muted small mb-3">
-          No activity records match your current filter criteria.
+          {{ $t('auditLogs.noAuditLogsFoundDesc') }}
         </p>
         <button
           v-if="activeFilterCount > 0 || searchQuery"
@@ -115,7 +115,7 @@
           class="btn btn-light-coffee btn-sm"
           @click="resetFilters"
         >
-          Reset Filters
+          {{ $t('auditLogs.resetFilters') }}
         </button>
       </div>
 
@@ -123,13 +123,13 @@
         <table class="table table-clean align-middle mb-0">
           <thead>
             <tr>
-              <th class="ps-3">Time</th>
-              <th>User</th>
-              <th>Action</th>
-              <th>Module</th>
-              <th>Summary</th>
-              <th>IP</th>
-              <th class="text-end pe-3">Details</th>
+              <th class="ps-3">{{ $t('auditLogs.colTime') }}</th>
+              <th>{{ $t('auditLogs.colUser') }}</th>
+              <th>{{ $t('auditLogs.colAction') }}</th>
+              <th>{{ $t('auditLogs.colModule') }}</th>
+              <th>{{ $t('auditLogs.colSummary') }}</th>
+              <th>{{ $t('auditLogs.colIp') }}</th>
+              <th class="text-end pe-3">{{ $t('auditLogs.colDetails') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -154,7 +154,7 @@
                     {{ log.user_role }}
                   </span>
                 </div>
-                <span v-else class="text-muted small">System</span>
+                <span v-else class="text-muted small">{{ $t('common.system') }}</span>
               </td>
 
               <td>
@@ -186,7 +186,7 @@
                 <button
                   type="button"
                   class="btn btn-action-icon"
-                  title="Inspect Full Audit Payload"
+                  :title="$t('auditLogs.colDetails')"
                   @click="openDetailModal(log)"
                 >
                   <i class="bi bi-eye"></i>
@@ -203,9 +203,7 @@
         class="pagination-bar px-3 py-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2"
       >
         <div class="small text-muted">
-          Showing page <span class="fw-semibold text-dark">{{ pagination.page }}</span> of
-          <span class="fw-semibold text-dark">{{ pagination.totalPages }}</span>
-          ({{ pagination.total.toLocaleString() }} total events)
+          {{ $t('auditLogs.showingPage', { page: pagination.page, total: pagination.totalPages, events: pagination.total.toLocaleString() }) }}
         </div>
 
         <div class="d-flex align-items-center gap-1">
@@ -251,7 +249,7 @@
               <i class="bi me-1" :class="getActionIcon(selectedLog.action)"></i>
               {{ selectedLog.action }}
             </span>
-            <h5 class="modal-title-custom mb-0">Audit Log #{{ selectedLog.id }}</h5>
+            <h5 class="modal-title-custom mb-0">{{ $t('auditLogs.auditLogTitle', { id: selectedLog.id }) }}</h5>
           </div>
           <button type="button" class="btn-close-custom" @click="closeDetailModal">
             <i class="bi bi-x-lg"></i>
@@ -261,36 +259,36 @@
         <div class="modal-body-custom">
           <div v-if="isLoadingSingleLog" class="text-center py-4">
             <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
-            <span class="ms-2 small text-muted">Fetching full log record...</span>
+            <span class="ms-2 small text-muted">{{ $t('common.loading') }}</span>
           </div>
 
           <!-- Metadata Grid -->
           <div class="meta-grid mb-4">
             <div class="meta-item">
-              <div class="meta-label">Timestamp</div>
+              <div class="meta-label">{{ $t('auditLogs.timestamp') }}</div>
               <div class="meta-value">{{ formatDateTime(selectedLog.created_at) }}</div>
             </div>
 
             <div class="meta-item">
-              <div class="meta-label">Actor / User</div>
+              <div class="meta-label">{{ $t('auditLogs.actorUser') }}</div>
               <div class="meta-value">
                 <template v-if="selectedLog.user_name">
                   {{ selectedLog.user_name }}
                   <span class="text-muted small">({{ selectedLog.user_role || 'USER' }})</span>
                 </template>
                 <template v-else>
-                  System / Anonymous
+                  {{ $t('common.system') }}
                 </template>
               </div>
             </div>
 
             <div class="meta-item">
-              <div class="meta-label">User Email</div>
+              <div class="meta-label">{{ $t('auditLogs.userEmail') }}</div>
               <div class="meta-value">{{ selectedLog.user_email || '—' }}</div>
             </div>
 
             <div class="meta-item">
-              <div class="meta-label">Target Table</div>
+              <div class="meta-label">{{ $t('auditLogs.targetTable') }}</div>
               <div class="meta-value">
                 <span class="module-pill">{{ formatTableName(selectedLog.table_name) }}</span>
                 <span class="text-muted small ms-1">({{ selectedLog.table_name }})</span>
@@ -298,21 +296,21 @@
             </div>
 
             <div class="meta-item">
-              <div class="meta-label">Record ID</div>
+              <div class="meta-label">{{ $t('auditLogs.recordId') }}</div>
               <div class="meta-value">
                 {{ selectedLog.record_id ? `#${selectedLog.record_id}` : '—' }}
               </div>
             </div>
 
             <div class="meta-item">
-              <div class="meta-label">Client IP Address</div>
+              <div class="meta-label">{{ $t('auditLogs.clientIp') }}</div>
               <div class="meta-value font-monospace">{{ formatIpAddress(selectedLog.ip_address) }}</div>
             </div>
           </div>
 
           <!-- Structured Key-Value Details -->
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <h6 class="fw-bold mb-0 small text-uppercase text-muted">Event Details Payload</h6>
+            <h6 class="fw-bold mb-0 small text-uppercase text-muted">{{ $t('auditLogs.eventDetailsPayload') }}</h6>
             <button
               v-if="selectedLog.details"
               type="button"
@@ -320,7 +318,7 @@
               @click="copyJsonPayload"
             >
               <i class="bi bi-clipboard me-1"></i>
-              Copy JSON
+              {{ $t('auditLogs.copyJson') }}
             </button>
           </div>
 
@@ -346,7 +344,7 @@
 
         <div class="modal-footer-custom">
           <button type="button" class="btn btn-light-coffee" @click="closeDetailModal">
-            Close Inspector
+            {{ $t('auditLogs.closeInspector') }}
           </button>
         </div>
       </div>
@@ -808,7 +806,7 @@ onMounted(async () => {
   font-family: var(--font-headline, 'Plus Jakarta Sans', sans-serif);
   font-size: 1.55rem;
   font-weight: 800;
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   letter-spacing: -0.02em;
 }
 
@@ -842,7 +840,7 @@ onMounted(async () => {
 
 .kpi-coffee {
   background: #f5ebe6;
-  color: #2c1810;
+  color: #2d5a43;
 }
 
 .kpi-blue {
@@ -871,7 +869,7 @@ onMounted(async () => {
 .kpi-value {
   font-size: 1.25rem;
   font-weight: 800;
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   line-height: 1.2;
 }
 
@@ -907,8 +905,8 @@ onMounted(async () => {
 }
 
 .form-control-clean:focus {
-  border-color: var(--primary, #2c1810);
-  box-shadow: 0 0 0 3px rgba(44, 24, 16, 0.08);
+  border-color: var(--primary, #2d5a43);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
   background-color: #ffffff;
 }
 
@@ -941,9 +939,9 @@ onMounted(async () => {
 
 .btn-preset-sm:hover,
 .btn-preset-sm.active {
-  background: var(--primary, #2c1810);
+  background: var(--primary, #2d5a43);
   color: #ffffff;
-  border-color: var(--primary, #2c1810);
+  border-color: var(--primary, #2d5a43);
 }
 
 /* Table */
@@ -978,7 +976,7 @@ onMounted(async () => {
   height: 34px;
   border-radius: 10px;
   background: #f5ebe6;
-  color: #2c1810;
+  color: #2d5a43;
   font-size: 0.76rem;
   font-weight: 800;
   display: flex;
@@ -1001,8 +999,8 @@ onMounted(async () => {
 }
 
 .role-owner {
-  background: #ffdcc5;
-  color: #2c1810;
+  background: #d6ede0;
+  color: #2d5a43;
 }
 
 .role-staff {
@@ -1045,7 +1043,7 @@ onMounted(async () => {
   display: inline-block;
   background: #faf9f7;
   border: 1px solid var(--border-hairline, #e6e4e0);
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.18rem 0.52rem;
@@ -1055,7 +1053,7 @@ onMounted(async () => {
 .record-id-pill {
   display: inline-block;
   background: #f5ebe6;
-  color: #2c1810;
+  color: #2d5a43;
   font-family: monospace;
   font-size: 0.74rem;
   font-weight: 700;
@@ -1090,7 +1088,7 @@ onMounted(async () => {
   border-radius: 8px;
   border: 1px solid var(--border-hairline, #e6e4e0);
   background: #ffffff;
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1117,14 +1115,14 @@ onMounted(async () => {
 }
 
 .btn-page.active {
-  background: var(--primary, #2c1810);
+  background: var(--primary, #2d5a43);
   color: #ffffff;
-  border-color: var(--primary, #2c1810);
+  border-color: var(--primary, #2d5a43);
 }
 
 /* Buttons */
 .btn-coffee {
-  background: var(--primary, #2c1810);
+  background: var(--primary, #2d5a43);
   color: #ffffff;
   border: none;
   border-radius: 10px;
@@ -1140,7 +1138,7 @@ onMounted(async () => {
 
 .btn-light-coffee {
   background: #f5ebe6;
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
   border: 1px solid #e6d7ce;
   border-radius: 10px;
   font-size: 0.84rem;
@@ -1189,7 +1187,7 @@ onMounted(async () => {
 .modal-title-custom {
   font-size: 1.05rem;
   font-weight: 800;
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
 }
 
 .btn-close-custom {
@@ -1257,7 +1255,7 @@ onMounted(async () => {
   width: 34%;
   background: #faf9f7;
   font-weight: 600;
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
 }
 
 .kv-val {

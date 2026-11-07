@@ -164,21 +164,21 @@ const buttonClasses = computed(() => [
 }
 
 .btn-brew-primary {
-  background-color: var(--primary, #2c1810);
-  border-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
+  border-color: var(--primary, #2d5a43);
   color: var(--on-primary, #ffffff);
 }
 .btn-brew-primary:hover:not(:disabled),
 .btn-brew-primary:focus-visible,
 .btn-brew-primary.active {
-  background-color: var(--primary-dark, #1d100b) !important;
-  border-color: var(--primary-dark, #1d100b) !important;
+  background-color: var(--primary-dark, #1e3f2f) !important;
+  border-color: var(--primary-dark, #1e3f2f) !important;
   color: #ffffff !important;
 }
 .btn-brew-primary:disabled,
 .btn-brew-primary.disabled {
-  background-color: var(--primary, #2c1810) !important;
-  border-color: var(--primary, #2c1810) !important;
+  background-color: var(--primary, #2d5a43) !important;
+  border-color: var(--primary, #2d5a43) !important;
   color: var(--on-primary, #ffffff) !important;
   opacity: 0.85;
 }
@@ -194,8 +194,8 @@ const buttonClasses = computed(() => [
   color: var(--on-surface, #1c1b1b);
 }
 .btn-brew-secondary.active {
-  background-color: var(--primary, #2c1810);
-  border-color: var(--primary, #2c1810);
+  background-color: var(--primary, #2d5a43);
+  border-color: var(--primary, #2d5a43);
   color: #ffffff;
 }
 .btn-brew-secondary:disabled,
@@ -207,18 +207,18 @@ const buttonClasses = computed(() => [
 }
 
 .btn-brew-crema {
-  background-color: var(--secondary-fixed, #ffdcc5);
+  background-color: var(--secondary-fixed, #d6ede0);
   border-color: transparent;
   color: var(--on-secondary-fixed, #2b1707);
   font-weight: 600;
 }
 .btn-brew-crema:hover:not(:disabled) {
-  background-color: var(--secondary-container, #ffd8bf);
+  background-color: var(--secondary-container, #ddeadf);
   color: var(--on-secondary-container, #7a5c48);
 }
 .btn-brew-crema:disabled,
 .btn-brew-crema.disabled {
-  background-color: var(--secondary-fixed, #ffdcc5) !important;
+  background-color: var(--secondary-fixed, #d6ede0) !important;
   border-color: transparent !important;
   color: var(--on-secondary-fixed, #2b1707) !important;
   opacity: 0.85;

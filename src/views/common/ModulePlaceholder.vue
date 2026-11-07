@@ -33,6 +33,6 @@ const route = useRoute()
   height: 48px;
   border-radius: 12px;
   background-color: var(--surface-container-low, #f6f3f2);
-  color: var(--primary, #2c1810);
+  color: var(--primary, #2d5a43);
 }
 </style>
