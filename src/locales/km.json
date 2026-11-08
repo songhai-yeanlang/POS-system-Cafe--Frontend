@@ -80,6 +80,10 @@
     "shiftOpen": "វេន #{id} កំពុងបើក",
     "shiftClosed": "បានបិទវេន",
     "logout": "ចាកចេញ",
+    "logoutConfirmTitle": "បញ្ជាក់ការចាកចេញ",
+    "logoutConfirmDesc": "តើអ្នកពិតជាចង់ចាកចេញពីគណនីរបស់អ្នកមែនទេ?",
+    "logoutYes": "បាទ/ចាស ចាកចេញ",
+    "logoutNo": "ទេ បោះបង់",
     "toggleNav": "បិទ/បើកម៉ឺនុយ",
     "exchangeRateTitle": "អត្រាប្តូរប្រាក់បច្ចុប្បន្ន",
     "manageShiftTitle": "ចុចដើម្បីគ្រប់គ្រងវេនលក់ និងថតលុយ"

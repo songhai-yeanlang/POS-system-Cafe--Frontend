@@ -15,6 +15,7 @@ const { t } = useI18n()
 const isSidebarCollapsed = ref(false)
 const isMobileSidebarOpen = ref(false)
 const isLoggingOut = ref(false)
+const showLogoutModal = ref(false)
 
 onMounted(() => {
   if (authStore.isAuthenticated) {
@@ -156,12 +157,17 @@ const toggleSidebar = () => {
   }
 }
 
+const openLogoutModal = () => {
+  showLogoutModal.value = true
+}
+
 const handleLogout = async () => {
   if (isLoggingOut.value) return
   isLoggingOut.value = true
   try {
     await authStore.logout()
     appStore.resetAppData()
+    showLogoutModal.value = false
     router.push('/login')
   } finally {
     isLoggingOut.value = false
@@ -340,7 +346,7 @@ const handleLogout = async () => {
             class="btn-topbar-logout d-inline-flex align-items-center gap-2"
             :title="t('nav.logout')"
             :disabled="isLoggingOut"
-            @click="handleLogout"
+            @click="openLogoutModal"
           >
             <span v-if="isLoggingOut" class="spinner-border spinner-border-sm"></span>
             <i v-else class="bi bi-box-arrow-right"></i>
@@ -354,6 +360,48 @@ const handleLogout = async () => {
         <router-view />
       </main>
     </div>
+
+    <!-- Logout Confirmation Modal -->
+    <Teleport to="body">
+      <div
+        v-if="showLogoutModal"
+        class="logout-modal-backdrop"
+        @click.self="!isLoggingOut && (showLogoutModal = false)"
+      >
+        <div class="logout-modal-card">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="logout-icon-box">
+              <i class="bi bi-box-arrow-right"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-1 text-dark">{{ t('nav.logoutConfirmTitle') }}</h6>
+              <p class="small text-muted mb-0">{{ t('nav.logoutConfirmDesc') }}</p>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <button
+              type="button"
+              class="btn-logout-cancel"
+              :disabled="isLoggingOut"
+              @click="showLogoutModal = false"
+            >
+              {{ t('nav.logoutNo') }}
+            </button>
+            <button
+              type="button"
+              class="btn-logout-confirm"
+              :disabled="isLoggingOut"
+              @click="handleLogout"
+            >
+              <span v-if="isLoggingOut" class="spinner-border spinner-border-sm me-1"></span>
+              <i v-else class="bi bi-box-arrow-right me-1"></i>
+              {{ t('nav.logoutYes') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -622,5 +670,74 @@ const handleLogout = async () => {
     backdrop-filter: blur(2px);
     z-index: 1035;
   }
+}
+
+/* Logout Confirmation Modal */
+.logout-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(28, 25, 23, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1080;
+}
+
+.logout-modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e6e2dc;
+  width: 100%;
+  max-width: 400px;
+  padding: 1.25rem;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.16);
+}
+
+.logout-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.btn-logout-cancel {
+  padding: 0.45rem 1rem;
+  border-radius: 9px;
+  border: 1px solid #e2ddd5;
+  background: #f6f4f0;
+  color: #44403c;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-logout-cancel:hover:not(:disabled) {
+  background: #ebe7e0;
+}
+
+.btn-logout-confirm {
+  padding: 0.45rem 1.1rem;
+  border-radius: 9px;
+  border: none;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-logout-confirm:hover:not(:disabled) {
+  background: #b91c1c;
 }
 </style>

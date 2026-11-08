@@ -1,7 +1,9 @@
 <script setup>
 import { useToast } from '@/composables/useToast'
+import { useI18n } from '@/i18n'
 
 const { toasts, remove } = useToast()
+const { tToast } = useI18n()
 
 const getIconClass = (type) => {
   switch (type) {
@@ -26,7 +28,7 @@ const getIconClass = (type) => {
           role="status">
           <div class="d-flex align-items-center gap-2">
             <i :class="['bi', getIconClass(item.type), 'fs-6']"></i>
-            <span class="toast-message">{{ item.message }}</span>
+            <span class="toast-message">{{ tToast(item.message) }}</span>
           </div>
 
           <button type="button" class="btn-close-toast d-flex align-items-center justify-content-center"

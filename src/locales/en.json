@@ -80,6 +80,10 @@
     "shiftOpen": "Shift #{id} Open",
     "shiftClosed": "Shift Closed",
     "logout": "Logout",
+    "logoutConfirmTitle": "Confirm Logout",
+    "logoutConfirmDesc": "Are you sure you want to log out of your account?",
+    "logoutYes": "Yes, Logout",
+    "logoutNo": "No, Cancel",
     "toggleNav": "Toggle navigation",
     "exchangeRateTitle": "Current Shop Exchange Rate",
     "manageShiftTitle": "Click to manage shift & cash drawer"

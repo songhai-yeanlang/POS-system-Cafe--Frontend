@@ -196,17 +196,19 @@
                 <div v-if="exp.status === 'ACTIVE' && canManageExpense(exp)" class="d-inline-flex gap-1">
                   <button
                     type="button"
-                    class="btn btn-action-icon text-primary"
+                    class="btn btn-action-icon"
+                    :title="$t('common.edit')"
                     @click="openEditModal(exp)"
                   >
                     <i class="bi bi-pencil"></i>
                   </button>
                   <button
                     type="button"
-                    class="btn btn-action-icon text-danger"
+                    class="btn btn-action-icon btn-action-icon--danger"
+                    :title="$t('common.delete')"
                     @click="openVoidModal(exp)"
                   >
-                    <i class="bi bi-x-circle"></i>
+                    <i class="bi bi-trash3"></i>
                   </button>
                 </div>
                 <span v-else class="small text-muted">—</span>
@@ -920,11 +922,24 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid #e6e2dc;
-  background: #ffffff;
+  border: none;
+  background: transparent;
+  color: #64748b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.btn-action-icon:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.btn-action-icon--danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .pagination-bar {

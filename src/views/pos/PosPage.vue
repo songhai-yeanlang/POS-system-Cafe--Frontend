@@ -98,7 +98,7 @@
             :class="{ active: selectedCategoryId === cat.id }"
             @click="selectedCategoryId = cat.id"
           >
-            {{ cat.name }}
+            {{ $tCategory(cat.name) }}
           </button>
         </div>
 
@@ -119,6 +119,7 @@
             v-for="product in filteredProducts"
             :key="product.id"
             class="product-card"
+            :class="{ 'in-cart': getProductCartQty(product.id) > 0 }"
             @click="handleProductClick(product)"
           >
             <div class="product-thumb">
@@ -134,15 +135,26 @@
                   :class="product.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot-fill'"
                 ></i>
               </div>
+
+              <span v-if="getProductCartQty(product.id) > 0" class="in-cart-badge">
+                {{ getProductCartQty(product.id) }}
+              </span>
+
+              <span v-if="getActiveVariants(product).length > 1" class="variant-count-pill">
+                {{ $t('pos.sizesCount', { count: getActiveVariants(product).length }) }}
+              </span>
             </div>
 
             <div class="product-body">
+              <div v-if="product.category_name" class="product-cat">
+                {{ $tCategory(product.category_name) }}
+              </div>
               <div class="product-title" :title="product.name">{{ product.name }}</div>
 
               <div class="product-footer">
                 <div class="price-usd">{{ formatUsd(getStartingPrice(product)) }}</div>
-                <span v-if="getActiveVariants(product).length > 1" class="variant-count-pill">
-                  {{ $t('pos.sizesCount', { count: getActiveVariants(product).length }) }}
+                <span class="product-add-btn" aria-hidden="true">
+                  <i class="bi bi-plus-lg"></i>
                 </span>
               </div>
             </div>
@@ -418,7 +430,7 @@
                   {{ customizingProduct.product_type }}
                 </span>
               </div>
-              <div class="small text-muted">{{ customizingProduct.category_name }}</div>
+              <div class="small text-muted">{{ $tCategory(customizingProduct.category_name) }}</div>
             </div>
           </div>
           <button type="button" class="btn-close-custom" @click="closeCustomizeModal">
@@ -715,7 +727,7 @@
 
     <!-- ================= MODAL 4: PAYMENT / CHECKOUT ================= -->
     <div v-if="showPaymentModal" class="modal-backdrop-custom" @click.self="closePaymentModal">
-      <div class="modal-card-custom modal-lg-custom">
+      <div class="modal-card-custom" style="max-width: 500px;">
         <div class="modal-header-custom">
           <div>
             <h6 class="mb-0 fw-bold">{{ $t('pos.completePayment') }}</h6>
@@ -741,251 +753,114 @@
             </div>
           </div>
 
-          <div class="row g-3">
-            <!-- Payment Method -->
-            <div class="col-md-7">
-              <label class="form-label-clean">{{ $t('pos.step1PaymentMethod') }}</label>
-              <div class="method-grid mb-3">
-                <button
-                  type="button"
-                  class="method-btn"
-                  :class="{ active: paymentForm.method === 'CASH' }"
-                  @click="selectPaymentMethod('CASH')"
-                >
-                  <i class="bi bi-cash-stack fs-5"></i>
-                  <span>{{ $t('common.cash') }}</span>
-                </button>
-                <button
-                  type="button"
-                  class="method-btn"
-                  :class="{ active: paymentForm.method === 'KHQR' }"
-                  @click="selectPaymentMethod('KHQR')"
-                >
-                  <i class="bi bi-qr-code-scan fs-5"></i>
-                  <span>{{ $t('common.khqr') }}</span>
-                </button>
-              </div>
-
-              <!-- Currency Paid By Customer -->
-              <label class="form-label-clean">{{ $t('pos.step2PaymentCurrency') }}</label>
-              <div class="option-pills mb-3">
-                <button
-                  type="button"
-                  class="opt-pill flex-grow-1"
-                  :class="{ active: paymentForm.currency === 'USD' }"
-                  @click="selectPaymentCurrency('USD')"
-                >
-                  USD ($) — {{ formatUsd(checkoutTotalUsd) }}
-                </button>
-                <button
-                  type="button"
-                  class="opt-pill flex-grow-1"
-                  :class="{ active: paymentForm.currency === 'KHR' }"
-                  @click="selectPaymentCurrency('KHR')"
-                >
-                  KHR (៛) — {{ formatKhr(checkoutTotalKhr) }}
-                </button>
-              </div>
-
-              <!-- CASH Specific Inputs -->
-              <template v-if="paymentForm.method === 'CASH'">
-                <div class="mb-3">
-                  <label class="form-label-clean">
-                    {{ $t('pos.step3CashReceived', { currency: paymentForm.currency }) }}
-                  </label>
-                  <input
-                    v-model.number="paymentForm.received_amount"
-                    type="number"
-                    :step="paymentForm.currency === 'USD' ? '0.01' : '100'"
-                    min="0"
-                    class="form-control form-control-clean fs-5 fw-bold"
-                  />
-
-                  <!-- Quick Tender Presets -->
-                  <div class="quick-cash-pills mt-2">
-                    <button
-                      type="button"
-                      class="quick-cash-btn"
-                      @click="paymentForm.received_amount = requiredBillAmount"
-                    >
-                      {{
-                        $t('pos.exactAmount', {
-                          amount:
-                            paymentForm.currency === 'USD'
-                              ? formatUsd(requiredBillAmount)
-                              : formatKhr(requiredBillAmount),
-                        })
-                      }}
-                    </button>
-                    <button
-                      v-for="preset in quickCashPresets"
-                      :key="preset"
-                      type="button"
-                      class="quick-cash-btn"
-                      @click="paymentForm.received_amount = preset"
-                    >
-                      {{ paymentForm.currency === 'USD' ? formatUsd(preset) : formatKhr(preset) }}
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Change Currency Preference -->
-                <div class="mb-2">
-                  <label class="form-label-clean">{{ $t('pos.step4GiveChangeIn') }}</label>
-                  <div class="option-pills">
-                    <button
-                      type="button"
-                      class="opt-pill flex-grow-1"
-                      :class="{ active: paymentForm.change_currency === 'USD' }"
-                      @click="paymentForm.change_currency = 'USD'"
-                    >
-                      USD ($)
-                    </button>
-                    <button
-                      type="button"
-                      class="opt-pill flex-grow-1"
-                      :class="{ active: paymentForm.change_currency === 'KHR' }"
-                      @click="paymentForm.change_currency = 'KHR'"
-                    >
-                      KHR (៛)
-                    </button>
-                  </div>
-                </div>
-              </template>
-
-              <!-- KHQR / BANK_TRANSFER Specific Inputs -->
-              <template v-else>
-                <div class="mb-3">
-                  <label class="form-label-clean">{{ $t('pos.bankWalletName') }}</label>
-                  <div class="quick-cash-pills mb-2">
-                    <button
-                      v-for="b in ['ABA KHQR', 'ACLEDA', 'Wing', 'Bakong', 'Canadia']"
-                      :key="b"
-                      type="button"
-                      class="quick-cash-btn"
-                      :class="{ active: paymentForm.bank_name === b }"
-                      @click="paymentForm.bank_name = b"
-                    >
-                      {{ b }}
-                    </button>
-                  </div>
-                  <input
-                    v-model="paymentForm.bank_name"
-                    type="text"
-                    class="form-control form-control-clean"
-                    :placeholder="$t('pos.bankPlaceholder')"
-                    maxlength="50"
-                  />
-                </div>
-
-                <div class="mb-2">
-                  <label class="form-label-clean">{{ $t('pos.transactionRef') }}</label>
-                  <input
-                    v-model="paymentForm.reference"
-                    type="text"
-                    class="form-control form-control-clean"
-                    :placeholder="$t('pos.transactionRefPlaceholder')"
-                    maxlength="150"
-                  />
-                </div>
-              </template>
-            </div>
-
-            <!-- Right Summary Box inside Payment Modal -->
-            <div class="col-md-5">
-              <div class="payment-summary-box h-100 d-flex flex-column justify-content-between">
-                <div>
-                  <div class="fw-bold text-dark mb-2 pb-2 border-bottom">{{ $t('pos.paymentBreakdown') }}</div>
-
-                  <div class="d-flex justify-content-between small mb-2">
-                    <span class="text-muted">{{ $t('pos.method') }}</span>
-                    <span class="fw-semibold">{{ paymentForm.method }}</span>
-                  </div>
-
-                  <div class="d-flex justify-content-between small mb-2">
-                    <span class="text-muted">{{ $t('pos.requiredBill') }}</span>
-                    <span class="fw-bold">
-                      {{
-                        paymentForm.currency === 'USD'
-                          ? formatUsd(checkoutTotalUsd)
-                          : formatKhr(checkoutTotalKhr)
-                      }}
-                    </span>
-                  </div>
-
-                  <div class="d-flex justify-content-between small mb-3">
-                    <span class="text-muted">{{ $t('pos.received') }}</span>
-                    <span class="fw-bold text-primary">
-                      {{
-                        paymentForm.currency === 'USD'
-                          ? formatUsd(effectiveReceivedAmount)
-                          : formatKhr(effectiveReceivedAmount)
-                      }}
-                    </span>
-                  </div>
-
-                  <!-- Change Display -->
-                  <div
-                    v-if="paymentForm.method === 'CASH'"
-                    class="change-callout"
-                    :class="{ 'insufficient': !isCashSufficient }"
-                  >
-                    <div class="small fw-semibold mb-1">
-                      {{ isCashSufficient ? $t('pos.changeToReturn') : $t('pos.insufficientCash') }}
-                    </div>
-                    <template v-if="isCashSufficient">
-                      <div class="fs-4 fw-bold text-success">
-                        {{
-                          paymentForm.change_currency === 'USD'
-                            ? formatUsd(calculatedChange.changeUsd)
-                            : formatKhr(calculatedChange.changeKhr)
-                        }}
-                      </div>
-                      <div class="small text-muted">
-                        {{ $t('pos.equivalent') }}
-                        {{
-                          paymentForm.change_currency === 'USD'
-                            ? formatKhr(usdToKhr(calculatedChange.changeUsd))
-                            : formatUsd(khrToUsd(calculatedChange.changeKhr))
-                        }}
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div class="small text-danger">
-                        {{
-                          $t('pos.shortBy', {
-                            amount:
-                              paymentForm.currency === 'USD'
-                                ? formatUsd(requiredBillAmount - effectiveReceivedAmount)
-                                : formatKhr(requiredBillAmount - effectiveReceivedAmount),
-                          })
-                        }}
-                      </div>
-                    </template>
-                  </div>
-
-                  <div v-else class="change-callout">
-                    <div class="small fw-semibold mb-1">{{ $t('pos.exactDigitalPayment') }}</div>
-                    <div class="small text-muted">
-                      {{
-                        $t('pos.verifyTransferHint', {
-                          amount:
-                            paymentForm.currency === 'USD'
-                              ? formatUsd(checkoutTotalUsd)
-                              : formatKhr(checkoutTotalKhr),
-                        })
-                      }}
-                    </div>
-                  </div>
-                </div>
-
-                <div class="mt-3 pt-2 border-top small text-muted">
-                  <i class="bi bi-shield-check me-1"></i>
-                  {{ $t('pos.autoUpdateStockNote') }}
-                </div>
-              </div>
-            </div>
+          <!-- Payment Method -->
+          <label class="form-label-clean">{{ $t('pos.step1PaymentMethod') }}</label>
+          <div class="method-grid mb-3">
+            <button
+              type="button"
+              class="method-btn"
+              :class="{ active: paymentForm.method === 'CASH' }"
+              @click="selectPaymentMethod('CASH')"
+            >
+              <i class="bi bi-cash-stack fs-5"></i>
+              <span>{{ $t('common.cash') }}</span>
+            </button>
+            <button
+              type="button"
+              class="method-btn"
+              :class="{ active: paymentForm.method === 'KHQR' }"
+              @click="selectPaymentMethod('KHQR')"
+            >
+              <i class="bi bi-qr-code-scan fs-5"></i>
+              <span>{{ $t('common.khqr') }}</span>
+            </button>
           </div>
+
+          <!-- Currency Paid By Customer -->
+          <label class="form-label-clean">{{ $t('pos.step2PaymentCurrency') }}</label>
+          <div class="option-pills mb-3">
+            <button
+              type="button"
+              class="opt-pill flex-grow-1"
+              :class="{ active: paymentForm.currency === 'USD' }"
+              @click="selectPaymentCurrency('USD')"
+            >
+              USD ($) — {{ formatUsd(checkoutTotalUsd) }}
+            </button>
+            <button
+              type="button"
+              class="opt-pill flex-grow-1"
+              :class="{ active: paymentForm.currency === 'KHR' }"
+              @click="selectPaymentCurrency('KHR')"
+            >
+              KHR (៛) — {{ formatKhr(checkoutTotalKhr) }}
+            </button>
+          </div>
+
+          <!-- CASH Specific Inputs -->
+          <template v-if="paymentForm.method === 'CASH'">
+            <div class="mb-2">
+              <label class="form-label-clean">
+                {{ $t('pos.step3CashReceived', { currency: paymentForm.currency }) }}
+              </label>
+              <input
+                :value="paymentForm.currency === 'USD' ? formatUsd(paymentForm.received_amount) : formatKhr(paymentForm.received_amount)"
+                type="text"
+                readonly
+                disabled
+                class="form-control form-control-clean fs-5 fw-bold"
+                style="background-color: #f4f2ee; color: #1c1917; cursor: default; opacity: 1;"
+              />
+            </div>
+          </template>
+
+          <!-- KHQR / BANK_TRANSFER Specific Inputs -->
+          <template v-else>
+            <div class="mb-3">
+              <label class="form-label-clean">{{ $t('pos.bankWalletName') }}</label>
+              <div class="quick-cash-pills mb-2">
+                <button
+                  v-for="b in ['ABA KHQR', 'ACLEDA', 'Wing', 'Bakong', 'Canadia']"
+                  :key="b"
+                  type="button"
+                  class="quick-cash-btn"
+                  :class="{ active: paymentForm.bank_name === b }"
+                  @click="paymentForm.bank_name = b"
+                >
+                  {{ b }}
+                </button>
+              </div>
+              <input
+                v-model="paymentForm.bank_name"
+                type="text"
+                class="form-control form-control-clean"
+                :placeholder="$t('pos.bankPlaceholder')"
+                maxlength="50"
+              />
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label-clean">{{ $t('pos.transactionRef') }}</label>
+              <input
+                v-model="paymentForm.reference"
+                type="text"
+                class="form-control form-control-clean"
+                :placeholder="$t('pos.transactionRefPlaceholder')"
+                maxlength="150"
+              />
+              <div class="small text-muted mt-2">
+                <i class="bi bi-info-circle me-1"></i>
+                {{
+                  $t('pos.verifyTransferHint', {
+                    amount:
+                      paymentForm.currency === 'USD'
+                        ? formatUsd(checkoutTotalUsd)
+                        : formatKhr(checkoutTotalKhr),
+                  })
+                }}
+              </div>
+            </div>
+          </template>
         </div>
 
         <div class="modal-footer-custom">
@@ -1532,6 +1407,12 @@ const getStartingPrice = (product) => {
   const vars = getActiveVariants(product)
   if (!vars.length) return 0
   return Math.min(...vars.map((v) => Number(v.price) || 0))
+}
+
+const getProductCartQty = (productId) => {
+  return cartItems.value
+    .filter((item) => item.product_id === productId)
+    .reduce((sum, item) => sum + Number(item.quantity || 0), 0)
 }
 
 // ================= COMPUTED: CART TOTALS =================
@@ -2336,45 +2217,65 @@ onMounted(async () => {
 /* Product Grid */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
-  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  gap: 0.9rem;
   overflow-y: auto;
-  padding-right: 0.25rem;
+  padding: 0.15rem 0.25rem 0.5rem 0.05rem;
   align-content: start;
   flex: 1;
 }
 
 .product-card {
-  border: 1px solid #eae7e2;
-  border-radius: 14px;
+  border: 1px solid #ece9e4;
+  border-radius: 16px;
   background: #ffffff;
-  overflow: hidden;
+  padding: 0.45rem;
   cursor: pointer;
-  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 .product-card:hover {
-  transform: translateY(-2px);
-  border-color: #2d5a43;
-  box-shadow: 0 6px 16px rgba(45, 90, 67, 0.06);
+  transform: translateY(-3px);
+  border-color: rgba(45, 90, 67, 0.45);
+  box-shadow: 0 10px 24px -6px rgba(45, 90, 67, 0.12), 0 4px 10px -4px rgba(15, 23, 42, 0.05);
+}
+
+.product-card:active {
+  transform: translateY(-1px);
+}
+
+.product-card.in-cart {
+  border-color: rgba(45, 90, 67, 0.5);
+  background: #fcfdfc;
 }
 
 .product-thumb {
-  height: 112px;
-  background: #f7f4f0;
+  height: 122px;
+  border-radius: 12px;
+  background: #f4f5f4;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.04);
 }
 
 .product-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.product-card:hover .product-img {
+  transform: scale(1.045);
 }
 
 .product-placeholder {
@@ -2382,67 +2283,101 @@ onMounted(async () => {
   color: #8c6d58;
 }
 
-.type-tag {
+.in-cart-badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 0.65rem;
+  top: 7px;
+  right: 7px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #2d5a43;
+  color: #ffffff;
+  font-size: 0.7rem;
   font-weight: 700;
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #2d5a43;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.3);
+}
+
+.variant-count-pill {
+  position: absolute;
+  bottom: 7px;
+  left: 7px;
+  font-size: 0.68rem;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  color: #334155;
+  padding: 0.16rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
 }
 
 .product-body {
-  padding: 0.65rem 0.75rem;
+  padding: 0.55rem 0.35rem 0.25rem;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
 .product-cat {
-  font-size: 0.7rem;
-  color: #8a7f78;
-  margin-bottom: 0.1rem;
+  font-size: 0.69rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 0.12rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-title {
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  color: #1c1917;
+  color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 0.5rem;
+  line-height: 1.3;
 }
 
 .product-footer {
   margin-top: auto;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.4rem;
 }
 
 .price-usd {
-  font-size: 0.95rem;
+  font-size: 0.96rem;
   font-weight: 800;
   color: #2d5a43;
   line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-feature-settings: 'tnum' 1;
 }
 
-.price-khr {
-  font-size: 0.72rem;
-  color: #78716c;
+.product-add-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #edf5f0;
+  color: #2d5a43;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.variant-count-pill {
-  font-size: 0.68rem;
-  background: #f4f1ed;
-  color: #574c45;
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
-  font-weight: 600;
+.product-card:hover .product-add-btn {
+  background: #2d5a43;
+  color: #ffffff;
+  box-shadow: 0 3px 8px rgba(45, 90, 67, 0.22);
 }
 
 .catalog-empty-state {
