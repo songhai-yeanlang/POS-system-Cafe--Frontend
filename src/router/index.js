@@ -207,8 +207,9 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const authStore = useAuthStore()
+  const shopName = localStorage.getItem('brewpos_shop_name') || 'BrewPOS'
 
-  document.title = to.meta?.title ? `${to.meta.title} • BrewPOS` : 'BrewPOS'
+  document.title = to.meta?.title ? `${to.meta.title} • ${shopName}` : shopName
 
   const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth)
   const isGuestOnly = to.matched.some((record) => record.meta?.guestOnly)

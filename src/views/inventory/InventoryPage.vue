@@ -196,7 +196,7 @@
                     </button>
                     <button
                       type="button"
-                      class="btn btn-action-icon text-primary"
+                      class="btn btn-action-icon"
                       :title="$t('inventory.editIngredient')"
                       @click="openEditIngredientModal(ing)"
                     >
@@ -204,7 +204,7 @@
                     </button>
                     <button
                       type="button"
-                      class="btn btn-action-icon text-danger"
+                      class="btn btn-action-icon btn-action-icon--danger"
                       :title="$t('common.delete')"
                       @click="confirmDeleteIngredient(ing)"
                     >
@@ -880,7 +880,6 @@ const handleSaveIngredient = async () => {
 }
 
 const confirmDeleteIngredient = async (ing) => {
-  if (!window.confirm(`Delete ingredient "${ing.name}"?`)) return
   try {
     await api.delete(`/inventory/ingredients/${ing.id}`)
     toast.success(`Ingredient '${ing.name}' deleted`)
@@ -1205,15 +1204,24 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid #e6e2dc;
-  background: #ffffff;
+  border: none;
+  background: transparent;
+  color: #64748b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s ease;
 }
 
 .btn-action-icon:hover {
-  background: #f4f1ed;
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.btn-action-icon--danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .pagination-bar {

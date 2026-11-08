@@ -147,8 +147,6 @@ const handleChangePassword = async () => {
 }
 
 const handleLogoutAllDevices = async () => {
-  if (!confirm('Sign out from all devices and terminals?')) return
-
   isLoggingOutAll.value = true
   try {
     await authStore.logoutAll()

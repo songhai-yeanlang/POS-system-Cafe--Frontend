@@ -33,7 +33,7 @@
           <select v-model="selectedCategoryId" class="form-select form-select-sm category-select">
             <option value="ALL">{{ $t('recipes.allCategoriesCount', { count: products.length }) }}</option>
             <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-              {{ cat.name }}
+              {{ $tCategory(cat.name) }}
             </option>
           </select>
         </div>
@@ -72,7 +72,7 @@
 
             <div class="flex-grow-1 text-start overflow-hidden">
               <div class="prod-name-sm text-truncate">{{ prod.name }}</div>
-              <div class="prod-meta-sm text-muted text-truncate">{{ prod.category_name }}</div>
+              <div class="prod-meta-sm text-muted text-truncate">{{ $tCategory(prod.category_name) }}</div>
             </div>
 
             <span class="variant-pill-sm">
@@ -117,7 +117,7 @@
                     </span>
                   </div>
                   <div class="small text-muted d-flex align-items-center flex-wrap gap-2">
-                    <span>{{ selectedProduct.category_name }}</span>
+                    <span>{{ $tCategory(selectedProduct.category_name) }}</span>
                     <span>•</span>
                     <span>{{ productVariantsRecipes.length }} variant(s)</span>
                     <span>•</span>
@@ -248,23 +248,32 @@
                     <!-- Actions -->
                     <td class="text-end">
                       <div v-if="authStore.isOwner" class="d-inline-flex align-items-center gap-1">
+                        <template v-if="v.recipe && v.recipe.length > 0">
+                          <button
+                            type="button"
+                            class="btn-action"
+                            :title="$t('common.edit')"
+                            @click="openRecipeBuilderModal(v)"
+                          >
+                            <i class="bi bi-pencil"></i>
+                          </button>
+                          <button
+                            type="button"
+                            class="btn-action btn-action--danger"
+                            :title="$t('common.clear')"
+                            @click="handleDeleteVariantRecipe(v)"
+                          >
+                            <i class="bi bi-trash3"></i>
+                          </button>
+                        </template>
                         <button
+                          v-else
                           type="button"
-                          class="btn btn-sm"
-                          :class="v.recipe && v.recipe.length > 0 ? 'btn-outline-coffee' : 'btn-coffee'"
+                          class="btn btn-sm btn-coffee"
                           @click="openRecipeBuilderModal(v)"
                         >
-                          <i class="bi" :class="v.recipe && v.recipe.length > 0 ? 'bi-pencil' : 'bi-plus-lg'"></i>
-                          <span class="ms-1">{{ v.recipe && v.recipe.length > 0 ? $t('common.edit') : $t('recipes.setRecipe') }}</span>
-                        </button>
-                        <button
-                          v-if="v.recipe && v.recipe.length > 0"
-                          type="button"
-                          class="btn btn-sm btn-outline-danger"
-                          :title="$t('common.clear')"
-                          @click="handleDeleteVariantRecipe(v)"
-                        >
-                          <i class="bi bi-trash3"></i>
+                          <i class="bi bi-plus-lg"></i>
+                          <span class="ms-1">{{ $t('recipes.setRecipe') }}</span>
                         </button>
                       </div>
                     </td>
@@ -375,7 +384,7 @@
               <div class="pt-3">
                 <button
                   type="button"
-                  class="btn btn-action-icon text-danger"
+                  class="btn btn-action-icon"
                   :title="$t('common.remove')"
                   @click="removeBuilderRow(idx)"
                 >
@@ -476,7 +485,6 @@ const getSiblingsWithRecipes = (currentVariant) => {
 
 const quickCopyRecipe = async (sibling, targetVariant) => {
   if (!sibling.recipe || sibling.recipe.length === 0) return
-  if (!window.confirm(`Copy recipe from "${sibling.variant_name}" to "${targetVariant.variant_name}"?`)) return
   try {
     const payload = {
       items: sibling.recipe.map((r) => ({
@@ -630,7 +638,6 @@ const handleSaveRecipe = async () => {
 }
 
 const handleDeleteVariantRecipe = async (variant) => {
-  if (!window.confirm(`Clear all recipe ingredients for "${variant.variant_name}"?`)) return
   try {
     await api.delete(`/inventory/recipes/variant/${variant.id}`)
     toast.success(`Recipe cleared for ${variant.variant_name}`)
@@ -1125,22 +1132,47 @@ onMounted(async () => {
   box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
+.btn-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.btn-action:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+.btn-action--danger:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
 .btn-action-icon {
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  border: 1px solid #e6e2dc;
-  background: #ffffff;
+  border: none;
+  background: transparent;
+  color: #64748b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-size: 14px;
   transition: all 0.15s ease;
 }
 
 .btn-action-icon:hover {
-  background: #fee2e2;
-  border-color: #fca5a5;
-  color: #b91c1c;
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .smaller {

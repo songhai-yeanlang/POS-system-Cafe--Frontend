@@ -228,7 +228,7 @@
                     <span class="small text-muted ms-1">({{ item.variant_name }})</span>
                   </td>
                   <td>
-                    <span class="small text-muted">{{ item.category_name }}</span>
+                    <span class="small text-muted">{{ $tCategory(item.category_name) }}</span>
                   </td>
                   <td>
                     <span class="fw-semibold">{{ item.total_quantity_sold }}</span>

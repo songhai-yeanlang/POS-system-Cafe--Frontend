@@ -659,30 +659,29 @@ const handleConfirmDelete = async () => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  background: #ffffff;
-  color: var(--on-surface-variant, #504440);
+  border: none;
+  background: transparent;
+  color: #64748b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 14px;
   transition: all 0.15s ease;
 }
 
 .btn-action:hover:not(:disabled) {
-  background-color: var(--surface-container-low, #f6f3f2);
-  color: var(--on-surface, #1c1b1b);
+  background-color: #f1f5f9;
+  color: #1e293b;
 }
 
 .btn-action:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
 .btn-action--danger:hover:not(:disabled) {
-  background-color: var(--error-container, #ffdad6);
-  border-color: #fca5a5;
-  color: var(--error, #ba1a1a);
+  background-color: #fef2f2;
+  color: #dc2626;
 }
 
 /* Modal */

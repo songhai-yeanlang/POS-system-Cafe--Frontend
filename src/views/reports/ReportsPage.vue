@@ -144,7 +144,7 @@
               <td>
                 <span class="badge bg-light text-dark border">{{ item.variant_name }}</span>
               </td>
-              <td class="small text-muted">{{ item.category_name }}</td>
+              <td class="small text-muted">{{ $tCategory(item.category_name) }}</td>
               <td>
                 <span class="fw-bold">{{ item.total_quantity_sold }}</span>
               </td>
@@ -269,7 +269,7 @@
           </thead>
           <tbody>
             <tr v-for="cat in categoriesData.categories" :key="cat.category_id">
-              <td class="fw-bold text-dark">{{ cat.category_name }}</td>
+              <td class="fw-bold text-dark">{{ $tCategory(cat.category_name) }}</td>
               <td class="fw-semibold">{{ cat.total_items_sold }}</td>
               <td class="fw-bold text-dark">{{ formatUsd(cat.total_revenue_usd) }}</td>
               <td class="small text-muted">{{ formatKhr(usdToKhr(cat.total_revenue_usd)) }}</td>

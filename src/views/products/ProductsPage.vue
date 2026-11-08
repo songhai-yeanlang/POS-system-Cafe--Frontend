@@ -546,7 +546,7 @@ const clearFilters = () => {
           >
             <option value="">{{ $t('common.allCategories') }}</option>
             <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-              {{ cat.name }} ({{ cat.total_products }})
+              {{ $tCategory(cat.name) }} ({{ cat.total_products }})
             </option>
           </select>
 
@@ -635,7 +635,7 @@ const clearFilters = () => {
                 </td>
 
                 <td>
-                  <span class="text-secondary small fw-medium">{{ prod.category_name }}</span>
+                  <span class="text-secondary small fw-medium">{{ $tCategory(prod.category_name) }}</span>
                 </td>
 
                 <td>
@@ -759,7 +759,7 @@ const clearFilters = () => {
             <tbody>
               <tr v-for="cat in categories" :key="cat.id">
                 <td class="ps-4 text-muted small numeric-tabular">#{{ cat.sort_order }}</td>
-                <td class="fw-semibold text-dark">{{ cat.name }}</td>
+                <td class="fw-semibold text-dark">{{ $tCategory(cat.name) }}</td>
                 <td>
                   <span class="text-muted small numeric-tabular">
                     {{ $t('orders.itemsCount', { count: cat.total_products }) }}
@@ -934,7 +934,7 @@ const clearFilters = () => {
                 </label>
                 <select v-model="productForm.category_id" class="form-select clean-select-input">
                   <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                    {{ cat.name }}
+                    {{ $tCategory(cat.name) }}
                   </option>
                 </select>
                 <div v-if="productErrors.category_id" class="text-danger small mt-1">
@@ -1328,25 +1328,24 @@ const clearFilters = () => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  background: #ffffff;
-  color: var(--on-surface-variant, #504440);
+  border: none;
+  background: transparent;
+  color: #64748b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 14px;
   transition: all 0.15s ease;
 }
 
 .btn-action:hover {
-  background-color: var(--surface-container-low, #f6f3f2);
-  color: var(--on-surface, #1c1b1b);
+  background-color: #f1f5f9;
+  color: #1e293b;
 }
 
 .btn-action--danger:hover {
-  background-color: var(--error-container, #ffdad6);
-  border-color: #fca5a5;
-  color: var(--error, #ba1a1a);
+  background-color: #fef2f2;
+  color: #dc2626;
 }
 
 /* Modal Styles */
