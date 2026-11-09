@@ -1,331 +1,400 @@
 <template>
-  <div class="pos-page">
-    <!-- Clean Notice Banner if No Active Shift -->
-    <div v-if="!appStore.hasOpenShift && !appStore.isLoadingShift" class="shift-closed-banner mb-3">
-      <div class="d-flex align-items-center gap-3 min-w-0">
-        <div class="shift-closed-icon">
+  <div class="pos-shell">
+    <!-- ================= SHIFT CLOSED BAR ================= -->
+    <div v-if="!appStore.hasOpenShift && !appStore.isLoadingShift" class="shift-notice">
+      <div class="shift-notice__body">
+        <span class="shift-notice__indicator" aria-hidden="true">
           <i class="bi bi-safe2"></i>
-        </div>
-        <div class="min-w-0">
-          <div class="fw-semibold text-dark">{{ $t('pos.noActiveShift') }}</div>
-          <div class="text-muted small text-truncate">
-            {{ $t('pos.noActiveShiftDesc') }}
-          </div>
+        </span>
+        <div class="shift-notice__copy">
+          <strong class="shift-notice__title">{{ $t('pos.noActiveShift') }}</strong>
+          <span class="shift-notice__desc">{{ $t('pos.noActiveShiftDesc') }}</span>
         </div>
       </div>
 
-      <div class="d-flex align-items-center gap-2 flex-shrink-0">
+      <div class="shift-notice__actions">
         <router-link
           to="/shifts"
-          class="btn-shift-link text-decoration-none d-none d-sm-inline-flex align-items-center gap-1"
+          class="shift-notice__link"
           :title="$t('pos.shiftsAndDrawer')"
         >
           <span>{{ $t('pos.shiftsAndDrawer') }}</span>
-          <i class="bi bi-arrow-right"></i>
         </router-link>
         <button
           type="button"
-          class="btn btn-coffee btn-sm d-inline-flex align-items-center gap-1 px-3 py-1.5"
+          class="pos-btn pos-btn--primary pos-btn--compact"
           @click="openQuickShiftModal"
         >
-          <i class="bi bi-unlock me-1"></i>
+          <i class="bi bi-unlock"></i>
           <span>{{ $t('pos.openShift') }}</span>
         </button>
       </div>
     </div>
 
-    <div class="pos-layout">
-      <!-- ================= LEFT COLUMN: CATALOG ================= -->
-      <div class="pos-catalog-panel">
-        <!-- Top Search & Open Orders Bar -->
-        <div class="catalog-toolbar">
-          <div class="search-box flex-grow-1">
-            <i class="bi bi-search search-icon"></i>
-            <input
-              v-model="searchQuery"
-              type="text"
-              class="form-control search-input"
-              :placeholder="$t('pos.searchPlaceholder')"
-            />
-            <button
-              v-if="searchQuery"
-              type="button"
-              class="btn-clear-search"
-              @click="searchQuery = ''"
-            >
-              <i class="bi bi-x-lg"></i>
-            </button>
+    <!-- ================= MAIN BARISTA COUNTER WORKSPACE ================= -->
+    <div class="counter-stage">
+      <!-- LEFT ZONE: OPEN COUNTER MENU BOARD -->
+      <section class="menu-board" aria-label="Beverage and food catalog">
+        <header class="menu-board__header">
+          <div class="menu-board__controls">
+            <div class="search-well">
+              <i class="bi bi-search search-well__icon" aria-hidden="true"></i>
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="search-well__input"
+                :placeholder="$t('pos.searchPlaceholder')"
+              />
+              <button
+                v-if="searchQuery"
+                type="button"
+                class="search-well__clear"
+                :aria-label="$t('common.clear')"
+                @click="searchQuery = ''"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <div class="menu-board__actions">
+              <button
+                type="button"
+                class="queue-trigger"
+                :class="{ 'has-open': openOrdersCount > 0 }"
+                @click="openPendingOrdersModal"
+              >
+                <i class="bi bi-receipt-cutoff"></i>
+                <span>{{ $t('pos.openOrders') }}</span>
+                <span v-if="openOrdersCount > 0" class="queue-trigger__count tabular">
+                  {{ openOrdersCount }}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                class="icon-trigger"
+                :title="$t('pos.refreshMenu')"
+                :aria-label="$t('pos.refreshMenu')"
+                :disabled="isLoadingCatalog"
+                @click="fetchCatalog"
+              >
+                <i class="bi bi-arrow-clockwise" :class="{ 'is-spinning': isLoadingCatalog }"></i>
+              </button>
+            </div>
           </div>
 
-          <button
-            type="button"
-            class="btn btn-outline-coffee position-relative"
-            @click="openPendingOrdersModal"
-          >
-            <i class="bi bi-clock-history me-1"></i>
-            {{ $t('pos.openOrders') }}
-            <span v-if="openOrdersCount > 0" class="open-orders-badge">
-              {{ openOrdersCount }}
-            </span>
-          </button>
+          <!-- Category Rail -->
+          <nav class="category-rail" aria-label="Menu categories">
+            <button
+              type="button"
+              class="category-rail__tab"
+              :class="{ 'is-active': selectedCategoryId === 'ALL' }"
+              @click="selectedCategoryId = 'ALL'"
+            >
+              <span>{{ $t('pos.allItems') }}</span>
+              <span class="category-rail__count tabular">{{ totalCatalogCount }}</span>
+            </button>
 
-          <button
-            type="button"
-            class="btn btn-light-coffee"
-            :title="$t('pos.refreshMenu')"
-            :disabled="isLoadingCatalog"
-            @click="fetchCatalog"
-          >
-            <i class="bi bi-arrow-clockwise" :class="{ 'spin-anim': isLoadingCatalog }"></i>
-          </button>
-        </div>
+            <button
+              v-for="cat in activeCategories"
+              :key="cat.id"
+              type="button"
+              class="category-rail__tab"
+              :class="{ 'is-active': selectedCategoryId === cat.id }"
+              @click="selectedCategoryId = cat.id"
+            >
+              <span>{{ $tCategory(cat.name) }}</span>
+              <span class="category-rail__count tabular">{{ getCategoryItemCount(cat.id) }}</span>
+            </button>
+          </nav>
+        </header>
 
-        <!-- Category Pills -->
-        <div class="category-strip">
-          <button
-            type="button"
-            class="cat-pill"
-            :class="{ active: selectedCategoryId === 'ALL' }"
-            @click="selectedCategoryId = 'ALL'"
-          >
-            <i class="bi bi-grid-fill me-1"></i>{{ $t('pos.allItems') }}
-          </button>
-          <button
-            v-for="cat in activeCategories"
-            :key="cat.id"
-            type="button"
-            class="cat-pill"
-            :class="{ active: selectedCategoryId === cat.id }"
-            @click="selectedCategoryId = cat.id"
-          >
-            {{ $tCategory(cat.name) }}
-          </button>
-        </div>
-
-        <!-- Product Grid -->
-        <div v-if="isLoadingCatalog" class="catalog-empty-state">
+        <!-- Menu Catalog States -->
+        <div v-if="isLoadingCatalog" class="board-state">
           <div class="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
-          <div class="small text-muted">{{ $t('pos.loadingMenu') }}</div>
+          <p class="board-state__desc">{{ $t('pos.loadingMenu') }}</p>
         </div>
 
-        <div v-else-if="filteredProducts.length === 0" class="catalog-empty-state">
-          <i class="bi bi-cup-hot fs-2 text-muted mb-2 d-block"></i>
-          <div class="fw-semibold text-dark">{{ $t('pos.noProductsFound') }}</div>
-          <div class="small text-muted">{{ $t('pos.noProductsFoundDesc') }}</div>
+        <div v-else-if="filteredProducts.length === 0" class="board-state">
+          <div class="board-state__glyph" aria-hidden="true">
+            <i class="bi bi-cup-hot"></i>
+          </div>
+          <h3 class="board-state__title">{{ $t('pos.noProductsFound') }}</h3>
+          <p class="board-state__desc">{{ $t('pos.noProductsFoundDesc') }}</p>
+          <button
+            v-if="searchQuery || selectedCategoryId !== 'ALL'"
+            type="button"
+            class="pos-btn pos-btn--ghost pos-btn--compact mt-2"
+            @click="searchQuery = ''; selectedCategoryId = 'ALL'"
+          >
+            {{ $t('common.reset') }}
+          </button>
         </div>
 
-        <div v-else class="product-grid">
-          <div
+        <!-- Beverage & Pastry Index Grid -->
+        <div v-else class="menu-grid">
+          <article
             v-for="product in filteredProducts"
             :key="product.id"
-            class="product-card"
-            :class="{ 'in-cart': getProductCartQty(product.id) > 0 }"
+            class="menu-item"
+            :class="{ 'in-docket': getProductCartQty(product.id) > 0 }"
+            tabindex="0"
+            role="button"
             @click="handleProductClick(product)"
+            @keydown.enter.prevent="handleProductClick(product)"
+            @keydown.space.prevent="handleProductClick(product)"
           >
-            <div class="product-thumb">
+            <div class="menu-item__visual">
               <img
                 v-if="product.image"
                 :src="getAssetUrl(product.image)"
                 :alt="product.name"
-                class="product-img"
+                class="menu-item__img"
+                loading="lazy"
               />
-              <div v-else class="product-placeholder">
+              <div v-else class="menu-item__fallback" aria-hidden="true">
                 <i
                   class="bi"
-                  :class="product.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot-fill'"
+                  :class="product.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot'"
                 ></i>
               </div>
 
-              <span v-if="getProductCartQty(product.id) > 0" class="in-cart-badge">
+              <span
+                v-if="getProductCartQty(product.id) > 0"
+                class="menu-item__qty tabular"
+              >
                 {{ getProductCartQty(product.id) }}
-              </span>
-
-              <span v-if="getActiveVariants(product).length > 1" class="variant-count-pill">
-                {{ $t('pos.sizesCount', { count: getActiveVariants(product).length }) }}
               </span>
             </div>
 
-            <div class="product-body">
-              <div v-if="product.category_name" class="product-cat">
-                {{ $tCategory(product.category_name) }}
+            <div class="menu-item__body">
+              <div class="menu-item__meta">
+                <span v-if="product.category_name" class="menu-item__category">
+                  {{ $tCategory(product.category_name) }}
+                </span>
+                <span
+                  v-if="getActiveVariants(product).length > 1"
+                  class="menu-item__variants tabular"
+                >
+                  {{ $t('pos.sizesCount', { count: getActiveVariants(product).length }) }}
+                </span>
+                <span
+                  v-else-if="
+                    getActiveVariants(product)[0]?.temperature &&
+                    getActiveVariants(product)[0].temperature !== 'NONE'
+                  "
+                  class="menu-item__temp"
+                  :class="`is-${getActiveVariants(product)[0].temperature.toLowerCase()}`"
+                >
+                  {{ getActiveVariants(product)[0].temperature }}
+                </span>
               </div>
-              <div class="product-title" :title="product.name">{{ product.name }}</div>
 
-              <div class="product-footer">
-                <div class="price-usd">{{ formatUsd(getStartingPrice(product)) }}</div>
-                <span class="product-add-btn" aria-hidden="true">
+              <h3 class="menu-item__title" :title="product.name">{{ product.name }}</h3>
+
+              <div class="menu-item__pricing">
+                <div class="menu-item__price-group">
+                  <span class="menu-item__usd tabular">{{ getPriceDisplay(product) }}</span>
+                  <span class="menu-item__khr tabular">
+                    {{ formatKhr(usdToKhr(getStartingPrice(product))) }}
+                  </span>
+                </div>
+                <span class="menu-item__action" aria-hidden="true">
                   <i class="bi bi-plus-lg"></i>
                 </span>
               </div>
             </div>
-          </div>
+          </article>
         </div>
-      </div>
+      </section>
 
-      <!-- ================= RIGHT COLUMN: CART & CHECKOUT ================= -->
-      <div class="pos-cart-panel">
-        <!-- Cart Header -->
-        <div class="cart-header">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="d-flex align-items-center gap-2">
-              <span class="cart-title">
-                {{ editingOrder ? $t('pos.orderQueueTitle', { no: editingOrder.queue_no }) : $t('pos.currentOrder') }}
-              </span>
-              <span v-if="editingOrder" class="badge-editing">
+      <!-- RIGHT ZONE: BARISTA ORDER DOCKET & REGISTER SLIP -->
+      <aside class="barista-docket" aria-label="Current order docket">
+        <!-- Docket Top Header -->
+        <header class="docket-head">
+          <div class="docket-head__top">
+            <div class="docket-head__identity">
+              <h2 class="docket-head__title">
+                {{
+                  editingOrder
+                    ? $t('pos.orderQueueTitle', { no: editingOrder.queue_no })
+                    : $t('pos.currentOrder')
+                }}
+              </h2>
+              <span v-if="editingOrder" class="docket-head__receipt tabular">
                 {{ editingOrder.receipt_no }}
               </span>
             </div>
+
             <button
               v-if="cartItems.length > 0 || editingOrder"
               type="button"
-              class="btn-reset-cart"
+              class="docket-head__clear"
               @click="resetCart"
             >
-              <i class="bi bi-trash3 me-1"></i>{{ $t('common.clear') }}
+              <i class="bi bi-trash3"></i>
+              <span>{{ $t('common.clear') }}</span>
             </button>
           </div>
 
-          <!-- Order Type & Table Selector -->
-          <div class="d-flex gap-2 align-items-center">
-            <div class="order-type-switch flex-grow-1">
+          <!-- Dining Mode & Table Assignment -->
+          <div class="docket-head__routing">
+            <div class="service-switch" role="group" aria-label="Order service mode">
               <button
                 type="button"
-                class="type-btn"
-                :class="{ active: orderForm.order_type === 'TAKEAWAY' }"
+                class="service-switch__option"
+                :class="{ 'is-selected': orderForm.order_type === 'TAKEAWAY' }"
                 @click="setOrderType('TAKEAWAY')"
               >
-                <i class="bi bi-bag-check me-1"></i>{{ $t('common.takeaway') }}
+                <i class="bi bi-bag-check"></i>
+                <span>{{ $t('common.takeaway') }}</span>
               </button>
               <button
                 type="button"
-                class="type-btn"
-                :class="{ active: orderForm.order_type === 'DINE_IN' }"
+                class="service-switch__option"
+                :class="{ 'is-selected': orderForm.order_type === 'DINE_IN' }"
                 @click="setOrderType('DINE_IN')"
               >
-                <i class="bi bi-shop me-1"></i>{{ $t('common.dineIn') }}
+                <i class="bi bi-shop"></i>
+                <span>{{ $t('common.dineIn') }}</span>
               </button>
             </div>
 
-            <div v-if="orderForm.order_type === 'DINE_IN'" class="table-input-wrap">
+            <div v-if="orderForm.order_type === 'DINE_IN'" class="table-slot">
               <input
                 v-model="orderForm.table_no"
                 type="text"
-                class="form-control form-control-sm table-input"
+                class="table-slot__input tabular"
                 :placeholder="$t('pos.tablePlaceholder')"
                 maxlength="20"
               />
             </div>
           </div>
-        </div>
+        </header>
 
-        <!-- Cart Items List -->
-        <div class="cart-items-container">
-          <div v-if="cartItems.length === 0" class="cart-empty">
-            <div class="empty-cart-icon">
-              <i class="bi bi-basket2"></i>
+        <!-- Docket Line Items -->
+        <div class="docket-stream">
+          <div v-if="cartItems.length === 0" class="docket-empty">
+            <div class="docket-empty__icon" aria-hidden="true">
+              <i class="bi bi-journal-plus"></i>
             </div>
-            <div class="fw-semibold text-dark">{{ $t('pos.cartEmpty') }}</div>
-            <div class="small text-muted">{{ $t('pos.cartEmptyDesc') }}</div>
+            <p class="docket-empty__title">{{ $t('pos.cartEmpty') }}</p>
+            <p class="docket-empty__desc">{{ $t('pos.cartEmptyDesc') }}</p>
           </div>
 
-          <div v-else class="cart-list">
-            <div
+          <ul v-else class="docket-list">
+            <li
               v-for="(item, index) in cartItems"
               :key="item.cartKey"
-              class="cart-item-card"
+              class="docket-row"
             >
-              <div class="d-flex justify-content-between align-items-start gap-2">
-                <div class="cart-item-info" @click="openEditCartItem(item, index)">
-                  <div class="cart-item-name">
-                    {{ item.product_name }}
-                    <span class="cart-variant-badge">{{ item.variant_name }}</span>
+              <div class="docket-row__main">
+                <div
+                  class="docket-row__info"
+                  role="button"
+                  tabindex="0"
+                  @click="openEditCartItem(item, index)"
+                  @keydown.enter.prevent="openEditCartItem(item, index)"
+                >
+                  <div class="docket-row__headline">
+                    <span class="docket-row__name">{{ item.product_name }}</span>
+                    <span class="docket-row__variant">{{ item.variant_name }}</span>
                   </div>
 
-                  <!-- Customizations (Sugar / Ice) -->
+                  <!-- Drink Customizations (Sugar / Ice) -->
                   <div
-                    v-if="item.product_type === 'DRINK' && (item.sugar_level !== null || item.ice_level)"
-                    class="cart-item-specs"
+                    v-if="
+                      item.product_type === 'DRINK' &&
+                      (item.sugar_level !== null || item.ice_level)
+                    "
+                    class="docket-row__specs"
                   >
-                    <span v-if="item.sugar_level !== null" class="spec-chip">
+                    <span v-if="item.sugar_level !== null" class="docket-spec tabular">
                       {{ $t('pos.sugarPct', { pct: item.sugar_level }) }}
                     </span>
-                    <span v-if="item.ice_level" class="spec-chip">
+                    <span v-if="item.ice_level" class="docket-spec">
                       {{ $t('pos.iceLabel', { ice: formatIceLabel(item.ice_level) }) }}
                     </span>
                   </div>
 
                   <!-- Add-ons -->
-                  <div v-if="item.addons && item.addons.length > 0" class="cart-item-addons">
+                  <div v-if="item.addons && item.addons.length > 0" class="docket-row__addons">
                     <div
                       v-for="addon in item.addons"
                       :key="addon.addon_variant_id"
-                      class="addon-line"
+                      class="docket-addon tabular"
                     >
-                      + {{ addon.quantity }}x {{ addon.name }}
-                      ({{ formatUsd(addon.unit_price * addon.quantity) }})
+                      <span>+ {{ addon.quantity }}× {{ addon.name }}</span>
+                      <span>{{ formatUsd(addon.unit_price * addon.quantity) }}</span>
                     </div>
                   </div>
 
-                  <!-- Item Note -->
-                  <div v-if="item.note" class="cart-item-note">
-                    <i class="bi bi-chat-left-text me-1"></i>{{ item.note }}
+                  <!-- Item Kitchen Note -->
+                  <div v-if="item.note" class="docket-row__note">
+                    <i class="bi bi-chat-left-text"></i>
+                    <span>{{ item.note }}</span>
                   </div>
                 </div>
 
-                <div class="text-end">
-                  <div class="cart-item-total">{{ formatUsd(calculateCartItemTotal(item)) }}</div>
-                  <div class="cart-item-unit text-muted">
+                <div class="docket-row__figures">
+                  <div class="docket-row__line-total tabular">
+                    {{ formatUsd(calculateCartItemTotal(item)) }}
+                  </div>
+                  <div class="docket-row__unit-price tabular">
                     {{ formatUsd(item.unit_price) }} {{ $t('pos.each') }}
                   </div>
                 </div>
               </div>
 
-              <div class="cart-item-actions mt-2 pt-2 border-top d-flex justify-content-between align-items-center">
+              <div class="docket-row__bar">
                 <button
                   type="button"
-                  class="btn-edit-item"
+                  class="docket-row__edit"
                   @click="openEditCartItem(item, index)"
                 >
-                  <i class="bi bi-sliders me-1"></i>{{ $t('pos.customize') }}
+                  <i class="bi bi-sliders"></i>
+                  <span>{{ $t('pos.customize') }}</span>
                 </button>
 
-                <div class="qty-stepper">
+                <div class="docket-stepper">
                   <button
                     type="button"
-                    class="qty-btn"
+                    class="docket-stepper__btn"
+                    :class="{ 'is-danger': item.quantity === 1 }"
                     @click="changeCartItemQty(index, -1)"
                   >
-                    <i class="bi" :class="item.quantity === 1 ? 'bi-trash3 text-danger' : 'bi-dash'"></i>
+                    <i class="bi" :class="item.quantity === 1 ? 'bi-trash3' : 'bi-dash'"></i>
                   </button>
-                  <span class="qty-val">{{ item.quantity }}</span>
+                  <span class="docket-stepper__qty tabular">{{ item.quantity }}</span>
                   <button
                     type="button"
-                    class="qty-btn"
+                    class="docket-stepper__btn"
                     @click="changeCartItemQty(index, 1)"
                   >
                     <i class="bi bi-plus"></i>
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
+            </li>
+          </ul>
         </div>
 
-        <!-- Cart Footer: Discount, Note, Totals & Checkout Buttons -->
-        <div class="cart-footer">
-          <!-- Discount & Order Note Bar -->
-          <div class="d-flex gap-2 mb-2">
+        <!-- Docket Footer: Order Adjustments & Dark Register Readout -->
+        <footer class="docket-foot">
+          <div class="docket-adjustments">
             <button
               type="button"
-              class="btn btn-xs-action flex-grow-1"
-              :class="{ 'has-value': orderForm.discount_type !== 'NONE' && orderForm.discount_value > 0 }"
+              class="adjustment-chip"
+              :class="{
+                'is-engaged': orderForm.discount_type !== 'NONE' && orderForm.discount_value > 0,
+              }"
               @click="showDiscountModal = true"
             >
-              <i class="bi bi-tag me-1"></i>
+              <i class="bi bi-tag"></i>
               <span v-if="orderForm.discount_type === 'NONE' || !orderForm.discount_value">
                 {{ $t('pos.addDiscount') }}
               </span>
-              <span v-else>
+              <span v-else class="tabular">
                 {{
                   $t('pos.discountApplied', {
                     val:
@@ -339,79 +408,93 @@
 
             <button
               type="button"
-              class="btn btn-xs-action flex-grow-1"
-              :class="{ 'has-value': !!orderForm.note }"
+              class="adjustment-chip"
+              :class="{ 'is-engaged': !!orderForm.note }"
               @click="showNoteModal = true"
             >
-              <i class="bi bi-journal-text me-1"></i>
-              {{ orderForm.note ? $t('pos.noteAdded') : $t('pos.orderNote') }}
+              <i class="bi bi-journal-text"></i>
+              <span>{{ orderForm.note ? $t('pos.noteAdded') : $t('pos.orderNote') }}</span>
             </button>
           </div>
 
-          <!-- Totals Box -->
-          <div class="totals-box">
-            <div class="totals-row">
-              <span>{{ $t('pos.subtotalItems', { count: totalCartUnits }) }}</span>
-              <span class="fw-semibold">{{ formatUsd(cartSubtotal) }}</span>
-            </div>
-            <div v-if="cartDiscountAmount > 0" class="totals-row text-danger">
-              <span>
-                {{ $t('common.discount') }}
-                <small v-if="orderForm.discount_type === 'PERCENT'">
-                  ({{ orderForm.discount_value }}%)
-                </small>
-              </span>
-              <span>-{{ formatUsd(cartDiscountAmount) }}</span>
-            </div>
-            <div class="totals-divider"></div>
-            <div class="totals-grand">
-              <div>
-                <div class="grand-label">{{ $t('pos.totalPayable') }}</div>
-                <div class="grand-rate">{{ $t('pos.rateLabel', { rate: exchangeRate.toLocaleString() }) }}</div>
+          <!-- Focal Point: Dark Espresso Register Display & Checkout -->
+          <div class="register-block">
+            <div class="register-block__Breakdown">
+              <div class="register-line">
+                <span>{{ $t('pos.subtotalItems', { count: totalCartUnits }) }}</span>
+                <span class="tabular">{{ formatUsd(cartSubtotal) }}</span>
               </div>
-              <div class="text-end">
-                <div class="grand-usd">{{ formatUsd(cartGrandTotal) }}</div>
-                <div class="grand-khr">{{ formatKhr(usdToKhr(cartGrandTotal)) }}</div>
+
+              <div v-if="cartDiscountAmount > 0" class="register-line is-discount">
+                <span>
+                  {{ $t('common.discount') }}
+                  <template v-if="orderForm.discount_type === 'PERCENT'">
+                    ({{ orderForm.discount_value }}%)
+                  </template>
+                </span>
+                <span class="tabular">-{{ formatUsd(cartDiscountAmount) }}</span>
               </div>
             </div>
-          </div>
 
-          <!-- Checkout Actions -->
-          <div class="checkout-actions">
-            <button
-              type="button"
-              class="btn btn-hold-order"
-              :disabled="cartItems.length === 0 || isSubmittingOrder || !appStore.hasOpenShift"
-              @click="handleSaveOpenOrder"
-            >
-              <span
-                v-if="isSubmittingOrder && !showPaymentModal"
-                class="spinner-border spinner-border-sm me-1"
-              ></span>
-              <i v-else class="bi bi-bookmark-check me-1"></i>
-              {{ editingOrder ? $t('pos.updateOpen') : $t('pos.holdOrder') }}
-            </button>
+            <div class="register-block__payable">
+              <div class="register-block__label-col">
+                <span class="register-block__label">{{ $t('pos.totalPayable') }}</span>
+                <span class="register-block__rate tabular">
+                  {{ $t('pos.rateLabel', { rate: exchangeRate.toLocaleString() }) }}
+                </span>
+              </div>
 
-            <button
-              type="button"
-              class="btn btn-pay-now"
-              :disabled="cartItems.length === 0 || isSubmittingOrder || !appStore.hasOpenShift"
-              @click="openCheckoutModal"
-            >
-              <i class="bi bi-cash-coin me-1"></i>
-              {{ $t('pos.payNow', { amount: formatUsd(cartGrandTotal) }) }}
-            </button>
+              <div class="register-block__amount-col">
+                <div class="register-block__usd tabular">{{ formatUsd(cartGrandTotal) }}</div>
+                <div class="register-block__khr tabular">
+                  {{ formatKhr(usdToKhr(cartGrandTotal)) }}
+                </div>
+              </div>
+            </div>
+
+            <div class="register-block__actions">
+              <button
+                type="button"
+                class="register-btn register-btn--hold"
+                :disabled="cartItems.length === 0 || isSubmittingOrder || !appStore.hasOpenShift"
+                @click="handleSaveOpenOrder"
+              >
+                <span
+                  v-if="isSubmittingOrder && !showPaymentModal"
+                  class="spinner-border spinner-border-sm"
+                ></span>
+                <i v-else class="bi bi-bookmark-check"></i>
+                <span>{{ editingOrder ? $t('pos.updateOpen') : $t('pos.holdOrder') }}</span>
+              </button>
+
+              <button
+                type="button"
+                class="register-btn register-btn--settle tabular"
+                :disabled="cartItems.length === 0 || isSubmittingOrder || !appStore.hasOpenShift"
+                @click="openCheckoutModal"
+              >
+                <span class="register-btn__settle-label">
+                  <i class="bi bi-cash-coin"></i>
+                  <span>{{ $t('pos.pay') }}</span>
+                </span>
+                <span class="register-btn__settle-amount">{{ formatUsd(cartGrandTotal) }}</span>
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
+        </footer>
+      </aside>
     </div>
 
     <!-- ================= MODAL 1: ITEM CUSTOMIZATION ================= -->
-    <div v-if="showCustomizeModal && customizingProduct" class="modal-backdrop-custom" @click.self="closeCustomizeModal">
-      <div class="modal-card-custom modal-customize-card">
-        <div class="modal-header-custom">
-          <div class="d-flex align-items-center gap-3">
-            <div class="customize-prod-thumb">
+    <div
+      v-if="showCustomizeModal && customizingProduct"
+      class="pos-dialog-backdrop"
+      @click.self="closeCustomizeModal"
+    >
+      <div class="pos-dialog pos-dialog--customize" role="dialog" aria-modal="true">
+        <header class="pos-dialog__head">
+          <div class="customizer-product">
+            <div class="customizer-product__thumb">
               <img
                 v-if="customizingProduct.image"
                 :src="getAssetUrl(customizingProduct.image)"
@@ -424,117 +507,133 @@
               ></i>
             </div>
             <div>
-              <div class="d-flex align-items-center gap-2">
-                <h5 class="mb-0 fw-bold text-dark">{{ customizingProduct.name }}</h5>
-                <span class="badge-type-pill" :class="customizingProduct.product_type?.toLowerCase()">
-                  {{ customizingProduct.product_type }}
+              <div class="customizer-product__title-row">
+                <h3 class="pos-dialog__title">{{ customizingProduct.name }}</h3>
+                <span
+                  class="product-kind-tag"
+                  :class="`is-${customizingProduct.product_type?.toLowerCase()}`"
+                >
+                  {{
+                    customizingProduct.product_type === 'FOOD'
+                      ? $t('common.food')
+                      : $t('common.drink')
+                  }}
                 </span>
               </div>
-              <div class="small text-muted">{{ $tCategory(customizingProduct.category_name) }}</div>
+              <div class="pos-dialog__subtitle">
+                {{ $tCategory(customizingProduct.category_name) }}
+              </div>
             </div>
           </div>
-          <button type="button" class="btn-close-custom" @click="closeCustomizeModal">
+          <button type="button" class="pos-dialog__close" @click="closeCustomizeModal">
             <i class="bi bi-x-lg"></i>
           </button>
-        </div>
+        </header>
 
-        <div class="modal-body-custom">
-          <!-- 1. Select Variant (Size / Temperature) -->
-          <div class="mb-3">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <label class="section-label-modern">{{ $t('pos.chooseSizeVariant') }}</label>
-              <span class="small text-muted">{{ $t('pos.availableCount', { count: getActiveVariants(customizingProduct).length }) }}</span>
+        <div class="pos-dialog__body">
+          <!-- Size / Temperature Variant Selection -->
+          <section class="field-group">
+            <div class="field-group__head">
+              <label class="field-group__label">{{ $t('pos.chooseSizeVariant') }}</label>
+              <span class="field-group__meta tabular">
+                {{ $t('pos.availableCount', { count: getActiveVariants(customizingProduct).length }) }}
+              </span>
             </div>
-            <div class="variant-grid-modern">
+
+            <div class="variant-selector">
               <button
                 v-for="v in getActiveVariants(customizingProduct)"
                 :key="v.id"
                 type="button"
-                class="variant-card-modern"
-                :class="{ active: customForm.variant_id === v.id }"
+                class="variant-option"
+                :class="{ 'is-selected': customForm.variant_id === v.id }"
                 @click="selectVariantInModal(v)"
               >
-                <div class="d-flex align-items-start justify-content-between gap-1 mb-1">
-                  <span class="variant-name">{{ v.name }}</span>
-                  <div class="variant-radio-indicator">
+                <div class="variant-option__top">
+                  <span class="variant-option__name">{{ v.name }}</span>
+                  <span class="variant-option__check" aria-hidden="true">
                     <i class="bi bi-check2"></i>
-                  </div>
+                  </span>
                 </div>
-                <div class="variant-specs">
-                  <span v-if="v.temperature && v.temperature !== 'NONE'" class="spec-pill" :class="v.temperature.toLowerCase()">
+                <div class="variant-option__tags">
+                  <span
+                    v-if="v.temperature && v.temperature !== 'NONE'"
+                    class="variant-tag"
+                    :class="`is-${v.temperature.toLowerCase()}`"
+                  >
                     {{ v.temperature }}
                   </span>
-                  <span v-if="v.size" class="spec-pill size">{{ v.size }}</span>
+                  <span v-if="v.size" class="variant-tag is-size">{{ v.size }}</span>
                 </div>
-                <div class="variant-price-modern">{{ formatUsd(v.price) }}</div>
+                <div class="variant-option__price tabular">{{ formatUsd(v.price) }}</div>
               </button>
             </div>
-          </div>
+          </section>
 
-          <!-- 2. Drink Customizations: Sugar & Ice -->
+          <!-- Drink Calibration: Sweetness & Ice -->
           <template v-if="customizingProduct.product_type === 'DRINK'">
-            <div class="mb-3">
-              <label class="section-label-modern">{{ $t('pos.sugarLevelTitle') }}</label>
-              <div class="option-pills-modern">
+            <section class="field-group">
+              <label class="field-group__label">{{ $t('pos.sugarLevelTitle') }}</label>
+              <div class="calibration-strip">
                 <button
                   v-for="s in sugarOptions"
                   :key="s"
                   type="button"
-                  class="opt-pill-modern"
-                  :class="{ active: customForm.sugar_level === s }"
+                  class="calibration-pill tabular"
+                  :class="{ 'is-selected': customForm.sugar_level === s }"
                   @click="customForm.sugar_level = s"
                 >
                   {{ s }}%
                 </button>
               </div>
-            </div>
+            </section>
 
-            <div class="mb-3">
-              <label class="section-label-modern">{{ $t('pos.iceLevelTitle') }}</label>
-              <div class="option-pills-modern">
+            <section class="field-group">
+              <label class="field-group__label">{{ $t('pos.iceLevelTitle') }}</label>
+              <div class="calibration-strip">
                 <button
                   v-for="ice in iceOptions"
                   :key="ice.value"
                   type="button"
-                  class="opt-pill-modern"
-                  :class="{ active: customForm.ice_level === ice.value }"
+                  class="calibration-pill"
+                  :class="{ 'is-selected': customForm.ice_level === ice.value }"
                   @click="customForm.ice_level = ice.value"
                 >
                   {{ ice.label }}
                 </button>
               </div>
-            </div>
+            </section>
 
-            <!-- 4. Add-ons (for Drinks) -->
-            <div v-if="availableAddons.length > 0" class="mb-3">
-              <label class="section-label-modern">{{ $t('pos.extraAddons') }}</label>
-              <div class="addons-grid-modern">
+            <!-- Extra Add-ons -->
+            <section v-if="availableAddons.length > 0" class="field-group">
+              <label class="field-group__label">{{ $t('pos.extraAddons') }}</label>
+              <div class="addon-selector">
                 <div
                   v-for="addon in availableAddons"
                   :key="addon.variant_id"
-                  class="addon-card-modern"
-                  :class="{ selected: getAddonQty(addon.variant_id) > 0 }"
+                  class="addon-item"
+                  :class="{ 'is-selected': getAddonQty(addon.variant_id) > 0 }"
                 >
-                  <div class="addon-info">
-                    <div class="fw-semibold text-dark small">{{ addon.display_name }}</div>
-                    <div class="addon-price">+{{ formatUsd(addon.price) }}</div>
+                  <div class="addon-item__meta">
+                    <span class="addon-item__name">{{ addon.display_name }}</span>
+                    <span class="addon-item__price tabular">+{{ formatUsd(addon.price) }}</span>
                   </div>
 
-                  <div class="qty-stepper-sm">
+                  <div class="addon-item__stepper">
                     <button
                       v-if="getAddonQty(addon.variant_id) > 0"
                       type="button"
-                      class="qty-btn-sm"
+                      class="addon-item__btn"
                       @click="changeAddonQty(addon, -1)"
                     >
                       <i class="bi bi-dash"></i>
                     </button>
-                    <span v-if="getAddonQty(addon.variant_id) > 0" class="qty-val-sm">
+                    <span v-if="getAddonQty(addon.variant_id) > 0" class="addon-item__qty tabular">
                       {{ getAddonQty(addon.variant_id) }}
                     </span>
                     <button
                       type="button"
-                      class="qty-btn-sm"
+                      class="addon-item__btn"
                       @click="changeAddonQty(addon, 1)"
                     >
                       <i class="bi bi-plus"></i>
@@ -542,40 +641,41 @@
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
           </template>
 
-          <!-- Quantity & Item Note -->
-          <div class="row g-2 align-items-end pt-1">
-            <div class="col-sm-5">
-              <label class="section-label-modern">{{ $t('pos.quantity') }}</label>
-              <div class="qty-stepper-modern">
+          <!-- Quantity & Barista Note -->
+          <div class="customizer-bottom-row">
+            <div class="customizer-qty-col">
+              <label class="field-group__label">{{ $t('pos.quantity') }}</label>
+              <div class="qty-control">
                 <button
                   type="button"
-                  class="qty-btn-modern"
+                  class="qty-control__btn"
                   :disabled="customForm.quantity <= 1"
                   @click="customForm.quantity = Math.max(1, customForm.quantity - 1)"
                 >
                   <i class="bi bi-dash-lg"></i>
                 </button>
-                <span class="qty-val-modern">{{ customForm.quantity }}</span>
+                <span class="qty-control__val tabular">{{ customForm.quantity }}</span>
                 <button
                   type="button"
-                  class="qty-btn-modern"
+                  class="qty-control__btn"
                   @click="customForm.quantity++"
                 >
                   <i class="bi bi-plus-lg"></i>
                 </button>
               </div>
             </div>
-            <div class="col-sm-7">
-              <label class="section-label-modern">{{ $t('pos.specialInstruction') }}</label>
-              <div class="note-input-wrap">
-                <i class="bi bi-pencil note-input-icon"></i>
+
+            <div class="customizer-note-col">
+              <label class="field-group__label">{{ $t('pos.specialInstruction') }}</label>
+              <div class="input-with-icon">
+                <i class="bi bi-pencil input-with-icon__glyph"></i>
                 <input
                   v-model="customForm.note"
                   type="text"
-                  class="form-control form-control-clean note-input"
+                  class="pos-input pos-input--padded"
                   :placeholder="$t('pos.specialInstructionPlaceholder')"
                   maxlength="200"
                 />
@@ -584,65 +684,80 @@
           </div>
         </div>
 
-        <div class="modal-footer-custom">
-          <button type="button" class="btn btn-ghost-cancel" @click="closeCustomizeModal">
+        <footer class="pos-dialog__foot">
+          <button type="button" class="pos-btn pos-btn--ghost" @click="closeCustomizeModal">
             {{ $t('common.cancel') }}
           </button>
-          <button type="button" class="btn btn-add-order flex-grow-1" @click="confirmCustomizedItem">
-            <i class="bi bi-cart-plus me-1.5"></i>
-            <span>{{ editingCartIndex !== null ? $t('pos.updateItem') : $t('pos.addToOrder') }}</span>
-            <span class="footer-btn-divider">•</span>
-            <span class="footer-btn-price">{{ formatUsd(customizedPreviewTotal) }}</span>
+          <button
+            type="button"
+            class="pos-btn pos-btn--primary pos-btn--split flex-grow-1"
+            @click="confirmCustomizedItem"
+          >
+            <span class="d-inline-flex align-items-center gap-2">
+              <i class="bi bi-plus-circle"></i>
+              <span>
+                {{ editingCartIndex !== null ? $t('pos.updateItem') : $t('pos.addToOrder') }}
+              </span>
+            </span>
+            <span class="tabular">{{ formatUsd(customizedPreviewTotal) }}</span>
           </button>
-        </div>
+        </footer>
       </div>
     </div>
 
     <!-- ================= MODAL 2: DISCOUNT ================= -->
-    <div v-if="showDiscountModal" class="modal-backdrop-custom" @click.self="showDiscountModal = false">
-      <div class="modal-card-custom modal-sm-custom">
-        <div class="modal-header-custom">
-          <h6 class="mb-0 fw-bold">{{ $t('pos.orderDiscountTitle') }}</h6>
-          <button type="button" class="btn-close-custom" @click="showDiscountModal = false">
+    <div
+      v-if="showDiscountModal"
+      class="pos-dialog-backdrop"
+      @click.self="showDiscountModal = false"
+    >
+      <div class="pos-dialog pos-dialog--narrow" role="dialog" aria-modal="true">
+        <header class="pos-dialog__head">
+          <h3 class="pos-dialog__title">{{ $t('pos.orderDiscountTitle') }}</h3>
+          <button type="button" class="pos-dialog__close" @click="showDiscountModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
-        </div>
+        </header>
 
-        <div class="modal-body-custom">
-          <div class="mb-3">
-            <label class="form-label-clean">{{ $t('pos.discountType') }}</label>
-            <div class="option-pills">
+        <div class="pos-dialog__body">
+          <section class="field-group">
+            <label class="field-group__label">{{ $t('pos.discountType') }}</label>
+            <div class="calibration-strip">
               <button
                 type="button"
-                class="opt-pill flex-grow-1"
-                :class="{ active: discountDraft.type === 'NONE' }"
+                class="calibration-pill flex-grow-1"
+                :class="{ 'is-selected': discountDraft.type === 'NONE' }"
                 @click="discountDraft.type = 'NONE'"
               >
                 {{ $t('pos.none') }}
               </button>
               <button
                 type="button"
-                class="opt-pill flex-grow-1"
-                :class="{ active: discountDraft.type === 'PERCENT' }"
+                class="calibration-pill flex-grow-1"
+                :class="{ 'is-selected': discountDraft.type === 'PERCENT' }"
                 @click="discountDraft.type = 'PERCENT'"
               >
                 {{ $t('pos.percent') }}
               </button>
               <button
                 type="button"
-                class="opt-pill flex-grow-1"
-                :class="{ active: discountDraft.type === 'FIXED' }"
+                class="calibration-pill flex-grow-1"
+                :class="{ 'is-selected': discountDraft.type === 'FIXED' }"
                 @click="discountDraft.type = 'FIXED'"
               >
                 {{ $t('pos.fixed') }}
               </button>
             </div>
-          </div>
+          </section>
 
           <template v-if="discountDraft.type !== 'NONE'">
-            <div class="mb-3">
-              <label class="form-label-clean">
-                {{ discountDraft.type === 'PERCENT' ? $t('pos.percentageRange') : $t('pos.amountInUsd') }}
+            <section class="field-group">
+              <label class="field-group__label">
+                {{
+                  discountDraft.type === 'PERCENT'
+                    ? $t('pos.percentageRange')
+                    : $t('pos.amountInUsd')
+                }}
               </label>
               <input
                 v-model.number="discountDraft.value"
@@ -650,181 +765,215 @@
                 step="0.01"
                 min="0"
                 :max="discountDraft.type === 'PERCENT' ? 100 : cartSubtotal"
-                class="form-control form-control-clean"
+                class="pos-input tabular"
                 placeholder="0.00"
               />
-            </div>
+            </section>
 
-            <div class="mb-3">
-              <label class="form-label-clean">{{ $t('pos.discountReason') }} <span class="text-danger">*</span></label>
+            <section class="field-group">
+              <label class="field-group__label">
+                {{ $t('pos.discountReason') }} <span class="text-danger">*</span>
+              </label>
               <input
                 v-model="discountDraft.reason"
                 type="text"
-                class="form-control form-control-clean"
+                class="pos-input"
                 :placeholder="$t('pos.discountReasonPlaceholder')"
                 maxlength="255"
               />
-            </div>
+            </section>
 
-            <div v-if="!authStore.isOwner" class="mb-2">
-              <label class="form-label-clean">
+            <section v-if="!authStore.isOwner" class="field-group mb-0">
+              <label class="field-group__label">
                 {{ $t('pos.approvedByOwnerId') }} <span class="text-danger">*</span>
               </label>
               <input
                 v-model.number="discountDraft.approved_by"
                 type="number"
                 min="1"
-                class="form-control form-control-clean"
-                placeholder="Owner User ID (e.g. 1)"
+                class="pos-input tabular"
+                placeholder="1"
               />
-              <div class="form-text small">
-                {{ $t('pos.discountOwnerHint') }}
-              </div>
-            </div>
+              <p class="field-group__hint">{{ $t('pos.discountOwnerHint') }}</p>
+            </section>
           </template>
         </div>
 
-        <div class="modal-footer-custom">
-          <button type="button" class="btn btn-light-coffee" @click="clearDiscount">
+        <footer class="pos-dialog__foot">
+          <button type="button" class="pos-btn pos-btn--ghost" @click="clearDiscount">
             {{ $t('common.remove') }}
           </button>
-          <button type="button" class="btn btn-coffee flex-grow-1" @click="applyDiscountDraft">
+          <button
+            type="button"
+            class="pos-btn pos-btn--primary flex-grow-1 justify-content-center"
+            @click="applyDiscountDraft"
+          >
             {{ $t('pos.applyDiscount') }}
           </button>
-        </div>
+        </footer>
       </div>
     </div>
 
     <!-- ================= MODAL 3: ORDER NOTE ================= -->
-    <div v-if="showNoteModal" class="modal-backdrop-custom" @click.self="showNoteModal = false">
-      <div class="modal-card-custom modal-sm-custom">
-        <div class="modal-header-custom">
-          <h6 class="mb-0 fw-bold">{{ $t('pos.orderNote') }}</h6>
-          <button type="button" class="btn-close-custom" @click="showNoteModal = false">
+    <div v-if="showNoteModal" class="pos-dialog-backdrop" @click.self="showNoteModal = false">
+      <div class="pos-dialog pos-dialog--narrow" role="dialog" aria-modal="true">
+        <header class="pos-dialog__head">
+          <h3 class="pos-dialog__title">{{ $t('pos.orderNote') }}</h3>
+          <button type="button" class="pos-dialog__close" @click="showNoteModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
-        </div>
-        <div class="modal-body-custom">
-          <label class="form-label-clean">{{ $t('pos.generalNoteLabel') }}</label>
+        </header>
+
+        <div class="pos-dialog__body">
+          <label class="field-group__label">{{ $t('pos.generalNoteLabel') }}</label>
           <textarea
             v-model="orderForm.note"
             rows="3"
-            class="form-control form-control-clean"
+            class="pos-input pos-input--textarea"
             :placeholder="$t('pos.orderNotePlaceholder')"
             maxlength="500"
           ></textarea>
         </div>
-        <div class="modal-footer-custom">
-          <button type="button" class="btn btn-light-coffee" @click="orderForm.note = ''; showNoteModal = false">
+
+        <footer class="pos-dialog__foot">
+          <button
+            type="button"
+            class="pos-btn pos-btn--ghost"
+            @click="orderForm.note = ''; showNoteModal = false"
+          >
             {{ $t('common.clear') }}
           </button>
-          <button type="button" class="btn btn-coffee flex-grow-1" @click="showNoteModal = false">
+          <button
+            type="button"
+            class="pos-btn pos-btn--primary flex-grow-1 justify-content-center"
+            @click="showNoteModal = false"
+          >
             {{ $t('pos.saveNote') }}
           </button>
-        </div>
+        </footer>
       </div>
     </div>
 
     <!-- ================= MODAL 4: PAYMENT / CHECKOUT ================= -->
-    <div v-if="showPaymentModal" class="modal-backdrop-custom" @click.self="closePaymentModal">
-      <div class="modal-card-custom" style="max-width: 500px;">
-        <div class="modal-header-custom">
+    <div v-if="showPaymentModal" class="pos-dialog-backdrop" @click.self="closePaymentModal">
+      <div class="pos-dialog pos-dialog--checkout" role="dialog" aria-modal="true">
+        <header class="pos-dialog__head">
           <div>
-            <h6 class="mb-0 fw-bold">{{ $t('pos.completePayment') }}</h6>
-            <div class="small text-muted">
-              {{ activeCheckoutOrder ? `${activeCheckoutOrder.receipt_no} (#${activeCheckoutOrder.queue_no})` : $t('pos.newOrderCheckout') }}
+            <h3 class="pos-dialog__title">{{ $t('pos.completePayment') }}</h3>
+            <div class="pos-dialog__subtitle tabular">
+              {{
+                activeCheckoutOrder
+                  ? `${activeCheckoutOrder.receipt_no} (#${activeCheckoutOrder.queue_no})`
+                  : $t('pos.newOrderCheckout')
+              }}
             </div>
           </div>
-          <button type="button" class="btn-close-custom" :disabled="isProcessingPayment" @click="closePaymentModal">
+          <button
+            type="button"
+            class="pos-dialog__close"
+            :disabled="isProcessingPayment"
+            @click="closePaymentModal"
+          >
             <i class="bi bi-x-lg"></i>
           </button>
-        </div>
+        </header>
 
-        <div class="modal-body-custom">
-          <!-- Total Banner -->
-          <div class="payment-total-banner mb-3">
-            <div>
-              <div class="small text-uppercase fw-semibold opacity-75">{{ $t('pos.totalDue') }}</div>
-              <div class="fs-3 fw-bold">{{ formatUsd(checkoutTotalUsd) }}</div>
+        <div class="pos-dialog__body">
+          <!-- Dual-Currency Payable Display -->
+          <div class="checkout-display">
+            <div class="checkout-display__col">
+              <span class="checkout-display__caption">{{ $t('pos.totalDue') }}</span>
+              <strong class="checkout-display__usd tabular">{{ formatUsd(checkoutTotalUsd) }}</strong>
             </div>
-            <div class="text-end">
-              <div class="small opacity-75">{{ $t('pos.inKhmerRiel', { rate: exchangeRate.toLocaleString() }) }}</div>
-              <div class="fs-4 fw-bold">{{ formatKhr(checkoutTotalKhr) }}</div>
+            <div class="checkout-display__col is-right">
+              <span class="checkout-display__caption tabular">
+                {{ $t('pos.inKhmerRiel', { rate: exchangeRate.toLocaleString() }) }}
+              </span>
+              <strong class="checkout-display__khr tabular">{{ formatKhr(checkoutTotalKhr) }}</strong>
             </div>
           </div>
 
-          <!-- Payment Method -->
-          <label class="form-label-clean">{{ $t('pos.step1PaymentMethod') }}</label>
-          <div class="method-grid mb-3">
-            <button
-              type="button"
-              class="method-btn"
-              :class="{ active: paymentForm.method === 'CASH' }"
-              @click="selectPaymentMethod('CASH')"
-            >
-              <i class="bi bi-cash-stack fs-5"></i>
-              <span>{{ $t('common.cash') }}</span>
-            </button>
-            <button
-              type="button"
-              class="method-btn"
-              :class="{ active: paymentForm.method === 'KHQR' }"
-              @click="selectPaymentMethod('KHQR')"
-            >
-              <i class="bi bi-qr-code-scan fs-5"></i>
-              <span>{{ $t('common.khqr') }}</span>
-            </button>
-          </div>
+          <!-- Payment Channel -->
+          <section class="field-group">
+            <label class="field-group__label">{{ $t('pos.method') }}</label>
+            <div class="channel-grid">
+              <button
+                type="button"
+                class="channel-card"
+                :class="{ 'is-selected': paymentForm.method === 'CASH' }"
+                @click="selectPaymentMethod('CASH')"
+              >
+                <i class="bi bi-cash-stack"></i>
+                <span>{{ $t('common.cash') }}</span>
+              </button>
+              <button
+                type="button"
+                class="channel-card"
+                :class="{ 'is-selected': paymentForm.method === 'KHQR' }"
+                @click="selectPaymentMethod('KHQR')"
+              >
+                <i class="bi bi-qr-code-scan"></i>
+                <span>{{ $t('common.khqr') }}</span>
+              </button>
+            </div>
+          </section>
 
-          <!-- Currency Paid By Customer -->
-          <label class="form-label-clean">{{ $t('pos.step2PaymentCurrency') }}</label>
-          <div class="option-pills mb-3">
-            <button
-              type="button"
-              class="opt-pill flex-grow-1"
-              :class="{ active: paymentForm.currency === 'USD' }"
-              @click="selectPaymentCurrency('USD')"
-            >
-              USD ($) — {{ formatUsd(checkoutTotalUsd) }}
-            </button>
-            <button
-              type="button"
-              class="opt-pill flex-grow-1"
-              :class="{ active: paymentForm.currency === 'KHR' }"
-              @click="selectPaymentCurrency('KHR')"
-            >
-              KHR (៛) — {{ formatKhr(checkoutTotalKhr) }}
-            </button>
-          </div>
+          <!-- Settlement Currency -->
+          <section class="field-group">
+            <label class="field-group__label">{{ $t('expenses.currencyLabel') }}</label>
+            <div class="currency-switch">
+              <button
+                type="button"
+                class="currency-switch__option tabular"
+                :class="{ 'is-selected': paymentForm.currency === 'USD' }"
+                @click="selectPaymentCurrency('USD')"
+              >
+                <span>USD ($)</span>
+                <strong>{{ formatUsd(checkoutTotalUsd) }}</strong>
+              </button>
+              <button
+                type="button"
+                class="currency-switch__option tabular"
+                :class="{ 'is-selected': paymentForm.currency === 'KHR' }"
+                @click="selectPaymentCurrency('KHR')"
+              >
+                <span>KHR (៛)</span>
+                <strong>{{ formatKhr(checkoutTotalKhr) }}</strong>
+              </button>
+            </div>
+          </section>
 
-          <!-- CASH Specific Inputs -->
+          <!-- Cash Tender Display -->
           <template v-if="paymentForm.method === 'CASH'">
-            <div class="mb-2">
-              <label class="form-label-clean">
-                {{ $t('pos.step3CashReceived', { currency: paymentForm.currency }) }}
+            <section class="field-group mb-0">
+              <label class="field-group__label">
+                {{ $t('pos.received') }} ({{ paymentForm.currency }})
               </label>
               <input
-                :value="paymentForm.currency === 'USD' ? formatUsd(paymentForm.received_amount) : formatKhr(paymentForm.received_amount)"
+                :value="
+                  paymentForm.currency === 'USD'
+                    ? formatUsd(paymentForm.received_amount)
+                    : formatKhr(paymentForm.received_amount)
+                "
                 type="text"
                 readonly
                 disabled
-                class="form-control form-control-clean fs-5 fw-bold"
-                style="background-color: #f4f2ee; color: #1c1917; cursor: default; opacity: 1;"
+                class="pos-input pos-input--tender tabular"
               />
-            </div>
+            </section>
           </template>
 
-          <!-- KHQR / BANK_TRANSFER Specific Inputs -->
+          <!-- KHQR Bank / Wallet Details -->
           <template v-else>
-            <div class="mb-3">
-              <label class="form-label-clean">{{ $t('pos.bankWalletName') }}</label>
-              <div class="quick-cash-pills mb-2">
+            <section class="field-group">
+              <label class="field-group__label">{{ $t('pos.bankWalletName') }}</label>
+              <div class="bank-strip">
                 <button
                   v-for="b in ['ABA KHQR', 'ACLEDA', 'Wing', 'Bakong', 'Canadia']"
                   :key="b"
                   type="button"
-                  class="quick-cash-btn"
-                  :class="{ active: paymentForm.bank_name === b }"
+                  class="bank-chip"
+                  :class="{ 'is-selected': paymentForm.bank_name === b }"
                   @click="paymentForm.bank_name = b"
                 >
                   {{ b }}
@@ -833,22 +982,22 @@
               <input
                 v-model="paymentForm.bank_name"
                 type="text"
-                class="form-control form-control-clean"
+                class="pos-input"
                 :placeholder="$t('pos.bankPlaceholder')"
                 maxlength="50"
               />
-            </div>
+            </section>
 
-            <div class="mb-2">
-              <label class="form-label-clean">{{ $t('pos.transactionRef') }}</label>
+            <section class="field-group mb-0">
+              <label class="field-group__label">{{ $t('pos.transactionRef') }}</label>
               <input
                 v-model="paymentForm.reference"
                 type="text"
-                class="form-control form-control-clean"
+                class="pos-input"
                 :placeholder="$t('pos.transactionRefPlaceholder')"
                 maxlength="150"
               />
-              <div class="small text-muted mt-2">
+              <p class="field-group__hint mt-2">
                 <i class="bi bi-info-circle me-1"></i>
                 {{
                   $t('pos.verifyTransferHint', {
@@ -858,15 +1007,15 @@
                         : formatKhr(checkoutTotalKhr),
                   })
                 }}
-              </div>
-            </div>
+              </p>
+            </section>
           </template>
         </div>
 
-        <div class="modal-footer-custom">
+        <footer class="pos-dialog__foot">
           <button
             type="button"
-            class="btn btn-light-coffee"
+            class="pos-btn pos-btn--ghost"
             :disabled="isProcessingPayment"
             @click="closePaymentModal"
           >
@@ -874,87 +1023,108 @@
           </button>
           <button
             type="button"
-            class="btn btn-pay-confirm flex-grow-1"
+            class="pos-btn pos-btn--primary pos-btn--split flex-grow-1 tabular"
             :disabled="isProcessingPayment || !isCashSufficient"
             @click="handleConfirmPayment"
           >
-            <span v-if="isProcessingPayment" class="spinner-border spinner-border-sm me-2"></span>
-            <i v-else class="bi bi-check2-circle me-1"></i>
-            {{
-              $t('pos.confirmPayment', {
-                amount:
-                  paymentForm.currency === 'USD'
-                    ? formatUsd(checkoutTotalUsd)
-                    : formatKhr(checkoutTotalKhr),
-              })
-            }}
+            <span class="d-inline-flex align-items-center gap-2">
+              <span v-if="isProcessingPayment" class="spinner-border spinner-border-sm"></span>
+              <i v-else class="bi bi-check2-circle"></i>
+              <span>{{ $t('common.confirm') }}</span>
+            </span>
+            <span>
+              {{
+                paymentForm.currency === 'USD'
+                  ? formatUsd(checkoutTotalUsd)
+                  : formatKhr(checkoutTotalKhr)
+              }}
+            </span>
           </button>
-        </div>
+        </footer>
       </div>
     </div>
 
     <!-- ================= MODAL 5: OPEN ORDERS LIST ================= -->
-    <div v-if="showOpenOrdersModal" class="modal-backdrop-custom" @click.self="showOpenOrdersModal = false">
-      <div class="modal-card-custom modal-lg-custom">
-        <div class="modal-header-custom">
+    <div
+      v-if="showOpenOrdersModal"
+      class="pos-dialog-backdrop"
+      @click.self="showOpenOrdersModal = false"
+    >
+      <div class="pos-dialog pos-dialog--wide" role="dialog" aria-modal="true">
+        <header class="pos-dialog__head">
           <div>
-            <h6 class="mb-0 fw-bold">{{ $t('pos.activeOpenOrdersTitle') }}</h6>
-            <div class="small text-muted">{{ $t('pos.activeOpenOrdersDesc') }}</div>
+            <h3 class="pos-dialog__title">{{ $t('pos.activeOpenOrdersTitle') }}</h3>
+            <div class="pos-dialog__subtitle">{{ $t('pos.activeOpenOrdersDesc') }}</div>
           </div>
-          <button type="button" class="btn-close-custom" @click="showOpenOrdersModal = false">
+          <button type="button" class="pos-dialog__close" @click="showOpenOrdersModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
-        </div>
+        </header>
 
-        <div class="modal-body-custom">
-          <div v-if="isLoadingOpenOrders" class="text-center py-4">
-            <div class="spinner-border spinner-border-sm text-secondary me-2"></div>
-            <span class="small text-muted">{{ $t('pos.loadingOpenOrders') }}</span>
+        <div class="pos-dialog__body">
+          <div v-if="isLoadingOpenOrders" class="board-state py-4">
+            <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
+            <p class="board-state__desc">{{ $t('pos.loadingOpenOrders') }}</p>
           </div>
 
-          <div v-else-if="openOrdersList.length === 0" class="text-center py-4">
-            <i class="bi bi-check2-all fs-2 text-success d-block mb-1"></i>
-            <div class="fw-semibold">{{ $t('pos.noOpenOrders') }}</div>
-            <div class="small text-muted">{{ $t('pos.noOpenOrdersDesc') }}</div>
+          <div v-else-if="openOrdersList.length === 0" class="board-state py-4">
+            <div class="board-state__glyph" aria-hidden="true">
+              <i class="bi bi-check2-all"></i>
+            </div>
+            <h4 class="board-state__title">{{ $t('pos.noOpenOrders') }}</h4>
+            <p class="board-state__desc">{{ $t('pos.noOpenOrdersDesc') }}</p>
           </div>
 
-          <div v-else class="open-orders-list">
+          <div v-else class="open-queue-list">
             <div
               v-for="ord in openOrdersList"
               :key="ord.id"
-              class="open-order-row"
+              class="open-queue-row"
             >
-              <div>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="fw-bold text-dark">{{ $t('receipt.queue') }} #{{ ord.queue_no }}</span>
-                  <span class="badge bg-light text-dark border">{{ ord.receipt_no }}</span>
-                  <span class="badge" :class="ord.order_type === 'DINE_IN' ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary'">
-                    {{ ord.order_type === 'DINE_IN' ? `${$t('common.dineIn')} ${ord.table_no ? `(${ord.table_no})` : ''}` : $t('common.takeaway') }}
+              <div class="open-queue-row__info">
+                <div class="open-queue-row__top">
+                  <strong class="open-queue-row__queue tabular">
+                    {{ $t('receipt.queue') }} #{{ ord.queue_no }}
+                  </strong>
+                  <span class="docket-head__receipt tabular">{{ ord.receipt_no }}</span>
+                  <span
+                    class="open-queue-row__mode"
+                    :class="ord.order_type === 'DINE_IN' ? 'is-dine' : 'is-takeaway'"
+                  >
+                    {{
+                      ord.order_type === 'DINE_IN'
+                        ? `${$t('common.dineIn')}${ord.table_no ? ` (${ord.table_no})` : ''}`
+                        : $t('common.takeaway')
+                    }}
                   </span>
                 </div>
-                <div class="small text-muted mt-1">
-                  {{ $t('orders.itemsCount', { count: ord.total_items }) }} • {{ formatDateTime(ord.created_at) }}
+                <div class="open-queue-row__meta tabular">
+                  <span>{{ $t('orders.itemsCount', { count: ord.total_items }) }}</span>
+                  <span class="open-queue-row__sep" aria-hidden="true"></span>
+                  <span>{{ formatDateTime(ord.created_at) }}</span>
                 </div>
               </div>
 
-              <div class="d-flex align-items-center gap-2">
-                <div class="text-end me-2">
-                  <div class="fw-bold text-dark">{{ formatUsd(ord.total) }}</div>
-                  <div class="small text-muted">{{ formatKhr(usdToKhr(ord.total)) }}</div>
+              <div class="open-queue-row__actions">
+                <div class="open-queue-row__totals">
+                  <div class="open-queue-row__usd tabular">{{ formatUsd(ord.total) }}</div>
+                  <div class="open-queue-row__khr tabular">{{ formatKhr(usdToKhr(ord.total)) }}</div>
                 </div>
                 <button
                   type="button"
-                  class="btn btn-light-coffee btn-sm"
+                  class="pos-btn pos-btn--ghost pos-btn--compact"
                   @click="loadOrderIntoCart(ord.id)"
                 >
-                  <i class="bi bi-pencil-square me-1"></i>{{ $t('common.edit') }}
+                  <i class="bi bi-pencil-square"></i>
+                  <span>{{ $t('common.edit') }}</span>
                 </button>
                 <button
                   type="button"
-                  class="btn btn-coffee btn-sm"
+                  class="pos-btn pos-btn--primary pos-btn--compact"
                   @click="payExistingOpenOrder(ord.id)"
                 >
-                  <i class="bi bi-cash-coin me-1"></i>{{ $t('pos.pay') }}
+                  <i class="bi bi-cash-coin"></i>
+                  <span>{{ $t('pos.pay') }}</span>
                 </button>
               </div>
             </div>
@@ -964,19 +1134,23 @@
     </div>
 
     <!-- ================= MODAL 6: RECEIPT PRINT PREVIEW ================= -->
-    <div v-if="showReceiptModal && completedReceipt" class="modal-backdrop-custom" @click.self="closeReceiptModal">
-      <div class="modal-card-custom modal-sm-custom">
-        <div class="modal-header-custom no-print">
-          <div class="d-flex align-items-center gap-2 text-success fw-bold">
+    <div
+      v-if="showReceiptModal && completedReceipt"
+      class="pos-dialog-backdrop"
+      @click.self="closeReceiptModal"
+    >
+      <div class="pos-dialog pos-dialog--narrow" role="dialog" aria-modal="true">
+        <header class="pos-dialog__head no-print">
+          <div class="receipt-confirmed-badge">
             <i class="bi bi-check-circle-fill"></i>
             <span>{{ $t('receipt.paymentCompleted') }}</span>
           </div>
-          <button type="button" class="btn-close-custom" @click="closeReceiptModal">
+          <button type="button" class="pos-dialog__close" @click="closeReceiptModal">
             <i class="bi bi-x-lg"></i>
           </button>
-        </div>
+        </header>
 
-        <div class="modal-body-custom">
+        <div class="pos-dialog__body">
           <!-- Printable Thermal Receipt -->
           <div id="printable-receipt" class="thermal-receipt">
             <div class="text-center mb-2">
@@ -998,18 +1172,38 @@
             <div class="receipt-divider"></div>
 
             <div class="d-flex justify-content-between receipt-meta">
-              <span>{{ $t('receipt.receipt') }}: <strong>{{ completedReceipt.order.receipt_no }}</strong></span>
-              <span>{{ $t('receipt.queue') }}: <strong>#{{ completedReceipt.order.queue_no }}</strong></span>
+              <span>
+                {{ $t('receipt.receipt') }}: <strong>{{ completedReceipt.order.receipt_no }}</strong>
+              </span>
+              <span>
+                {{ $t('receipt.queue') }}: <strong>#{{ completedReceipt.order.queue_no }}</strong>
+              </span>
             </div>
             <div class="d-flex justify-content-between receipt-meta">
-              <span>{{ $t('receipt.type') }}: {{ completedReceipt.order.order_type === 'DINE_IN' ? $t('common.dineIn') : $t('common.takeaway') }}</span>
+              <span>
+                {{ $t('receipt.type') }}:
+                {{
+                  completedReceipt.order.order_type === 'DINE_IN'
+                    ? $t('common.dineIn')
+                    : $t('common.takeaway')
+                }}
+              </span>
               <span v-if="completedReceipt.order.table_no">
                 {{ $t('receipt.table') }}: <strong>{{ completedReceipt.order.table_no }}</strong>
               </span>
             </div>
             <div class="d-flex justify-content-between receipt-meta">
-              <span>{{ $t('receipt.cashier') }}: {{ completedReceipt.order.cashier?.name || authStore.user?.name }}</span>
-              <span>{{ formatDateTime(completedReceipt.payment?.paid_at || completedReceipt.order.created_at) }}</span>
+              <span>
+                {{ $t('receipt.cashier') }}:
+                {{ completedReceipt.order.cashier?.name || authStore.user?.name }}
+              </span>
+              <span>
+                {{
+                  formatDateTime(
+                    completedReceipt.payment?.paid_at || completedReceipt.order.created_at
+                  )
+                }}
+              </span>
             </div>
 
             <div class="receipt-divider"></div>
@@ -1031,8 +1225,10 @@
                   v-if="item.sugar_level !== null || item.ice_level"
                   class="receipt-item-sub"
                 >
-                  <span v-if="item.sugar_level !== null">{{ $t('receipt.sugar') }} {{ item.sugar_level }}%</span>
-                  <span v-if="item.sugar_level !== null && item.ice_level"> • </span>
+                  <span v-if="item.sugar_level !== null">
+                    {{ $t('receipt.sugar') }} {{ item.sugar_level }}%
+                  </span>
+                  <span v-if="item.sugar_level !== null && item.ice_level"> / </span>
                   <span v-if="item.ice_level">{{ $t('receipt.ice') }} {{ item.ice_level }}</span>
                 </div>
                 <div
@@ -1072,7 +1268,9 @@
             <template v-if="completedReceipt.payment">
               <div class="receipt-divider"></div>
               <div class="d-flex justify-content-between receipt-meta">
-                <span>{{ $t('receipt.paidBy', { method: completedReceipt.payment.method }) }}</span>
+                <span>
+                  {{ $t('receipt.paidBy', { method: completedReceipt.payment.method }) }}
+                </span>
                 <span>
                   {{
                     completedReceipt.payment.currency === 'USD'
@@ -1104,87 +1302,90 @@
           </div>
         </div>
 
-        <div class="modal-footer-custom no-print">
-          <button type="button" class="btn btn-light-coffee" @click="printReceipt">
-            <i class="bi bi-printer me-1"></i>{{ $t('receipt.printReceipt') }}
+        <footer class="pos-dialog__foot no-print">
+          <button type="button" class="pos-btn pos-btn--ghost" @click="printReceipt">
+            <i class="bi bi-printer"></i>
+            <span>{{ $t('receipt.printReceipt') }}</span>
           </button>
-          <button type="button" class="btn btn-coffee flex-grow-1" @click="closeReceiptModal">
-            <i class="bi bi-plus-circle me-1"></i>{{ $t('receipt.newOrder') }}
+          <button
+            type="button"
+            class="pos-btn pos-btn--primary flex-grow-1 justify-content-center"
+            @click="closeReceiptModal"
+          >
+            <i class="bi bi-plus-circle"></i>
+            <span>{{ $t('receipt.newOrder') }}</span>
           </button>
-        </div>
+        </footer>
       </div>
     </div>
 
-    <!-- Quick Open Shift Modal -->
+    <!-- ================= MODAL 7: QUICK OPEN SHIFT ================= -->
     <div
       v-if="showQuickShiftModal"
-      class="modal-backdrop-custom"
+      class="pos-dialog-backdrop"
       @click.self="showQuickShiftModal = false"
     >
-      <div class="modal-card-custom modal-sm-custom">
-        <div class="modal-header-custom">
+      <div class="pos-dialog pos-dialog--narrow" role="dialog" aria-modal="true">
+        <header class="pos-dialog__head">
           <div>
-            <h6 class="mb-0 fw-bold">{{ $t('pos.openCashierShiftTitle') }}</h6>
-            <div class="small text-muted">{{ $t('pos.openCashierShiftDesc') }}</div>
+            <h3 class="pos-dialog__title">{{ $t('pos.openCashierShiftTitle') }}</h3>
+            <div class="pos-dialog__subtitle">{{ $t('pos.openCashierShiftDesc') }}</div>
           </div>
-          <button type="button" class="btn-close-custom" @click="showQuickShiftModal = false">
+          <button type="button" class="pos-dialog__close" @click="showQuickShiftModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
-        </div>
+        </header>
 
         <form @submit.prevent="submitQuickOpenShift">
-          <div class="modal-body-custom">
-            <!-- Opening Cash USD -->
-            <div class="mb-3">
-              <label class="form-label-clean">{{ $t('pos.openingCashUsd') }}</label>
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0 fw-bold text-muted">$</span>
+          <div class="pos-dialog__body">
+            <section class="field-group">
+              <label class="field-group__label">{{ $t('pos.openingCashUsd') }}</label>
+              <div class="currency-field">
+                <span class="currency-field__prefix">$</span>
                 <input
                   v-model.number="quickShiftForm.opening_cash_usd"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="form-control border-start-0"
+                  class="pos-input currency-field__input tabular"
                   placeholder="0.00"
                   required
                   autofocus
                 />
               </div>
-            </div>
+            </section>
 
-            <!-- Opening Cash KHR -->
-            <div class="mb-3">
-              <label class="form-label-clean">{{ $t('pos.openingCashKhr') }}</label>
-              <div class="input-group">
+            <section class="field-group">
+              <label class="field-group__label">{{ $t('pos.openingCashKhr') }}</label>
+              <div class="currency-field">
                 <input
                   v-model.number="quickShiftForm.opening_cash_khr"
                   type="number"
                   step="100"
                   min="0"
-                  class="form-control border-end-0"
+                  class="pos-input currency-field__input tabular"
                   placeholder="0"
                   required
                 />
-                <span class="input-group-text bg-light border-start-0 fw-bold text-muted">៛</span>
+                <span class="currency-field__suffix">៛</span>
               </div>
-            </div>
+            </section>
 
-            <!-- Note (Optional) -->
-            <div class="mb-2">
-              <label class="form-label-clean">{{ $t('pos.shiftNoteOptional') }}</label>
+            <section class="field-group mb-0">
+              <label class="field-group__label">{{ $t('pos.shiftNoteOptional') }}</label>
               <input
                 v-model="quickShiftForm.note"
                 type="text"
-                class="form-control"
+                class="pos-input"
                 :placeholder="$t('pos.shiftNotePlaceholder')"
               />
-            </div>
+            </section>
           </div>
 
-          <div class="modal-footer-custom">
+          <footer class="pos-dialog__foot">
             <button
               type="button"
-              class="btn btn-light-coffee"
+              class="pos-btn pos-btn--ghost"
               :disabled="quickShiftForm.isSubmitting"
               @click="showQuickShiftModal = false"
             >
@@ -1192,17 +1393,17 @@
             </button>
             <button
               type="submit"
-              class="btn btn-coffee flex-grow-1"
+              class="pos-btn pos-btn--primary flex-grow-1 justify-content-center"
               :disabled="quickShiftForm.isSubmitting"
             >
               <span
                 v-if="quickShiftForm.isSubmitting"
-                class="spinner-border spinner-border-sm me-1"
+                class="spinner-border spinner-border-sm"
               ></span>
-              <i v-else class="bi bi-unlock me-1"></i>
-              {{ $t('pos.startShift') }}
+              <i v-else class="bi bi-unlock"></i>
+              <span>{{ $t('pos.startShift') }}</span>
             </button>
-          </div>
+          </footer>
         </form>
       </div>
     </div>
@@ -1225,7 +1426,7 @@ const router = useRouter()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const toast = useToast()
-const { exchangeRate, formatUsd, formatKhr, usdToKhr, khrToUsd } = useCurrency()
+const { exchangeRate, formatUsd, formatKhr, usdToKhr } = useCurrency()
 const { formatDateTime } = useFormatDate()
 const { t } = useI18n()
 
@@ -1351,9 +1552,23 @@ const showReceiptModal = ref(false)
 const completedReceipt = ref(null)
 
 // ================= COMPUTED: CATALOG =================
-const activeCategories = computed(() =>
-  categories.value.filter((c) => c.is_active)
+const activeCategories = computed(() => categories.value.filter((c) => c.is_active))
+
+const getActiveVariants = (product) => {
+  if (!Array.isArray(product?.variants)) return []
+  return product.variants.filter((v) => v.is_active)
+}
+
+const sellableProducts = computed(() =>
+  products.value.filter(
+    (p) => p.is_active && p.product_type !== 'ADDON' && getActiveVariants(p).length > 0
+  )
 )
+
+const totalCatalogCount = computed(() => sellableProducts.value.length)
+
+const getCategoryItemCount = (categoryId) =>
+  sellableProducts.value.filter((p) => p.category_id === categoryId).length
 
 const availableAddons = computed(() => {
   const list = []
@@ -1362,9 +1577,7 @@ const availableAddons = computed(() => {
       for (const v of p.variants) {
         if (v.is_active) {
           const displayName =
-            v.name === 'Regular' || v.name === 'Standard'
-              ? p.name
-              : `${p.name} (${v.name})`
+            v.name === 'Regular' || v.name === 'Standard' ? p.name : `${p.name} (${v.name})`
           list.push({
             variant_id: v.id,
             product_id: p.id,
@@ -1380,12 +1593,7 @@ const availableAddons = computed(() => {
 
 const filteredProducts = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  return products.value.filter((p) => {
-    if (!p.is_active) return false
-    if (p.product_type === 'ADDON') return false
-    const activeVars = getActiveVariants(p)
-    if (activeVars.length === 0) return false
-
+  return sellableProducts.value.filter((p) => {
     if (selectedCategoryId.value !== 'ALL' && p.category_id !== selectedCategoryId.value) {
       return false
     }
@@ -1398,15 +1606,20 @@ const filteredProducts = computed(() => {
   })
 })
 
-const getActiveVariants = (product) => {
-  if (!Array.isArray(product?.variants)) return []
-  return product.variants.filter((v) => v.is_active)
-}
-
 const getStartingPrice = (product) => {
   const vars = getActiveVariants(product)
   if (!vars.length) return 0
   return Math.min(...vars.map((v) => Number(v.price) || 0))
+}
+
+const getPriceDisplay = (product) => {
+  const vars = getActiveVariants(product)
+  if (!vars.length) return formatUsd(0)
+  const prices = vars.map((v) => Number(v.price) || 0)
+  const min = Math.min(...prices)
+  const max = Math.max(...prices)
+  if (min === max) return formatUsd(min)
+  return `${formatUsd(min)} – ${formatUsd(max)}`
 }
 
 const getProductCartQty = (productId) => {
@@ -1514,17 +1727,6 @@ const calculatedChange = computed(() => {
   }
 })
 
-const quickCashPresets = computed(() => {
-  const bill = requiredBillAmount.value
-  if (paymentForm.currency === 'USD') {
-    const candidates = [1, 2, 5, 10, 20, 50, 100]
-    return candidates.filter((c) => c >= bill).slice(0, 5)
-  } else {
-    const candidates = [5000, 10000, 20000, 50000, 100000, 200000]
-    return candidates.filter((c) => c >= bill).slice(0, 5)
-  }
-})
-
 // ================= METHODS: FETCH CATALOG & OPEN ORDERS =================
 const fetchCatalog = async () => {
   isLoadingCatalog.value = true
@@ -1576,7 +1778,6 @@ const handleProductClick = (product) => {
   const activeVars = getActiveVariants(product)
   if (!activeVars.length) return
 
-  // Open customization modal for Drinks or multi-variant items
   customizingProduct.value = product
   editingCartIndex.value = null
 
@@ -1691,10 +1892,12 @@ const confirmCustomizedItem = () => {
   if (editingCartIndex.value !== null) {
     cartItems.value.splice(editingCartIndex.value, 1, newItem)
   } else {
-    // Merge if identical variant + customization + single qty without addons
     const newSig = buildItemSignature(newItem)
     const existingIdx = cartItems.value.findIndex(
-      (existing) => (existing.addons || []).length === 0 && newItem.addons.length === 0 && buildItemSignature(existing) === newSig
+      (existing) =>
+        (existing.addons || []).length === 0 &&
+        newItem.addons.length === 0 &&
+        buildItemSignature(existing) === newSig
     )
     if (existingIdx !== -1) {
       cartItems.value[existingIdx].quantity += newItem.quantity
@@ -1908,14 +2111,12 @@ const handleConfirmPayment = async () => {
 
   isProcessingPayment.value = true
   try {
-    // 1. If order isn't created/updated yet, save it first
     let orderRecord = activeCheckoutOrder.value
     if (!orderRecord) {
       orderRecord = await saveOrUpdateOrderRecord()
       editingOrder.value = orderRecord
     }
 
-    // 2. Build payment payload
     const payPayload = {
       order_id: orderRecord.id,
       method: paymentForm.method,
@@ -1940,7 +2141,6 @@ const handleConfirmPayment = async () => {
     const payRes = await api.post('/payments', payPayload)
     const paymentRecord = payRes.data?.data
 
-    // Fetch fresh order details with items & payment
     const finalOrderRes = await api.get(`/orders/${orderRecord.id}`)
     const finalOrder = finalOrderRes.data?.data || orderRecord
 
@@ -1984,7 +2184,6 @@ const loadOrderIntoCart = async (orderId) => {
     orderForm.discount_approved_by = ord.discount?.approved_by?.id || null
 
     cartItems.value = (ord.items || []).map((item) => {
-      // Find matching product to determine product_type
       let foundProductId = null
       let foundProductType = 'DRINK'
       for (const p of products.value) {
@@ -2059,716 +2258,1124 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.pos-page {
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+.pos-shell {
+  /* Core Token Palette */
+  --roast-ink: #142019;
+  --sage-muted: #536459;
+  --botanical-espresso: #1e4631;
+  --botanical-hover: #163625;
+  --botanical-tint: #eaf2ed;
+  --register-deep: #13261b;
+  --register-surface: #1b3526;
+  --counter-stone: #f3f6f4;
+  --counter-well: #e8eeea;
+  --docket-paper: #ffffff;
+  --ledger-line: #dce5df;
+  --ledger-hairline: #e8efea;
+  --crema-amber: #b45309;
+  --crema-tint: #fef3c7;
+  --berry-crimson: #b91c1c;
+  --berry-tint: #fee2e2;
+
+  font-family: 'Plus Jakarta Sans', 'Kantumruy Pro', 'Noto Sans Khmer', sans-serif;
+  color: var(--roast-ink);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 92px);
-  min-height: 580px;
+  gap: 0.75rem;
+  height: calc(100vh - 96px);
+  min-height: 600px;
 }
 
-/* Clean Shift Closed Banner */
-.shift-closed-banner {
-  background: var(--surface-container-lowest, #ffffff);
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 14px;
-  padding: 0.85rem 1.25rem;
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+}
+
+/* ================= SHIFT CLOSED BAR ================= */
+.shift-notice {
+  background: var(--docket-paper);
+  border: 1px solid var(--ledger-line);
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-}
-
-.shift-closed-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: var(--surface-container-low, #f6f3f2);
-  color: var(--on-surface-variant, #504440);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.15rem;
   flex-shrink: 0;
 }
 
-.btn-shift-link {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--on-surface-variant, #504440);
-  padding: 0.4rem 0.65rem;
-  border-radius: 8px;
-  transition: all 0.15s ease;
+.shift-notice__body {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
-.btn-shift-link:hover {
-  color: var(--on-surface, #1c1b1b);
-  background-color: var(--surface-container-low, #f6f3f2);
+.shift-notice__indicator {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: var(--crema-tint);
+  color: var(--crema-amber);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
-/* Main 2-Column Layout */
-.pos-layout {
+.shift-notice__copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.shift-notice__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+  line-height: 1.25;
+}
+
+.shift-notice__desc {
+  font-size: 0.77rem;
+  color: var(--sage-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shift-notice__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.shift-notice__link {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+  text-decoration: none;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+}
+
+.shift-notice__link:hover {
+  color: var(--roast-ink);
+  background: var(--counter-stone);
+}
+
+/* ================= COUNTER STAGE (2-ZONE ASYMMETRIC LAYOUT) ================= */
+.counter-stage {
   display: grid;
-  grid-template-columns: 1fr 390px;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) 412px;
+  gap: 1.1rem;
   flex: 1;
   min-height: 0;
 }
 
-@media (max-width: 1100px) {
-  .pos-page {
+@media (max-width: 1120px) {
+  .pos-shell {
     height: auto;
   }
-  .pos-layout {
+  .counter-stage {
     grid-template-columns: 1fr;
   }
 }
 
-/* Left Panel: Catalog */
-.pos-catalog-panel {
-  background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 16px;
-  padding: 1rem;
+/* ================= LEFT ZONE: OPEN COUNTER MENU BOARD ================= */
+.menu-board {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 
-.catalog-toolbar {
+.menu-board__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--ledger-line);
+  flex-shrink: 0;
+}
+
+.menu-board__controls {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.85rem;
+  gap: 0.55rem;
 }
 
-.search-box {
+.search-well {
   position: relative;
+  flex: 1;
+  min-width: 0;
 }
 
-.search-icon {
+.search-well__icon {
   position: absolute;
-  left: 12px;
+  left: 13px;
   top: 50%;
   transform: translateY(-50%);
-  color: #8a7f78;
+  color: var(--sage-muted);
+  font-size: 0.86rem;
+  pointer-events: none;
 }
 
-.search-input {
-  padding-left: 36px;
-  padding-right: 32px;
-  border-radius: 11px;
-  border: 1px solid #e6e4e0;
-  background: #faf9f7;
-  font-size: 0.88rem;
+.search-well__input {
+  width: 100%;
   height: 40px;
+  padding: 0 36px 0 38px;
+  border: 1px solid var(--ledger-line);
+  border-radius: 8px;
+  background: var(--docket-paper);
+  color: var(--roast-ink);
+  font-size: 0.86rem;
+  font-weight: 500;
+  transition: border-color 0.15s ease;
 }
 
-.search-input:focus {
-  background: #ffffff;
-  border-color: #2d5a43;
-  box-shadow: none;
+.search-well__input::placeholder {
+  color: var(--sage-muted);
+  font-weight: 400;
 }
 
-.btn-clear-search {
+.search-well__input:focus {
+  outline: none;
+  border-color: var(--botanical-espresso);
+}
+
+.search-well__clear {
   position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
   border: none;
   background: transparent;
-  color: #8a7f78;
-  font-size: 0.78rem;
+  color: var(--sage-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  border-radius: 4px;
 }
 
-/* Category Pills */
-.category-strip {
+.search-well__clear:hover {
+  color: var(--roast-ink);
+  background: var(--counter-stone);
+}
+
+.menu-board__actions {
   display: flex;
+  align-items: center;
   gap: 0.45rem;
-  overflow-x: auto;
-  padding-bottom: 0.5rem;
-  margin-bottom: 0.75rem;
-  scrollbar-width: thin;
+  flex-shrink: 0;
 }
 
-.cat-pill {
-  border: 1px solid #e6e4e0;
-  background: #faf9f7;
-  color: #4f433d;
-  border-radius: 999px;
-  padding: 0.38rem 0.9rem;
+.queue-trigger {
+  height: 40px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--ledger-line);
+  border-radius: 8px;
+  background: var(--docket-paper);
+  color: var(--roast-ink);
   font-size: 0.82rem;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.cat-pill:hover {
-  border-color: #c5bcb4;
-  background: #f3f0ec;
+.queue-trigger:hover {
+  border-color: var(--botanical-espresso);
 }
 
-.cat-pill.active {
-  background: #2d5a43;
+.queue-trigger.has-open {
+  border-color: #e6c699;
+  background: #fffcf7;
+}
+
+.queue-trigger__count {
+  background: var(--crema-amber);
   color: #ffffff;
-  border-color: #2d5a43;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.08rem 0.44rem;
+  border-radius: 4px;
+  line-height: 1.3;
 }
 
-/* Product Grid */
-.product-grid {
+.icon-trigger {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--ledger-line);
+  border-radius: 8px;
+  background: var(--docket-paper);
+  color: var(--roast-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.94rem;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.icon-trigger:hover:not(:disabled) {
+  border-color: var(--botanical-espresso);
+  color: var(--botanical-espresso);
+}
+
+/* Category Filter Rail */
+.category-rail {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.category-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.category-rail__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.38rem 0.78rem;
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--docket-paper);
+  color: var(--sage-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.category-rail__tab:hover:not(.is-active) {
+  color: var(--roast-ink);
+  border-color: #b7c6bc;
+}
+
+.category-rail__tab.is-active {
+  background: var(--botanical-espresso);
+  border-color: var(--botanical-espresso);
+  color: #ffffff;
+}
+
+.category-rail__count {
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.72;
+}
+
+/* Menu Index Grid */
+.menu-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
-  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fill, minmax(174px, 1fr));
+  gap: 0.75rem;
+  padding: 0.85rem 0.15rem 0.85rem 0;
   overflow-y: auto;
-  padding: 0.15rem 0.25rem 0.5rem 0.05rem;
   align-content: start;
   flex: 1;
 }
 
-.product-card {
-  border: 1px solid #ece9e4;
-  border-radius: 16px;
-  background: #ffffff;
-  padding: 0.45rem;
-  cursor: pointer;
-  transition:
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+.menu-item {
+  background: var(--docket-paper);
+  border: 1px solid var(--ledger-line);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 
-.product-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(45, 90, 67, 0.45);
-  box-shadow: 0 10px 24px -6px rgba(45, 90, 67, 0.12), 0 4px 10px -4px rgba(15, 23, 42, 0.05);
+.menu-item:hover {
+  border-color: var(--botanical-espresso);
 }
 
-.product-card:active {
-  transform: translateY(-1px);
+.menu-item:focus-visible {
+  outline: 2px solid var(--botanical-espresso);
+  outline-offset: 2px;
 }
 
-.product-card.in-cart {
-  border-color: rgba(45, 90, 67, 0.5);
-  background: #fcfdfc;
+.menu-item.in-docket {
+  border-color: var(--botanical-espresso);
+  box-shadow: inset 3px 0 0 var(--botanical-espresso);
+  background: #fbfdfb;
 }
 
-.product-thumb {
-  height: 122px;
-  border-radius: 12px;
-  background: #f4f5f4;
+.menu-item__visual {
+  aspect-ratio: 16 / 11;
+  width: 100%;
+  background: var(--counter-stone);
+  border-bottom: 1px solid var(--ledger-hairline);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.04);
 }
 
-.product-img {
+.menu-item__img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.product-card:hover .product-img {
-  transform: scale(1.045);
+.menu-item__fallback {
+  font-size: 1.75rem;
+  color: #84968b;
 }
 
-.product-placeholder {
-  font-size: 2rem;
-  color: #8c6d58;
-}
-
-.in-cart-badge {
+.menu-item__qty {
   position: absolute;
   top: 7px;
   right: 7px;
-  min-width: 22px;
-  height: 22px;
+  min-width: 24px;
+  height: 24px;
   padding: 0 6px;
-  border-radius: 999px;
-  background: #2d5a43;
+  border-radius: 5px;
+  background: var(--botanical-espresso);
   color: #ffffff;
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.3);
 }
 
-.variant-count-pill {
-  position: absolute;
-  bottom: 7px;
-  left: 7px;
-  font-size: 0.68rem;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(6px);
-  color: #334155;
-  padding: 0.16rem 0.5rem;
-  border-radius: 999px;
-  font-weight: 600;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
-}
-
-.product-body {
-  padding: 0.55rem 0.35rem 0.25rem;
+.menu-item__body {
+  padding: 0.65rem 0.75rem;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-.product-cat {
-  font-size: 0.69rem;
+.menu-item__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin-bottom: 0.2rem;
+  min-height: 18px;
+}
+
+.menu-item__category {
+  font-size: 0.71rem;
   font-weight: 500;
-  color: #64748b;
-  margin-bottom: 0.12rem;
+  color: var(--sage-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.product-title {
+.menu-item__variants {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--botanical-espresso);
+  background: var(--botanical-tint);
+  padding: 0.05rem 0.38rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.menu-item__temp {
+  font-size: 0.66rem;
+  font-weight: 600;
+  padding: 0.05rem 0.36rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.menu-item__temp.is-hot {
+  background: var(--berry-tint);
+  color: var(--berry-crimson);
+}
+
+.menu-item__temp.is-iced,
+.menu-item__temp.is-frappe {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.menu-item__title {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #0f172a;
-  white-space: nowrap;
+  color: var(--roast-ink);
+  margin: 0 0 0.55rem;
+  line-height: 1.32;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 0.5rem;
-  line-height: 1.3;
 }
 
-.product-footer {
+.menu-item__pricing {
   margin-top: auto;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--ledger-hairline);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.4rem;
 }
 
-.price-usd {
-  font-size: 0.96rem;
-  font-weight: 800;
-  color: #2d5a43;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  font-feature-settings: 'tnum' 1;
+.menu-item__price-group {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
 }
 
-.product-add-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: #edf5f0;
-  color: #2d5a43;
+.menu-item__usd {
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+  letter-spacing: -0.01em;
+}
+
+.menu-item__khr {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--sage-muted);
+  margin-top: 2px;
+}
+
+.menu-item__action {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--counter-stone);
+  color: var(--botanical-espresso);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   flex-shrink: 0;
-  transition: all 0.2s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
-.product-card:hover .product-add-btn {
-  background: #2d5a43;
+.menu-item:hover .menu-item__action {
+  background: var(--botanical-espresso);
   color: #ffffff;
-  box-shadow: 0 3px 8px rgba(45, 90, 67, 0.22);
 }
 
-.catalog-empty-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 3rem 1rem;
-}
-
-/* ================= RIGHT PANEL: CART ================= */
-.pos-cart-panel {
-  background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 16px;
+/* ================= RIGHT ZONE: BARISTA ORDER DOCKET ================= */
+.barista-docket {
+  background: var(--docket-paper);
+  border: 1px solid var(--ledger-line);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
 
-.cart-header {
-  padding: 0.9rem 1rem;
-  border-bottom: 1px solid #eeeae4;
-  background: #fcfbfa;
-}
-
-.cart-title {
-  font-weight: 800;
-  font-size: 0.98rem;
-  color: #1c1917;
-}
-
-.badge-editing {
-  font-size: 0.72rem;
-  background: #d6ede0;
-  color: #2d5a43;
-  padding: 0.18rem 0.5rem;
-  border-radius: 6px;
-  font-weight: 700;
-}
-
-.btn-reset-cart {
-  border: none;
-  background: transparent;
-  color: #b91c1c;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.order-type-switch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  background: #f2efeb;
-  padding: 3px;
-  border-radius: 10px;
-}
-
-.type-btn {
-  border: none;
-  background: transparent;
-  padding: 0.35rem 0.5rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #574c45;
-}
-
-.type-btn.active {
-  background: #ffffff;
-  color: #2d5a43;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.table-input-wrap {
-  width: 95px;
-}
-
-.table-input {
-  border-radius: 9px;
-  border: 1px solid #dcd6ce;
-  font-weight: 600;
-  text-align: center;
-}
-
-/* Cart Items Container */
-.cart-items-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0.75rem 0.9rem;
-}
-
-.cart-empty {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 2.5rem 1rem;
-}
-
-.empty-cart-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: #f7f4f0;
-  color: #8c6d58;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  margin-bottom: 0.6rem;
-}
-
-.cart-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.cart-item-card {
-  border: 1px solid #ece8e2;
-  border-radius: 12px;
-  padding: 0.65rem 0.75rem;
-  background: #faf9f7;
-}
-
-.cart-item-info {
-  cursor: pointer;
-  flex: 1;
-}
-
-.cart-item-name {
-  font-weight: 700;
-  font-size: 0.86rem;
-  color: #1c1917;
-}
-
-.cart-variant-badge {
-  font-size: 0.72rem;
-  font-weight: 600;
-  background: #ebe6df;
-  color: #3f312b;
-  padding: 0.1rem 0.4rem;
-  border-radius: 5px;
-  margin-left: 4px;
-}
-
-.cart-item-specs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.spec-chip {
-  font-size: 0.68rem;
-  background: #fff;
-  border: 1px solid #e2ddd6;
-  color: #574c45;
-  padding: 0.08rem 0.4rem;
-  border-radius: 5px;
-}
-
-.cart-item-addons {
-  margin-top: 4px;
-  font-size: 0.73rem;
-  color: #574c45;
-}
-
-.cart-item-note {
-  margin-top: 3px;
-  font-size: 0.72rem;
-  color: #8c5a32;
-  font-style: italic;
-}
-
-.cart-item-total {
-  font-weight: 800;
-  font-size: 0.9rem;
-  color: #2d5a43;
-}
-
-.cart-item-unit {
-  font-size: 0.7rem;
-}
-
-.btn-edit-item {
-  border: none;
-  background: transparent;
-  font-size: 0.74rem;
-  color: #6b5b52;
-  padding: 0;
-  font-weight: 600;
-}
-
-.btn-edit-item:hover {
-  color: #2d5a43;
-}
-
-/* Stepper */
-.qty-stepper {
-  display: inline-flex;
-  align-items: center;
-  background: #ffffff;
-  border: 1px solid #e2ddd6;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.qty-btn {
-  border: none;
-  background: transparent;
-  width: 26px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.78rem;
-}
-
-.qty-btn:hover {
-  background: #f3f0ec;
-}
-
-.qty-val {
-  min-width: 24px;
-  text-align: center;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-/* Cart Footer */
-.cart-footer {
+.docket-head {
   padding: 0.85rem 1rem;
-  border-top: 1px solid #eeeae4;
-  background: #fcfbfa;
+  border-bottom: 1px solid var(--ledger-line);
+  background: var(--docket-paper);
+  flex-shrink: 0;
 }
 
-.btn-xs-action {
-  border: 1px dashed #d5cfc7;
-  background: #ffffff;
-  color: #4f433d;
-  border-radius: 9px;
+.docket-head__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.docket-head__identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.docket-head__title {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+  margin: 0;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.docket-head__receipt {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--botanical-espresso);
+  background: var(--botanical-tint);
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+}
+
+.docket-head__clear {
+  border: none;
+  background: transparent;
+  color: var(--berry-crimson);
   font-size: 0.76rem;
   font-weight: 600;
-  padding: 0.35rem 0.6rem;
-}
-
-.btn-xs-action.has-value {
-  border-style: solid;
-  border-color: #2d5a43;
-  background: #fff7f0;
-  color: #2d5a43;
-}
-
-.totals-box {
-  background: #f6f3ef;
-  border-radius: 12px;
-  padding: 0.7rem 0.85rem;
-  margin-bottom: 0.75rem;
-}
-
-.totals-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  color: #574c45;
-  margin-bottom: 0.25rem;
-}
-
-.totals-divider {
-  border-top: 1px dashed #d8d2c9;
-  margin: 0.45rem 0;
-}
-
-.totals-grand {
-  display: flex;
-  justify-content: space-between;
+  padding: 0.22rem 0.45rem;
+  border-radius: 5px;
+  display: inline-flex;
   align-items: center;
+  gap: 0.28rem;
 }
 
-.grand-label {
-  font-weight: 700;
-  font-size: 0.86rem;
-  color: #1c1917;
+.docket-head__clear:hover {
+  background: var(--berry-tint);
 }
 
-.grand-rate {
-  font-size: 0.68rem;
-  color: #78716c;
-}
-
-.grand-usd {
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: #2d5a43;
-  line-height: 1.1;
-}
-
-.grand-khr {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #6b5b52;
-}
-
-.checkout-actions {
-  display: grid;
-  grid-template-columns: 125px 1fr;
+.docket-head__routing {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
-.btn-hold-order {
-  background: #f2efeb;
-  color: #2d5a43;
-  border: 1px solid #dfd9d0;
-  border-radius: 11px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  padding: 0.65rem 0.5rem;
+.service-switch {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--counter-stone);
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  padding: 2px;
 }
 
-.btn-pay-now {
-  background: #2d5a43;
+.service-switch__option {
+  border: none;
+  background: transparent;
+  color: var(--sage-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.34rem 0.5rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.service-switch__option.is-selected {
+  background: var(--docket-paper);
+  color: var(--roast-ink);
+  box-shadow: 0 1px 2px rgba(20, 32, 25, 0.06);
+}
+
+.table-slot {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.table-slot__input {
+  width: 100%;
+  height: 34px;
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--docket-paper);
+  color: var(--roast-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0 0.4rem;
+}
+
+.table-slot__input:focus {
+  outline: none;
+  border-color: var(--botanical-espresso);
+}
+
+/* Docket Stream (Line Items) */
+.docket-stream {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.docket-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.docket-row {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+}
+
+.docket-row:hover {
+  background: #fafcfb;
+}
+
+.docket-row__main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.docket-row__info {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.docket-row__headline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.docket-row__name {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+}
+
+.docket-row__variant {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+  background: var(--counter-stone);
+  padding: 0.05rem 0.38rem;
+  border-radius: 4px;
+}
+
+.docket-row__specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.28rem;
+}
+
+.docket-spec {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--sage-muted);
+  background: var(--counter-stone);
+  padding: 0.05rem 0.38rem;
+  border-radius: 4px;
+}
+
+.docket-row__addons {
+  margin-top: 0.28rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.docket-addon {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.73rem;
+  color: var(--sage-muted);
+}
+
+.docket-row__note {
+  margin-top: 0.28rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.73rem;
+  color: var(--crema-amber);
+}
+
+.docket-row__figures {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.docket-row__line-total {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+}
+
+.docket-row__unit-price {
+  font-size: 0.7rem;
+  color: var(--sage-muted);
+}
+
+.docket-row__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.45rem;
+}
+
+.docket-row__edit {
+  border: none;
+  background: transparent;
+  color: var(--sage-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.15rem 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.docket-row__edit:hover {
+  color: var(--botanical-espresso);
+}
+
+.docket-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--docket-paper);
+  overflow: hidden;
+}
+
+.docket-stepper__btn {
+  width: 26px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--roast-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+.docket-stepper__btn:hover {
+  background: var(--counter-stone);
+}
+
+.docket-stepper__btn.is-danger {
+  color: var(--berry-crimson);
+}
+
+.docket-stepper__qty {
+  min-width: 24px;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* ================= DOCKET FOOTER & DARK ESPRESSO REGISTER BLOCK ================= */
+.docket-foot {
+  padding: 0.75rem 0.9rem 0.9rem;
+  border-top: 1px solid var(--ledger-line);
+  background: var(--docket-paper);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.docket-adjustments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.adjustment-chip {
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--counter-stone);
+  color: var(--sage-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.38rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: border-color 0.12s ease, color 0.12s ease, background-color 0.12s ease;
+}
+
+.adjustment-chip:hover {
+  color: var(--roast-ink);
+  border-color: #b7c6bc;
+}
+
+.adjustment-chip.is-engaged {
+  background: var(--botanical-tint);
+  border-color: var(--botanical-espresso);
+  color: var(--botanical-espresso);
+}
+
+/* Focal Anchor: Dark Espresso Register Block */
+.register-block {
+  background: var(--register-deep);
+  color: #f3f7f4;
+  border-radius: 8px;
+  padding: 0.85rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.register-block__Breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.register-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.77rem;
+  color: #b5c7bc;
+}
+
+.register-line.is-discount {
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.register-block__payable {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.register-block__label-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.register-block__label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.register-block__rate {
+  font-size: 0.7rem;
+  color: #9ab0a3;
+}
+
+.register-block__amount-col {
+  text-align: right;
+}
+
+.register-block__usd {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.register-block__khr {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a9c5b4;
+  margin-top: 2px;
+}
+
+.register-block__actions {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: 0.5rem;
+  padding-top: 0.15rem;
+}
+
+.register-btn {
+  height: 44px;
+  border-radius: 6px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: background-color 0.12s ease, opacity 0.12s ease;
+}
+
+.register-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.register-btn--hold {
+  background: var(--register-surface);
+  color: #e4ede8;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.register-btn--hold:hover:not(:disabled) {
+  background: #244532;
+}
+
+.register-btn--settle {
+  background: #2f7a53;
   color: #ffffff;
   border: none;
-  border-radius: 11px;
+  padding: 0 0.9rem;
+  justify-content: space-between;
+}
+
+.register-btn--settle:hover:not(:disabled) {
+  background: #368a5e;
+}
+
+.register-btn__settle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.register-btn__settle-amount {
+  background: rgba(0, 0, 0, 0.22);
+  padding: 0.18rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.82rem;
+}
+
+/* ================= EMPTY STATES ================= */
+.board-state,
+.docket-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+}
+
+.board-state__glyph,
+.docket-empty__icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  background: var(--counter-stone);
+  border: 1px solid var(--ledger-line);
+  color: var(--sage-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-bottom: 0.65rem;
+}
+
+.board-state__title,
+.docket-empty__title {
   font-size: 0.9rem;
   font-weight: 700;
-  padding: 0.65rem 0.85rem;
+  color: var(--roast-ink);
+  margin: 0 0 0.2rem;
 }
 
-.btn-pay-now:hover:not(:disabled) {
-  background: #3f2419;
-  color: #ffffff;
+.board-state__desc,
+.docket-empty__desc {
+  font-size: 0.78rem;
+  color: var(--sage-muted);
+  margin: 0;
+  max-width: 34ch;
 }
 
-/* Buttons */
-.btn-coffee {
-  background: #2d5a43;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
+/* ================= SHARED BUTTONS & INPUTS ================= */
+.pos-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 6px;
   font-size: 0.84rem;
-  padding: 0.5rem 0.95rem;
+  font-weight: 600;
+  padding: 0.52rem 1rem;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
 }
 
-.btn-coffee:hover:not(:disabled) {
-  background: #3f2419;
+.pos-btn--compact {
+  padding: 0.38rem 0.78rem;
+  font-size: 0.79rem;
+}
+
+.pos-btn--primary {
+  background: var(--botanical-espresso);
+  color: #ffffff;
+  border: 1px solid var(--botanical-espresso);
+}
+
+.pos-btn--primary:hover:not(:disabled) {
+  background: var(--botanical-hover);
+  border-color: var(--botanical-hover);
   color: #ffffff;
 }
 
-.btn-outline-coffee {
-  background: #ffffff;
-  color: #2d5a43;
-  border: 1px solid #dfd9d0;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.82rem;
-  padding: 0.45rem 0.85rem;
-  white-space: nowrap;
+.pos-btn--ghost {
+  background: var(--counter-stone);
+  color: var(--roast-ink);
+  border: 1px solid var(--ledger-line);
 }
 
-.btn-light-coffee {
-  background: #f4f1ed;
-  color: #2d5a43;
-  border: 1px solid #e6e1da;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.84rem;
-  padding: 0.45rem 0.85rem;
+.pos-btn--ghost:hover:not(:disabled) {
+  background: #e4ebe6;
 }
 
-.open-orders-badge {
-  background: #d97706;
-  color: #fff;
-  font-size: 0.7rem;
-  padding: 0.1rem 0.42rem;
-  border-radius: 999px;
-  margin-left: 4px;
+.pos-btn--split {
+  justify-content: space-between;
 }
 
-/* ================= MODALS ================= */
-.modal-backdrop-custom {
+.pos-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pos-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--counter-stone);
+  color: var(--roast-ink);
+  font-size: 0.86rem;
+}
+
+.pos-input:focus {
+  outline: none;
+  background: var(--docket-paper);
+  border-color: var(--botanical-espresso);
+}
+
+.pos-input--padded {
+  padding-left: 34px;
+}
+
+.pos-input--textarea {
+  height: auto;
+  padding: 0.6rem 0.75rem;
+}
+
+.pos-input--tender {
+  font-size: 1.15rem;
+  font-weight: 800;
+  height: 44px;
+  color: var(--roast-ink);
+}
+
+/* ================= DIALOGS / MODALS ================= */
+.pos-dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(28, 25, 23, 0.45);
+  background: rgba(20, 32, 25, 0.48);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -2777,672 +3384,680 @@ onMounted(async () => {
   padding: 1rem;
 }
 
-.modal-card-custom {
-  background: #ffffff;
-  border-radius: 18px;
-  border: 1px solid #e6e4e0;
+.pos-dialog {
+  background: var(--docket-paper);
+  border: 1px solid var(--ledger-line);
+  border-radius: 10px;
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 44px rgba(20, 32, 25, 0.18);
 }
 
-.modal-sm-custom {
+.pos-dialog--customize {
+  max-width: 540px;
+}
+
+.pos-dialog--checkout {
+  max-width: 480px;
+}
+
+.pos-dialog--narrow {
   max-width: 420px;
 }
 
-.modal-lg-custom {
-  max-width: 720px;
+.pos-dialog--wide {
+  max-width: 680px;
 }
 
-.modal-customize-card {
-  max-width: 540px;
-  border-radius: 20px;
-  box-shadow: 0 25px 60px -12px rgba(28, 25, 23, 0.2), 0 0 1px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e8e5e0;
-}
-
-.modal-header-custom {
-  padding: 1.1rem 1.35rem;
-  border-bottom: 1px solid #f1ede8;
+.pos-dialog__head {
+  padding: 0.95rem 1.2rem;
+  border-bottom: 1px solid var(--ledger-hairline);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.customize-prod-thumb {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
-  background: #f4f6f4;
-  border: 1px solid #e2eae4;
+.pos-dialog__title {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+  margin: 0;
+}
+
+.pos-dialog__subtitle {
+  font-size: 0.76rem;
+  color: var(--sage-muted);
+  margin-top: 2px;
+}
+
+.pos-dialog__close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--counter-stone);
+  color: var(--sage-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pos-dialog__close:hover {
+  color: var(--roast-ink);
+  background: #e4ebe6;
+}
+
+.pos-dialog__body {
+  padding: 1.1rem 1.2rem;
+  overflow-y: auto;
+}
+
+.pos-dialog__foot {
+  padding: 0.85rem 1.2rem;
+  border-top: 1px solid var(--ledger-hairline);
+  background: var(--counter-stone);
+  display: flex;
+  gap: 0.6rem;
+}
+
+/* Customizer Specifics */
+.customizer-product {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.customizer-product__thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background: var(--counter-stone);
+  border: 1px solid var(--ledger-line);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.35rem;
-  color: #2d5a43;
+  font-size: 1.2rem;
+  color: var(--botanical-espresso);
   flex-shrink: 0;
 }
 
-.customize-prod-thumb img {
+.customizer-product__thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.badge-type-pill {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
-.badge-type-pill.drink {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.badge-type-pill.food {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.badge-type-pill.addon {
-  background: #f3e8ff;
-  color: #6b21a8;
-}
-
-.modal-body-custom {
-  padding: 1.2rem 1.35rem;
-  overflow-y: auto;
-}
-
-.modal-footer-custom {
-  padding: 1rem 1.35rem;
-  border-top: 1px solid #f1ede8;
-  background: #faf9f7;
-  display: flex;
-  gap: 0.65rem;
-}
-
-.btn-close-custom {
-  border: none;
-  background: #f4f1ed;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+.customizer-product__title-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #6b7280;
-  transition: all 0.15s ease;
+  gap: 0.45rem;
 }
 
-.btn-close-custom:hover {
-  background: #e8e3dc;
-  color: #111827;
+.product-kind-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.1rem 0.42rem;
+  border-radius: 4px;
 }
 
-.form-label-clean {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #4f433d;
+.product-kind-tag.is-drink {
+  background: var(--botanical-tint);
+  color: var(--botanical-espresso);
+}
+
+.product-kind-tag.is-food {
+  background: var(--crema-tint);
+  color: var(--crema-amber);
+}
+
+.field-group {
+  margin-bottom: 1rem;
+}
+
+.field-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 0.4rem;
+}
+
+.field-group__label {
   display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+  margin-bottom: 0.4rem;
 }
 
-.section-label-modern {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: #4b5563;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.45rem;
-  display: block;
+.field-group__head .field-group__label {
+  margin-bottom: 0;
 }
 
-.form-control-clean {
-  border-radius: 10px;
-  border: 1px solid #dedad4;
-  background: #faf9f7;
-  font-size: 0.88rem;
+.field-group__meta {
+  font-size: 0.74rem;
+  color: var(--sage-muted);
 }
 
-.form-control-clean:focus {
-  background: #ffffff;
-  border-color: #2d5a43;
-  box-shadow: none;
+.field-group__hint {
+  font-size: 0.74rem;
+  color: var(--sage-muted);
+  margin: 0.35rem 0 0;
 }
 
-/* Variant Cards Modern */
-.variant-grid-modern {
+.variant-selector {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(134px, 1fr));
+  gap: 0.5rem;
 }
 
-.variant-card-modern {
-  border: 1.5px solid #e5e7eb;
-  background: #ffffff;
-  border-radius: 13px;
-  padding: 0.75rem 0.85rem;
+.variant-option {
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--docket-paper);
+  padding: 0.6rem 0.7rem;
   text-align: left;
-  transition: all 0.18s ease;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   cursor: pointer;
-  outline: none !important;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 
-.variant-card-modern:hover:not(.active) {
-  border-color: #cbd5e1;
-  background: #fafafa;
-  transform: translateY(-1px);
+.variant-option:hover:not(.is-selected) {
+  border-color: #b7c6bc;
 }
 
-.variant-card-modern.active {
-  border-color: #2d5a43;
-  background: #f2f7f4;
-  box-shadow: 0 4px 12px rgba(45, 90, 67, 0.08);
+.variant-option.is-selected {
+  border-color: var(--botanical-espresso);
+  background: var(--botanical-tint);
+  box-shadow: inset 0 0 0 1px var(--botanical-espresso);
 }
 
-.variant-name {
+.variant-option__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.variant-option__name {
+  font-size: 0.84rem;
   font-weight: 700;
-  font-size: 0.88rem;
-  color: #111827;
-  line-height: 1.25;
+  color: var(--roast-ink);
 }
 
-.variant-radio-indicator {
+.variant-option__check {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 1.5px solid #d1d5db;
-  display: flex;
+  border: 1px solid var(--ledger-line);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: transparent;
   flex-shrink: 0;
-  transition: all 0.15s ease;
 }
 
-.variant-card-modern.active .variant-radio-indicator {
-  background: #2d5a43;
-  border-color: #2d5a43;
+.variant-option.is-selected .variant-option__check {
+  background: var(--botanical-espresso);
+  border-color: var(--botanical-espresso);
   color: #ffffff;
 }
 
-.variant-specs {
+.variant-option__tags {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: 0.3rem;
-  margin-bottom: 0.45rem;
+  margin: 0.25rem 0 0.38rem;
 }
 
-.spec-pill {
-  font-size: 0.65rem;
+.variant-tag {
+  font-size: 0.66rem;
   font-weight: 600;
-  padding: 0.1rem 0.35rem;
+  padding: 0.06rem 0.35rem;
   border-radius: 4px;
-  text-transform: uppercase;
 }
 
-.spec-pill.hot {
-  background: #fee2e2;
-  color: #b91c1c;
+.variant-tag.is-hot {
+  background: var(--berry-tint);
+  color: var(--berry-crimson);
 }
 
-.spec-pill.iced,
-.spec-pill.frappe {
+.variant-tag.is-iced,
+.variant-tag.is-frappe {
   background: #e0f2fe;
   color: #0369a1;
 }
 
-.spec-pill.size {
-  background: #f3f4f6;
-  color: #4b5563;
+.variant-tag.is-size {
+  background: var(--counter-stone);
+  color: var(--sage-muted);
 }
 
-.variant-price-modern {
-  font-weight: 700;
-  font-size: 0.94rem;
-  color: #2d5a43;
-}
-
-/* Option Pills Modern */
-.option-pills-modern {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.opt-pill-modern {
-  flex: 1 1 auto;
-  min-width: 55px;
-  border: 1.5px solid #e5e7eb;
-  background: #ffffff;
-  color: #374151;
-  border-radius: 10px;
-  padding: 0.48rem 0.8rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  text-align: center;
-  transition: all 0.18s ease;
-  cursor: pointer;
-  outline: none !important;
-}
-
-.opt-pill-modern:hover:not(.active) {
-  border-color: #cbd5e1;
-  background: #f9fafb;
-  color: #111827;
-}
-
-.opt-pill-modern.active {
-  background: #2d5a43;
-  color: #ffffff;
-  border-color: #2d5a43;
-  box-shadow: 0 3px 8px rgba(45, 90, 67, 0.22);
-}
-
-/* Add-ons list modern */
-.addons-grid-modern {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 0.5rem;
-}
-
-.addon-card-modern {
-  border: 1.5px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 0.55rem 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #ffffff;
-  transition: all 0.15s ease;
-}
-
-.addon-card-modern.selected {
-  border-color: #2d5a43;
-  background: #f2f7f4;
-}
-
-.addon-price {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #2d5a43;
-}
-
-/* Stepper Modern */
-.qty-stepper-modern {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 12px;
-  background: #f9fafb;
-  height: 42px;
-  padding: 3px 4px;
-}
-
-.qty-btn-modern {
-  border: none;
-  background: #ffffff;
-  color: #374151;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-
-.qty-btn-modern:hover:not(:disabled) {
-  background: #2d5a43;
-  color: #ffffff;
-}
-
-.qty-btn-modern:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.qty-val-modern {
-  font-weight: 700;
-  font-size: 1rem;
-  color: #111827;
-  min-width: 28px;
-  text-align: center;
-}
-
-.note-input-wrap {
-  position: relative;
-}
-
-.note-input-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #9ca3af;
-  font-size: 0.85rem;
-  pointer-events: none;
-}
-
-.note-input {
-  height: 42px;
-  border-radius: 12px;
-  border: 1.5px solid #e5e7eb;
-  background: #f9fafb;
-  padding-left: 34px;
-  font-size: 0.86rem;
-}
-
-.note-input:focus {
-  background: #ffffff;
-  border-color: #2d5a43;
-  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
-}
-
-.btn-ghost-cancel {
-  background: #f3f4f6;
-  color: #4b5563;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  padding: 0.65rem 1.25rem;
-  font-size: 0.88rem;
-  transition: all 0.15s ease;
-}
-
-.btn-ghost-cancel:hover {
-  background: #e5e7eb;
-  color: #111827;
-}
-
-.btn-add-order {
-  background: #2d5a43;
-  color: #ffffff;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  padding: 0.65rem 1.25rem;
-  font-size: 0.92rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 14px rgba(45, 90, 67, 0.28);
-  transition: all 0.18s ease;
-}
-
-.btn-add-order:hover {
-  background: #234634;
-  color: #ffffff;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(45, 90, 67, 0.32);
-}
-
-.footer-btn-divider {
-  opacity: 0.45;
-}
-
-.footer-btn-price {
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-/* Variant & Option Pills */
-.variant-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
-  gap: 0.5rem;
-}
-
-.variant-choice-btn {
-  border: 1px solid #e2ddd6;
-  background: #faf9f7;
-  border-radius: 11px;
-  padding: 0.6rem;
-  text-align: left;
-  transition: all 0.15s ease;
-}
-
-.variant-choice-btn.active {
-  border-color: #2d5a43;
-  background: #edf7f1;
-  box-shadow: inset 0 0 0 1px #2d5a43;
-}
-
-.variant-price {
+.variant-option__price {
+  font-size: 0.9rem;
   font-weight: 800;
-  color: #2d5a43;
-  font-size: 0.86rem;
+  color: var(--botanical-espresso);
 }
 
-.option-pills {
+.calibration-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
 
-.opt-pill {
-  border: 1px solid #e2ddd6;
-  background: #faf9f7;
-  color: #4f433d;
-  border-radius: 9px;
-  padding: 0.4rem 0.75rem;
+.calibration-pill {
+  flex: 1 1 auto;
+  min-width: 56px;
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--docket-paper);
+  color: var(--roast-ink);
+  padding: 0.42rem 0.7rem;
   font-size: 0.8rem;
   font-weight: 600;
+  text-align: center;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 
-.opt-pill.active {
-  background: #2d5a43;
+.calibration-pill:hover:not(.is-selected) {
+  background: var(--counter-stone);
+}
+
+.calibration-pill.is-selected {
+  background: var(--botanical-espresso);
+  border-color: var(--botanical-espresso);
   color: #ffffff;
-  border-color: #2d5a43;
 }
 
-/* Add-ons list */
-.addons-list {
+.addon-selector {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 0.45rem;
 }
 
-.addon-row {
-  border: 1px solid #e6e2dc;
-  border-radius: 10px;
-  padding: 0.45rem 0.65rem;
+.addon-item {
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  padding: 0.48rem 0.65rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #faf9f7;
+  background: var(--docket-paper);
 }
 
-.addon-row.selected {
-  border-color: #2d5a43;
-  background: #fff7f0;
+.addon-item.is-selected {
+  border-color: var(--botanical-espresso);
+  background: var(--botanical-tint);
 }
 
-.qty-stepper-sm {
+.addon-item__meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.addon-item__name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--roast-ink);
+}
+
+.addon-item__price {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--botanical-espresso);
+}
+
+.addon-item__stepper {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.qty-btn-sm {
-  border: 1px solid #d8d2c9;
-  background: #fff;
+.addon-item__btn {
   width: 24px;
   height: 24px;
-  border-radius: 6px;
-  display: flex;
+  border: 1px solid var(--ledger-line);
+  border-radius: 5px;
+  background: var(--docket-paper);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
 }
 
-.qty-val-sm {
-  font-size: 0.8rem;
+.addon-item__qty {
+  font-size: 0.78rem;
   font-weight: 700;
   min-width: 18px;
   text-align: center;
 }
 
-.qty-stepper-lg {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border: 1px solid #dedad4;
-  border-radius: 10px;
-  background: #faf9f7;
-  height: 38px;
-  padding: 0 4px;
-}
-
-.qty-btn-lg {
-  border: none;
-  background: #ffffff;
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-}
-
-.qty-val-lg {
-  font-weight: 700;
-  font-size: 0.92rem;
-}
-
-/* Payment Modal Styles */
-.payment-total-banner {
-  background: #2d5a43;
-  color: #ffffff;
-  border-radius: 14px;
-  padding: 0.9rem 1.15rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.method-grid {
+.customizer-bottom-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 145px 1fr;
+  gap: 0.65rem;
+  align-items: end;
+}
+
+@media (max-width: 520px) {
+  .customizer-bottom-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.qty-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--counter-stone);
+  height: 40px;
+  padding: 3px;
+}
+
+.qty-control__btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 5px;
+  background: var(--docket-paper);
+  color: var(--roast-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+
+.qty-control__btn:hover:not(:disabled) {
+  background: var(--botanical-espresso);
+  color: #ffffff;
+}
+
+.qty-control__btn:disabled {
+  opacity: 0.4;
+}
+
+.qty-control__val {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon__glyph {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sage-muted);
+  font-size: 0.82rem;
+  pointer-events: none;
+}
+
+/* Checkout Modal Specifics */
+.checkout-display {
+  background: var(--register-deep);
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 0.85rem 1.05rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.checkout-display__col {
+  display: flex;
+  flex-direction: column;
+}
+
+.checkout-display__col.is-right {
+  text-align: right;
+}
+
+.checkout-display__caption {
+  font-size: 0.73rem;
+  color: #a9c5b4;
+}
+
+.checkout-display__usd {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.checkout-display__khr {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #d7ebe0;
+  line-height: 1.2;
+}
+
+.channel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
-.method-btn {
-  border: 1px solid #e2ddd6;
-  background: #faf9f7;
-  border-radius: 12px;
+.channel-card {
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--docket-paper);
   padding: 0.65rem 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.8rem;
+  gap: 0.22rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  color: #4f433d;
+  color: var(--roast-ink);
 }
 
-.method-btn.active {
-  border-color: #2d5a43;
-  background: #edf7f1;
-  color: #2d5a43;
-  box-shadow: inset 0 0 0 1px #2d5a43;
+.channel-card i {
+  font-size: 1.2rem;
 }
 
-.quick-cash-pills {
+.channel-card.is-selected {
+  border-color: var(--botanical-espresso);
+  background: var(--botanical-tint);
+  color: var(--botanical-espresso);
+  box-shadow: inset 0 0 0 1px var(--botanical-espresso);
+}
+
+.currency-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.currency-switch__option {
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  background: var(--docket-paper);
+  color: var(--roast-ink);
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.currency-switch__option.is-selected {
+  background: var(--botanical-espresso);
+  border-color: var(--botanical-espresso);
+  color: #ffffff;
+}
+
+.bank-strip {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+  margin-bottom: 0.5rem;
 }
 
-.quick-cash-btn {
-  border: 1px solid #dcd6ce;
-  background: #ffffff;
-  border-radius: 8px;
+.bank-chip {
+  border: 1px solid var(--ledger-line);
+  border-radius: 5px;
+  background: var(--docket-paper);
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #2d5a43;
+  color: var(--botanical-espresso);
 }
 
-.quick-cash-btn.active,
-.quick-cash-btn:hover {
-  background: #2d5a43;
+.bank-chip.is-selected,
+.bank-chip:hover {
+  background: var(--botanical-espresso);
+  border-color: var(--botanical-espresso);
   color: #ffffff;
 }
 
-.payment-summary-box {
-  background: #faf9f7;
-  border: 1px solid #e6e2dc;
-  border-radius: 14px;
-  padding: 1rem;
-}
-
-.change-callout {
-  background: #eefbf3;
-  border: 1px solid #bbf7d0;
-  border-radius: 11px;
-  padding: 0.75rem;
-}
-
-.change-callout.insufficient {
-  background: #fef2f2;
-  border-color: #fecaca;
-}
-
-.btn-pay-confirm {
-  background: #15803d;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-weight: 700;
-  padding: 0.6rem 1rem;
-}
-
-.btn-pay-confirm:hover:not(:disabled) {
-  background: #166534;
-  color: #ffffff;
-}
-
-/* Open Orders List */
-.open-orders-list {
+/* Open Queue Modal List */
+.open-queue-list {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
-.open-order-row {
-  border: 1px solid #e6e2dc;
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
+.open-queue-row {
+  border: 1px solid var(--ledger-line);
+  border-radius: 6px;
+  padding: 0.75rem 0.95rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #faf9f7;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: var(--docket-paper);
+}
+
+.open-queue-row__top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.open-queue-row__queue {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+}
+
+.open-queue-row__mode {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.44rem;
+  border-radius: 4px;
+}
+
+.open-queue-row__mode.is-dine {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.open-queue-row__mode.is-takeaway {
+  background: var(--counter-stone);
+  color: var(--sage-muted);
+}
+
+.open-queue-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+  color: var(--sage-muted);
+  margin-top: 0.2rem;
+}
+
+.open-queue-row__sep {
+  width: 1px;
+  height: 11px;
+  background: var(--ledger-line);
+}
+
+.open-queue-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.open-queue-row__totals {
+  text-align: right;
+  margin-right: 0.35rem;
+}
+
+.open-queue-row__usd {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+}
+
+.open-queue-row__khr {
+  font-size: 0.74rem;
+  color: var(--sage-muted);
+}
+
+/* Quick Shift Currency Field */
+.currency-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currency-field__prefix,
+.currency-field__suffix {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 700;
+  color: var(--sage-muted);
+  font-size: 0.86rem;
+  pointer-events: none;
+}
+
+.currency-field__prefix {
+  left: 12px;
+}
+
+.currency-field__suffix {
+  right: 12px;
+}
+
+.currency-field__prefix + .currency-field__input {
+  padding-left: 28px;
+}
+
+.currency-field__input:has(+ .currency-field__suffix) {
+  padding-right: 28px;
+}
+
+.receipt-confirmed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--botanical-espresso);
 }
 
 /* Thermal Receipt */
 .thermal-receipt {
   background: #fffef9;
   border: 1px dashed #c8c2b8;
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 1rem;
   font-family: 'Kantumruy Pro', 'Courier New', Courier, monospace;
   font-size: 0.8rem;
@@ -3485,9 +4100,19 @@ onMounted(async () => {
   }
 }
 
-.spin-anim {
+.is-spinning {
   display: inline-block;
   animation: spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media print {
