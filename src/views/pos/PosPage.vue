@@ -159,6 +159,13 @@
                 ></i>
               </div>
 
+              <!-- Top Image Overlay: Category Pill -->
+              <div v-if="product.category_name" class="menu-item__overlay-top">
+                <span class="menu-item__category">
+                  {{ $tCategory(product.category_name) }}
+                </span>
+              </div>
+
               <span
                 v-if="getProductCartQty(product.id) > 0"
                 class="menu-item__qty tabular"
@@ -168,28 +175,6 @@
             </div>
 
             <div class="menu-item__body">
-              <div class="menu-item__meta">
-                <span v-if="product.category_name" class="menu-item__category">
-                  {{ $tCategory(product.category_name) }}
-                </span>
-                <span
-                  v-if="getActiveVariants(product).length > 1"
-                  class="menu-item__variants tabular"
-                >
-                  {{ $t('pos.sizesCount', { count: getActiveVariants(product).length }) }}
-                </span>
-                <span
-                  v-else-if="
-                    getActiveVariants(product)[0]?.temperature &&
-                    getActiveVariants(product)[0].temperature !== 'NONE'
-                  "
-                  class="menu-item__temp"
-                  :class="`is-${getActiveVariants(product)[0].temperature.toLowerCase()}`"
-                >
-                  {{ getActiveVariants(product)[0].temperature }}
-                </span>
-              </div>
-
               <h3 class="menu-item__title" :title="product.name">{{ product.name }}</h3>
 
               <div class="menu-item__pricing">
@@ -509,16 +494,6 @@
             <div>
               <div class="customizer-product__title-row">
                 <h3 class="pos-dialog__title">{{ customizingProduct.name }}</h3>
-                <span
-                  class="product-kind-tag"
-                  :class="`is-${customizingProduct.product_type?.toLowerCase()}`"
-                >
-                  {{
-                    customizingProduct.product_type === 'FOOD'
-                      ? $t('common.food')
-                      : $t('common.drink')
-                  }}
-                </span>
               </div>
               <div class="pos-dialog__subtitle">
                 {{ $tCategory(customizingProduct.category_name) }}
@@ -550,20 +525,10 @@
                 @click="selectVariantInModal(v)"
               >
                 <div class="variant-option__top">
-                  <span class="variant-option__name">{{ v.name }}</span>
+                  <span class="variant-option__name">{{ getVariantSizeLabel(v) }}</span>
                   <span class="variant-option__check" aria-hidden="true">
                     <i class="bi bi-check2"></i>
                   </span>
-                </div>
-                <div class="variant-option__tags">
-                  <span
-                    v-if="v.temperature && v.temperature !== 'NONE'"
-                    class="variant-tag"
-                    :class="`is-${v.temperature.toLowerCase()}`"
-                  >
-                    {{ v.temperature }}
-                  </span>
-                  <span v-if="v.size" class="variant-tag is-size">{{ v.size }}</span>
                 </div>
                 <div class="variant-option__price tabular">{{ formatUsd(v.price) }}</div>
               </button>
@@ -573,24 +538,103 @@
           <!-- Drink Calibration: Sweetness & Ice -->
           <template v-if="customizingProduct.product_type === 'DRINK'">
             <section class="field-group">
-              <label class="field-group__label">{{ $t('pos.sugarLevelTitle') }}</label>
-              <div class="calibration-strip">
-                <button
-                  v-for="s in sugarOptions"
-                  :key="s"
-                  type="button"
-                  class="calibration-pill tabular"
-                  :class="{ 'is-selected': customForm.sugar_level === s }"
-                  @click="customForm.sugar_level = s"
-                >
-                  {{ s }}%
-                </button>
+              <div class="sugar-header">
+                <label class="field-group__label mb-0">{{ $t('pos.sugarLevelTitle') }}</label>
+                <div class="sugar-stepper-pill">
+                  <button
+                    type="button"
+                    class="sugar-stepper-btn"
+                    :disabled="(customForm.sugar_level ?? 0) <= 0"
+                    title="-5%"
+                    aria-label="Decrease sweetness"
+                    @click="stepSugar(-5)"
+                  >
+                    <i class="bi bi-dash"></i>
+                  </button>
+                  <div class="sugar-stepper-value">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      class="sugar-stepper-input tabular"
+                      :value="customForm.sugar_level ?? 0"
+                      @input="onSugarInputChange"
+                      @blur="normalizeSugar"
+                    />
+                    <span class="sugar-stepper-unit">%</span>
+                  </div>
+                  <button
+                    type="button"
+                    class="sugar-stepper-btn"
+                    :disabled="(customForm.sugar_level ?? 0) >= 100"
+                    title="+5%"
+                    aria-label="Increase sweetness"
+                    @click="stepSugar(5)"
+                  >
+                    <i class="bi bi-plus"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="sugar-slider-track-wrap">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  class="sugar-range-slider"
+                  :value="customForm.sugar_level ?? 0"
+                  :style="{ '--sugar-pct': `${customForm.sugar_level ?? 0}%` }"
+                  @input="onSugarSliderChange"
+                />
+                <div class="sugar-ticks">
+                  <button
+                    type="button"
+                    class="sugar-tick-btn tabular"
+                    :class="{ 'is-active': (customForm.sugar_level ?? 0) === 0 }"
+                    @click="setSugarLevel(0)"
+                  >
+                    0%
+                  </button>
+                  <button
+                    type="button"
+                    class="sugar-tick-btn tabular"
+                    :class="{ 'is-active': (customForm.sugar_level ?? 0) === 25 }"
+                    @click="setSugarLevel(25)"
+                  >
+                    25%
+                  </button>
+                  <button
+                    type="button"
+                    class="sugar-tick-btn tabular"
+                    :class="{ 'is-active': (customForm.sugar_level ?? 0) === 50 }"
+                    @click="setSugarLevel(50)"
+                  >
+                    50%
+                  </button>
+                  <button
+                    type="button"
+                    class="sugar-tick-btn tabular"
+                    :class="{ 'is-active': (customForm.sugar_level ?? 0) === 75 }"
+                    @click="setSugarLevel(75)"
+                  >
+                    75%
+                  </button>
+                  <button
+                    type="button"
+                    class="sugar-tick-btn tabular"
+                    :class="{ 'is-active': (customForm.sugar_level ?? 0) === 100 }"
+                    @click="setSugarLevel(100)"
+                  >
+                    100%
+                  </button>
+                </div>
               </div>
             </section>
 
             <section class="field-group">
               <label class="field-group__label">{{ $t('pos.iceLevelTitle') }}</label>
-              <div class="calibration-strip">
+              <div class="calibration-strip calibration-strip--ice">
                 <button
                   v-for="ice in iceOptions"
                   :key="ice.value"
@@ -885,6 +929,7 @@
               <span class="checkout-display__caption">{{ $t('pos.totalDue') }}</span>
               <strong class="checkout-display__usd tabular">{{ formatUsd(checkoutTotalUsd) }}</strong>
             </div>
+            <div class="checkout-display__divider"></div>
             <div class="checkout-display__col is-right">
               <span class="checkout-display__caption tabular">
                 {{ $t('pos.inKhmerRiel', { rate: exchangeRate.toLocaleString() }) }}
@@ -903,8 +948,13 @@
                 :class="{ 'is-selected': paymentForm.method === 'CASH' }"
                 @click="selectPaymentMethod('CASH')"
               >
-                <i class="bi bi-cash-stack"></i>
-                <span>{{ $t('common.cash') }}</span>
+                <span class="channel-card__icon">
+                  <i class="bi bi-cash-stack"></i>
+                </span>
+                <span class="channel-card__label">{{ $t('common.cash') }}</span>
+                <span class="channel-card__check">
+                  <i class="bi bi-check2"></i>
+                </span>
               </button>
               <button
                 type="button"
@@ -912,8 +962,13 @@
                 :class="{ 'is-selected': paymentForm.method === 'KHQR' }"
                 @click="selectPaymentMethod('KHQR')"
               >
-                <i class="bi bi-qr-code-scan"></i>
-                <span>{{ $t('common.khqr') }}</span>
+                <span class="channel-card__icon">
+                  <i class="bi bi-qr-code-scan"></i>
+                </span>
+                <span class="channel-card__label">{{ $t('common.khqr') }}</span>
+                <span class="channel-card__check">
+                  <i class="bi bi-check2"></i>
+                </span>
               </button>
             </div>
           </section>
@@ -928,8 +983,8 @@
                 :class="{ 'is-selected': paymentForm.currency === 'USD' }"
                 @click="selectPaymentCurrency('USD')"
               >
-                <span>USD ($)</span>
-                <strong>{{ formatUsd(checkoutTotalUsd) }}</strong>
+                <span class="currency-switch__code">USD ($)</span>
+                <strong class="currency-switch__val">{{ formatUsd(checkoutTotalUsd) }}</strong>
               </button>
               <button
                 type="button"
@@ -937,30 +992,27 @@
                 :class="{ 'is-selected': paymentForm.currency === 'KHR' }"
                 @click="selectPaymentCurrency('KHR')"
               >
-                <span>KHR (៛)</span>
-                <strong>{{ formatKhr(checkoutTotalKhr) }}</strong>
+                <span class="currency-switch__code">KHR (៛)</span>
+                <strong class="currency-switch__val">{{ formatKhr(checkoutTotalKhr) }}</strong>
               </button>
             </div>
           </section>
 
           <!-- Cash Tender Display -->
           <template v-if="paymentForm.method === 'CASH'">
-            <section class="field-group mb-0">
-              <label class="field-group__label">
-                {{ $t('pos.received') }} ({{ paymentForm.currency }})
-              </label>
-              <input
-                :value="
+            <div class="cash-tender-summary">
+              <div class="cash-tender-summary__label">
+                <i class="bi bi-wallet2"></i>
+                <span>{{ $t('pos.received') }} ({{ paymentForm.currency }})</span>
+              </div>
+              <strong class="cash-tender-summary__amount tabular">
+                {{
                   paymentForm.currency === 'USD'
                     ? formatUsd(paymentForm.received_amount)
                     : formatKhr(paymentForm.received_amount)
-                "
-                type="text"
-                readonly
-                disabled
-                class="pos-input pos-input--tender tabular"
-              />
-            </section>
+                }}
+              </strong>
+            </div>
           </template>
 
           <!-- KHQR Bank / Wallet Details -->
@@ -979,35 +1031,33 @@
                   {{ b }}
                 </button>
               </div>
-              <input
-                v-model="paymentForm.bank_name"
-                type="text"
-                class="pos-input"
-                :placeholder="$t('pos.bankPlaceholder')"
-                maxlength="50"
-              />
             </section>
 
             <section class="field-group mb-0">
               <label class="field-group__label">{{ $t('pos.transactionRef') }}</label>
-              <input
-                v-model="paymentForm.reference"
-                type="text"
-                class="pos-input"
-                :placeholder="$t('pos.transactionRefPlaceholder')"
-                maxlength="150"
-              />
-              <p class="field-group__hint mt-2">
-                <i class="bi bi-info-circle me-1"></i>
-                {{
-                  $t('pos.verifyTransferHint', {
-                    amount:
-                      paymentForm.currency === 'USD'
-                        ? formatUsd(checkoutTotalUsd)
-                        : formatKhr(checkoutTotalKhr),
-                  })
-                }}
-              </p>
+              <div class="input-with-icon">
+                <i class="bi bi-hash input-with-icon__glyph"></i>
+                <input
+                  v-model="paymentForm.reference"
+                  type="text"
+                  class="pos-input pos-input--padded"
+                  :placeholder="$t('pos.transactionRefPlaceholder')"
+                  maxlength="150"
+                />
+              </div>
+              <div class="checkout-verify-hint">
+                <i class="bi bi-shield-check"></i>
+                <span>
+                  {{
+                    $t('pos.verifyTransferHint', {
+                      amount:
+                        paymentForm.currency === 'USD'
+                          ? formatUsd(checkoutTotalUsd)
+                          : formatKhr(checkoutTotalKhr),
+                    })
+                  }}
+                </span>
+              </div>
             </section>
           </template>
         </div>
@@ -1499,12 +1549,10 @@ const showCustomizeModal = ref(false)
 const customizingProduct = ref(null)
 const editingCartIndex = ref(null)
 
-const sugarOptions = [0, 25, 50, 75, 100]
 const iceOptions = computed(() => [
   { value: 'NONE', label: t('pos.noIce') },
   { value: 'LESS', label: t('pos.lessIce') },
   { value: 'NORMAL', label: t('pos.normalIce') },
-  { value: 'EXTRA', label: t('pos.extraIce') },
 ])
 
 const customForm = reactive({
@@ -1517,6 +1565,46 @@ const customForm = reactive({
   note: '',
   addons: [],
 })
+
+const setSugarLevel = (val) => {
+  const n = Math.min(100, Math.max(0, Math.round(Number(val) || 0)))
+  customForm.sugar_level = n
+}
+
+const stepSugar = (delta) => {
+  const current = customForm.sugar_level ?? 0
+  const next = Math.min(100, Math.max(0, current + delta))
+  customForm.sugar_level = next
+}
+
+const onSugarSliderChange = (e) => {
+  const val = Number(e.target.value)
+  setSugarLevel(val)
+}
+
+const onSugarInputChange = (e) => {
+  const raw = e.target.value
+  if (raw === '') {
+    customForm.sugar_level = 0
+    return
+  }
+  const val = parseInt(raw, 10)
+  if (!isNaN(val)) {
+    customForm.sugar_level = Math.min(100, Math.max(0, val))
+  }
+}
+
+const normalizeSugar = () => {
+  if (
+    customForm.sugar_level === null ||
+    customForm.sugar_level === undefined ||
+    isNaN(customForm.sugar_level)
+  ) {
+    customForm.sugar_level = 0
+  } else {
+    customForm.sugar_level = Math.min(100, Math.max(0, Math.round(customForm.sugar_level)))
+  }
+}
 
 // ================= STATE: DISCOUNT & NOTE MODALS =================
 const showDiscountModal = ref(false)
@@ -1557,6 +1645,25 @@ const activeCategories = computed(() => categories.value.filter((c) => c.is_acti
 const getActiveVariants = (product) => {
   if (!Array.isArray(product?.variants)) return []
   return product.variants.filter((v) => v.is_active)
+}
+
+const getVariantSizeLabel = (v) => {
+  if (!v) return ''
+  const rawSize = String(v.size || '').trim()
+  if (rawSize) {
+    const lower = rawSize.toLowerCase()
+    if (lower === 'r' || lower === 'reg') return 'Regular'
+    if (lower === 's') return 'Small'
+    if (lower === 'm') return 'Medium'
+    if (lower === 'l') return 'Large'
+    if (lower === 'xl') return 'Extra Large'
+    return rawSize
+  }
+  const cleanName = String(v.name || '')
+    .replace(/^(iced|hot|cold|frappe)\s+/i, '')
+    .replace(/\s+(iced|hot|cold|frappe)$/i, '')
+    .trim()
+  return cleanName || v.name || 'Regular'
 }
 
 const sellableProducts = computed(() =>
@@ -1606,20 +1713,33 @@ const filteredProducts = computed(() => {
   })
 })
 
-const getStartingPrice = (product) => {
+const getRegularVariant = (product) => {
   const vars = getActiveVariants(product)
-  if (!vars.length) return 0
-  return Math.min(...vars.map((v) => Number(v.price) || 0))
+  if (!vars.length) return null
+  const regularMatch = vars.find((v) => {
+    const name = String(v.name || '').trim().toLowerCase()
+    const size = String(v.size || '').trim().toLowerCase()
+    return (
+      name.includes('regular') ||
+      name.includes('standard') ||
+      name.includes('ធម្មតា') ||
+      size === 'r' ||
+      size === 'reg' ||
+      size === 'regular' ||
+      size === 'm' ||
+      size === 'medium'
+    )
+  })
+  return regularMatch || vars[0]
+}
+
+const getStartingPrice = (product) => {
+  const regVar = getRegularVariant(product)
+  return regVar ? Number(regVar.price) || 0 : 0
 }
 
 const getPriceDisplay = (product) => {
-  const vars = getActiveVariants(product)
-  if (!vars.length) return formatUsd(0)
-  const prices = vars.map((v) => Number(v.price) || 0)
-  const min = Math.min(...prices)
-  const max = Math.max(...prices)
-  if (min === max) return formatUsd(min)
-  return `${formatUsd(min)} – ${formatUsd(max)}`
+  return formatUsd(getStartingPrice(product))
 }
 
 const getProductCartQty = (productId) => {
@@ -1781,7 +1901,7 @@ const handleProductClick = (product) => {
   customizingProduct.value = product
   editingCartIndex.value = null
 
-  const defaultVar = activeVars[0]
+  const defaultVar = getRegularVariant(product) || activeVars[0]
   customForm.variant_id = defaultVar.id
   customForm.variant_name = defaultVar.name
   customForm.unit_price = Number(defaultVar.price) || 0
@@ -1928,6 +2048,7 @@ const setOrderType = (type) => {
 }
 
 const formatIceLabel = (ice) => {
+  if (ice === 'EXTRA') return t('pos.extraIce')
   const found = iceOptions.value.find((i) => i.value === ice)
   return found ? found.label : ice
 }
@@ -2262,18 +2383,18 @@ onMounted(async () => {
 
 .pos-shell {
   /* Core Token Palette */
-  --roast-ink: #142019;
-  --sage-muted: #536459;
-  --botanical-espresso: #1e4631;
-  --botanical-hover: #163625;
-  --botanical-tint: #eaf2ed;
+  --roast-ink: #1a2820;
+  --sage-muted: #5a6f62;
+  --botanical-espresso: #2d5a43;
+  --botanical-hover: #244936;
+  --botanical-tint: #ecf6f0;
   --register-deep: #13261b;
   --register-surface: #1b3526;
-  --counter-stone: #f3f6f4;
-  --counter-well: #e8eeea;
+  --counter-stone: #f4f8f5;
+  --counter-well: #e8f0eb;
   --docket-paper: #ffffff;
-  --ledger-line: #dce5df;
-  --ledger-hairline: #e8efea;
+  --ledger-line: #dce6e0;
+  --ledger-hairline: #e9f1ec;
   --crema-amber: #b45309;
   --crema-tint: #fef3c7;
   --berry-crimson: #b91c1c;
@@ -2286,6 +2407,11 @@ onMounted(async () => {
   gap: 0.75rem;
   height: calc(100vh - 96px);
   min-height: 600px;
+}
+
+.pos-shell button:focus,
+.pos-shell button:focus-visible {
+  outline: none;
 }
 
 .tabular {
@@ -2580,8 +2706,8 @@ onMounted(async () => {
 /* Menu Index Grid */
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(174px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 0.85rem;
   padding: 0.85rem 0.15rem 0.85rem 0;
   overflow-y: auto;
   align-content: start;
@@ -2591,17 +2717,21 @@ onMounted(async () => {
 .menu-item {
   background: var(--docket-paper);
   border: 1px solid var(--ledger-line);
-  border-radius: 8px;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   cursor: pointer;
   position: relative;
-  transition: border-color 0.12s ease, background-color 0.12s ease;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
 }
 
 .menu-item:hover {
-  border-color: var(--botanical-espresso);
+  border-color: #b5c7bc;
+  box-shadow: 0 8px 20px -8px rgba(23, 33, 28, 0.1);
 }
 
 .menu-item:focus-visible {
@@ -2611,15 +2741,13 @@ onMounted(async () => {
 
 .menu-item.in-docket {
   border-color: var(--botanical-espresso);
-  box-shadow: inset 3px 0 0 var(--botanical-espresso);
-  background: #fbfdfb;
+  background: #f9fcfa;
 }
 
 .menu-item__visual {
-  aspect-ratio: 16 / 11;
+  aspect-ratio: 4 / 3;
   width: 100%;
-  background: var(--counter-stone);
-  border-bottom: 1px solid var(--ledger-hairline);
+  background: #f3f6f4;
   position: relative;
   display: flex;
   align-items: center;
@@ -2631,24 +2759,63 @@ onMounted(async () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.menu-item:hover .menu-item__img {
+  transform: scale(1.03);
 }
 
 .menu-item__fallback {
-  font-size: 1.75rem;
-  color: #84968b;
+  font-size: 1.85rem;
+  color: #8fa196;
+}
+
+.menu-item__overlay-top {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.menu-item__category {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--roast-ink);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(23, 33, 28, 0.08);
+  box-shadow: 0 2px 6px rgba(23, 33, 28, 0.06);
+  padding: 0.18rem 0.54rem;
+  border-radius: 999px;
+  line-height: 1.25;
+  max-width: 85%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menu-item__qty {
   position: absolute;
-  top: 7px;
-  right: 7px;
+  bottom: 8px;
+  right: 8px;
+  z-index: 2;
   min-width: 24px;
   height: 24px;
-  padding: 0 6px;
-  border-radius: 5px;
+  padding: 0 7px;
+  border-radius: 999px;
   background: var(--botanical-espresso);
   color: #ffffff;
-  font-size: 0.74rem;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(23, 33, 28, 0.22);
+  font-size: 0.73rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -2656,65 +2823,21 @@ onMounted(async () => {
 }
 
 .menu-item__body {
-  padding: 0.65rem 0.75rem;
+  padding: 0.72rem 0.82rem 0.78rem;
   display: flex;
   flex-direction: column;
   flex: 1;
-}
-
-.menu-item__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.35rem;
-  margin-bottom: 0.2rem;
-  min-height: 18px;
-}
-
-.menu-item__category {
-  font-size: 0.71rem;
-  font-weight: 500;
-  color: var(--sage-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.menu-item__variants {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--botanical-espresso);
-  background: var(--botanical-tint);
-  padding: 0.05rem 0.38rem;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.menu-item__temp {
-  font-size: 0.66rem;
-  font-weight: 600;
-  padding: 0.05rem 0.36rem;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.menu-item__temp.is-hot {
-  background: var(--berry-tint);
-  color: var(--berry-crimson);
-}
-
-.menu-item__temp.is-iced,
-.menu-item__temp.is-frappe {
-  background: #e0f2fe;
-  color: #0369a1;
+  gap: 0.45rem;
 }
 
 .menu-item__title {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--roast-ink);
-  margin: 0 0 0.55rem;
-  line-height: 1.32;
+  margin: 0;
+  line-height: 1.34;
+  letter-spacing: -0.01em;
+  text-transform: capitalize;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -2723,12 +2846,10 @@ onMounted(async () => {
 
 .menu-item__pricing {
   margin-top: auto;
-  padding-top: 0.45rem;
-  border-top: 1px solid var(--ledger-hairline);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
 .menu-item__price-group {
@@ -2738,31 +2859,34 @@ onMounted(async () => {
 }
 
 .menu-item__usd {
-  font-size: 0.94rem;
+  font-size: 1rem;
   font-weight: 800;
-  color: var(--roast-ink);
-  letter-spacing: -0.01em;
+  color: var(--botanical-espresso);
+  letter-spacing: -0.015em;
 }
 
 .menu-item__khr {
-  font-size: 0.72rem;
+  font-size: 0.73rem;
   font-weight: 500;
   color: var(--sage-muted);
   margin-top: 2px;
 }
 
 .menu-item__action {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  background: var(--counter-stone);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--botanical-tint);
   color: var(--botanical-espresso);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   flex-shrink: 0;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition:
+    background-color 0.14s ease,
+    color 0.14s ease,
+    transform 0.14s ease;
 }
 
 .menu-item:hover .menu-item__action {
@@ -3114,11 +3238,12 @@ onMounted(async () => {
   color: var(--botanical-espresso);
 }
 
-/* Focal Anchor: Dark Espresso Register Block */
+/* Focal Anchor: Clean Botanical Register Summary Block */
 .register-block {
-  background: var(--register-deep);
-  color: #f3f7f4;
-  border-radius: 8px;
+  background: #f4f8f5;
+  border: 1px solid #dbe6df;
+  color: var(--roast-ink);
+  border-radius: 10px;
   padding: 0.85rem 0.95rem;
   display: flex;
   flex-direction: column;
@@ -3128,20 +3253,27 @@ onMounted(async () => {
 .register-block__Breakdown {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.28rem;
   padding-bottom: 0.55rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px dashed #cfe0d5;
 }
 
 .register-line {
   display: flex;
   justify-content: space-between;
-  font-size: 0.77rem;
-  color: #b5c7bc;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #52655a;
 }
 
-.register-line.is-discount {
-  color: #fca5a5;
+.register-line span:last-child {
+  font-weight: 600;
+  color: var(--roast-ink);
+}
+
+.register-line.is-discount,
+.register-line.is-discount span:last-child {
+  color: var(--berry-crimson);
   font-weight: 600;
 }
 
@@ -3159,14 +3291,14 @@ onMounted(async () => {
 }
 
 .register-block__label {
-  font-size: 0.84rem;
+  font-size: 0.86rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--roast-ink);
 }
 
 .register-block__rate {
-  font-size: 0.7rem;
-  color: #9ab0a3;
+  font-size: 0.71rem;
+  color: #64776c;
 }
 
 .register-block__amount-col {
@@ -3176,7 +3308,7 @@ onMounted(async () => {
 .register-block__usd {
   font-size: 1.55rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--botanical-espresso);
   line-height: 1.08;
   letter-spacing: -0.02em;
 }
@@ -3184,54 +3316,73 @@ onMounted(async () => {
 .register-block__khr {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #a9c5b4;
+  color: #4a6355;
   margin-top: 2px;
 }
 
 .register-block__actions {
   display: grid;
-  grid-template-columns: 118px 1fr;
+  grid-template-columns: auto 1fr;
   gap: 0.5rem;
   padding-top: 0.15rem;
 }
 
 .register-btn {
   height: 44px;
-  border-radius: 6px;
-  font-size: 0.84rem;
+  border-radius: 8px;
+  font-size: 0.83rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  transition: background-color 0.12s ease, opacity 0.12s ease;
+  white-space: nowrap;
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease,
+    box-shadow 0.14s ease;
 }
 
 .register-btn:disabled {
-  opacity: 0.42;
   cursor: not-allowed;
 }
 
 .register-btn--hold {
-  background: var(--register-surface);
-  color: #e4ede8;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #ffffff;
+  color: #1e3a2b;
+  border: 1px solid #cbd9d0;
+  padding: 0 0.85rem;
 }
 
 .register-btn--hold:hover:not(:disabled) {
-  background: #244532;
+  background: #ebf2ee;
+  border-color: #b4c8bc;
+}
+
+.register-btn--hold:disabled {
+  background: #f8faf9;
+  color: #90a297;
+  border-color: #dce7e0;
 }
 
 .register-btn--settle {
-  background: #2f7a53;
+  background: #2d5a43;
   color: #ffffff;
   border: none;
   padding: 0 0.9rem;
   justify-content: space-between;
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.18);
 }
 
 .register-btn--settle:hover:not(:disabled) {
-  background: #368a5e;
+  background: #234735;
+}
+
+.register-btn--settle:disabled {
+  background: #89ae9a;
+  color: #ffffff;
+  box-shadow: none;
 }
 
 .register-btn__settle-label {
@@ -3241,9 +3392,9 @@ onMounted(async () => {
 }
 
 .register-btn__settle-amount {
-  background: rgba(0, 0, 0, 0.22);
-  padding: 0.18rem 0.5rem;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 0.18rem 0.52rem;
+  border-radius: 6px;
   font-size: 0.82rem;
 }
 
@@ -3311,26 +3462,45 @@ onMounted(async () => {
   background: var(--botanical-espresso);
   color: #ffffff;
   border: 1px solid var(--botanical-espresso);
+  border-radius: 8px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(30, 70, 49, 0.18);
+  transition: all 0.14s ease;
 }
 
 .pos-btn--primary:hover:not(:disabled) {
   background: var(--botanical-hover);
   border-color: var(--botanical-hover);
   color: #ffffff;
+  box-shadow: 0 4px 10px rgba(30, 70, 49, 0.24);
 }
 
 .pos-btn--ghost {
-  background: var(--counter-stone);
-  color: var(--roast-ink);
-  border: 1px solid var(--ledger-line);
+  background: #ffffff;
+  color: #4b5d52;
+  border: 1.5px solid #d8e0da;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.55rem 1.1rem;
+  transition: all 0.14s ease;
 }
 
 .pos-btn--ghost:hover:not(:disabled) {
-  background: #e4ebe6;
+  background: #ebf2ed;
+  color: #17211c;
+  border-color: #c5d2c8;
 }
 
 .pos-btn--split {
   justify-content: space-between;
+}
+
+.pos-btn--split > span:last-child {
+  background: rgba(255, 255, 255, 0.18);
+  padding: 0.18rem 0.52rem;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.85rem;
 }
 
 .pos-btn:disabled {
@@ -3340,19 +3510,21 @@ onMounted(async () => {
 
 .pos-input {
   width: 100%;
-  height: 40px;
-  padding: 0 0.75rem;
-  border: 1px solid var(--ledger-line);
-  border-radius: 6px;
-  background: var(--counter-stone);
+  height: 42px;
+  padding: 0 0.85rem;
+  border: 1.5px solid var(--ledger-line);
+  border-radius: 8px;
+  background: #f8faf8;
   color: var(--roast-ink);
   font-size: 0.86rem;
+  transition: all 0.15s ease;
 }
 
 .pos-input:focus {
   outline: none;
   background: var(--docket-paper);
   border-color: var(--botanical-espresso);
+  box-shadow: 0 0 0 3px rgba(30, 70, 49, 0.1);
 }
 
 .pos-input--padded {
@@ -3365,10 +3537,13 @@ onMounted(async () => {
 }
 
 .pos-input--tender {
-  font-size: 1.15rem;
+  font-size: 1.28rem;
   font-weight: 800;
-  height: 44px;
-  color: var(--roast-ink);
+  height: 46px;
+  color: var(--botanical-espresso);
+  background: #ffffff !important;
+  border: 1.5px solid #cbdcd1 !important;
+  box-shadow: inset 0 1px 2px rgba(23, 33, 28, 0.04);
 }
 
 /* ================= DIALOGS / MODALS ================= */
@@ -3557,124 +3732,300 @@ onMounted(async () => {
 }
 
 .variant-option {
-  border: 1px solid var(--ledger-line);
-  border-radius: 6px;
-  background: var(--docket-paper);
-  padding: 0.6rem 0.7rem;
+  border: 1.5px solid #e1ebe5;
+  border-radius: 8px;
+  background: #f9fbf9;
+  padding: 0.65rem 0.8rem;
+  min-height: 62px;
   text-align: left;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 0.35rem;
   cursor: pointer;
-  transition: border-color 0.12s ease, background-color 0.12s ease;
+  transition: all 0.14s ease;
 }
 
 .variant-option:hover:not(.is-selected) {
-  border-color: #b7c6bc;
+  border-color: #bdd1c4;
+  background: #f3f8f5;
 }
 
 .variant-option.is-selected {
-  border-color: var(--botanical-espresso);
-  background: var(--botanical-tint);
-  box-shadow: inset 0 0 0 1px var(--botanical-espresso);
+  border-color: #3b7054;
+  background: #eaf5ee;
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.08);
 }
 
 .variant-option__top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.35rem;
 }
 
 .variant-option__name {
-  font-size: 0.84rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--roast-ink);
+  line-height: 1.25;
+}
+
+.variant-option.is-selected .variant-option__name {
+  color: #193e2b;
 }
 
 .variant-option__check {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 1px solid var(--ledger-line);
+  border: 1.5px solid #cfe0d6;
+  background: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
   color: transparent;
   flex-shrink: 0;
+  transition: all 0.14s ease;
 }
 
 .variant-option.is-selected .variant-option__check {
-  background: var(--botanical-espresso);
-  border-color: var(--botanical-espresso);
+  background: #2d5a43;
+  border-color: #2d5a43;
   color: #ffffff;
 }
 
-.variant-option__tags {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0.25rem 0 0.38rem;
-}
-
-.variant-tag {
-  font-size: 0.66rem;
-  font-weight: 600;
-  padding: 0.06rem 0.35rem;
-  border-radius: 4px;
-}
-
-.variant-tag.is-hot {
-  background: var(--berry-tint);
-  color: var(--berry-crimson);
-}
-
-.variant-tag.is-iced,
-.variant-tag.is-frappe {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.variant-tag.is-size {
-  background: var(--counter-stone);
-  color: var(--sage-muted);
-}
-
 .variant-option__price {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 800;
-  color: var(--botanical-espresso);
+  color: #2d5a43;
 }
 
 .calibration-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.45rem;
+}
+
+.calibration-strip--ice {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.calibration-strip--ice .calibration-pill {
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem 0.4rem;
+  font-size: 0.81rem;
 }
 
 .calibration-pill {
   flex: 1 1 auto;
   min-width: 56px;
-  border: 1px solid var(--ledger-line);
-  border-radius: 6px;
-  background: var(--docket-paper);
-  color: var(--roast-ink);
-  padding: 0.42rem 0.7rem;
+  border: 1.5px solid #e1ebe5;
+  border-radius: 8px;
+  background: #f9fbf9;
+  color: #3d5245;
+  padding: 0.45rem 0.75rem;
   font-size: 0.8rem;
   font-weight: 600;
   text-align: center;
-  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition: all 0.14s ease;
 }
 
 .calibration-pill:hover:not(.is-selected) {
-  background: var(--counter-stone);
+  background: #f1f7f3;
+  border-color: #bdd1c4;
+  color: var(--roast-ink);
 }
 
 .calibration-pill.is-selected {
-  background: var(--botanical-espresso);
-  border-color: var(--botanical-espresso);
+  background: #e6f3ec;
+  border-color: #3b7054;
+  color: #193e2b;
+  font-weight: 700;
+  box-shadow: 0 2px 5px rgba(45, 90, 67, 0.08);
+}
+
+/* Flexible Sugar Slider - Soft & Eye-Friendly Botanical Palette */
+.sugar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.sugar-stepper-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #eef6f1;
+  border: 1px solid #d5e5dc;
+  border-radius: 8px;
+  padding: 2px;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sugar-stepper-pill:focus-within {
+  border-color: #3b7054;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(45, 90, 67, 0.12);
+}
+
+.sugar-stepper-btn {
+  width: 24px;
+  height: 22px;
+  border-radius: 6px;
+  border: none;
+  background: #ffffff;
+  color: #2d5a43;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(23, 36, 28, 0.05);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.sugar-stepper-btn:hover:not(:disabled) {
+  background: #2d5a43;
   color: #ffffff;
+}
+
+.sugar-stepper-btn:disabled {
+  opacity: 0.35;
+  background: transparent;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.sugar-stepper-value {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.35rem;
+  gap: 1px;
+}
+
+.sugar-stepper-input {
+  width: 28px;
+  border: none;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #1e4230;
+  text-align: right;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.sugar-stepper-input::-webkit-outer-spin-button,
+.sugar-stepper-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.sugar-stepper-unit {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4f6b5b;
+}
+
+.sugar-slider-track-wrap {
+  background: #f8fbf9;
+  border: 1.5px solid #e3ede7;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem 0.5rem;
+}
+
+.sugar-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #467d60 0%,
+    #35694e var(--sugar-pct, 100%),
+    #dce7e0 var(--sugar-pct, 100%),
+    #dce7e0 100%
+  );
+  outline: none;
+  cursor: pointer;
+  margin: 0;
+  display: block;
+}
+
+.sugar-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2.5px solid #2d5a43;
+  box-shadow: 0 2px 5px rgba(45, 90, 67, 0.2);
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.sugar-range-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.14);
+  box-shadow: 0 3px 8px rgba(45, 90, 67, 0.28);
+}
+
+.sugar-range-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2.5px solid #2d5a43;
+  box-shadow: 0 2px 5px rgba(45, 90, 67, 0.2);
+  cursor: grab;
+}
+
+.sugar-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  padding: 0;
+}
+
+.sugar-tick-btn {
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #63786b;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  line-height: 1.1;
+}
+
+.sugar-tick-btn:focus,
+.sugar-tick-btn:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.sugar-tick-btn:hover:not(.is-active) {
+  color: #2d5a43;
+  background: #eaf3ed;
+}
+
+.sugar-tick-btn.is-active {
+  color: #193e2b;
+  font-weight: 800;
+  background: #dceee3;
+  border: none;
 }
 
 .addon-selector {
@@ -3684,18 +4035,18 @@ onMounted(async () => {
 }
 
 .addon-item {
-  border: 1px solid var(--ledger-line);
-  border-radius: 6px;
+  border: 1.5px solid #e1ebe5;
+  border-radius: 8px;
   padding: 0.48rem 0.65rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--docket-paper);
+  background: #f9fbf9;
 }
 
 .addon-item.is-selected {
-  border-color: var(--botanical-espresso);
-  background: var(--botanical-tint);
+  border-color: #3b7054;
+  background: #eaf5ee;
 }
 
 .addon-item__meta {
@@ -3712,7 +4063,7 @@ onMounted(async () => {
 .addon-item__price {
   font-size: 0.72rem;
   font-weight: 600;
-  color: var(--botanical-espresso);
+  color: #2d5a43;
 }
 
 .addon-item__stepper {
@@ -3724,9 +4075,9 @@ onMounted(async () => {
 .addon-item__btn {
   width: 24px;
   height: 24px;
-  border: 1px solid var(--ledger-line);
+  border: 1px solid #d5e3db;
   border-radius: 5px;
-  background: var(--docket-paper);
+  background: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3757,10 +4108,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid var(--ledger-line);
-  border-radius: 6px;
-  background: var(--counter-stone);
-  height: 40px;
+  border: 1.5px solid #e1ebe5;
+  border-radius: 8px;
+  background: #f5f9f6;
+  height: 42px;
   padding: 3px;
 }
 
@@ -3768,27 +4119,32 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   border: none;
-  border-radius: 5px;
-  background: var(--docket-paper);
-  color: var(--roast-ink);
+  border-radius: 6px;
+  background: #ffffff;
+  color: #2d5a43;
+  box-shadow: 0 1px 2px rgba(23, 36, 28, 0.05);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  transition: all 0.12s ease;
 }
 
 .qty-control__btn:hover:not(:disabled) {
-  background: var(--botanical-espresso);
+  background: #2d5a43;
   color: #ffffff;
 }
 
 .qty-control__btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
+  background: transparent;
+  box-shadow: none;
 }
 
 .qty-control__val {
   font-size: 0.92rem;
   font-weight: 800;
+  color: #193e2b;
 }
 
 .input-with-icon {
@@ -3807,121 +4163,263 @@ onMounted(async () => {
 
 /* Checkout Modal Specifics */
 .checkout-display {
-  background: var(--register-deep);
-  color: #ffffff;
-  border-radius: 8px;
-  padding: 0.85rem 1.05rem;
+  background: #f2f8f4;
+  border: 1px solid #d7e7dd;
+  border-radius: 10px;
+  padding: 0.9rem 1.15rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
 }
 
 .checkout-display__col {
   display: flex;
   flex-direction: column;
+  gap: 3px;
+  flex: 1;
 }
 
 .checkout-display__col.is-right {
   text-align: right;
 }
 
+.checkout-display__divider {
+  width: 1px;
+  align-self: stretch;
+  background: #d5e6dc;
+  margin: 2px 0;
+}
+
 .checkout-display__caption {
-  font-size: 0.73rem;
-  color: #a9c5b4;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #556c5e;
 }
 
 .checkout-display__usd {
-  font-size: 1.5rem;
+  font-size: 1.65rem;
   font-weight: 800;
-  line-height: 1.15;
+  color: #193e2b;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .checkout-display__khr {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #d7ebe0;
-  line-height: 1.2;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #2d5a43;
+  line-height: 1.15;
 }
 
 .channel-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .channel-card {
-  border: 1px solid var(--ledger-line);
-  border-radius: 6px;
-  background: var(--docket-paper);
-  padding: 0.65rem 0.5rem;
+  border: 1.5px solid #e1ebe5;
+  border-radius: 9px;
+  background: #f9fbf9;
+  padding: 0.65rem 0.8rem;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0.22rem;
-  font-size: 0.82rem;
+  gap: 0.6rem;
+  font-size: 0.84rem;
   font-weight: 700;
+  color: #3d5245;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.channel-card__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #edf4f0;
+  color: #4a6355;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.channel-card__label {
+  flex: 1;
+  line-height: 1.25;
+}
+
+.channel-card__check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid #cfe0d6;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: transparent;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.channel-card:hover:not(.is-selected) {
+  border-color: #bdd1c4;
+  background: #f3f8f5;
   color: var(--roast-ink);
 }
 
-.channel-card i {
-  font-size: 1.2rem;
+.channel-card.is-selected {
+  border-color: #3b7054;
+  background: #eaf5ee;
+  color: #193e2b;
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.08);
 }
 
-.channel-card.is-selected {
-  border-color: var(--botanical-espresso);
-  background: var(--botanical-tint);
-  color: var(--botanical-espresso);
-  box-shadow: inset 0 0 0 1px var(--botanical-espresso);
+.channel-card.is-selected .channel-card__icon {
+  background: #d7ece0;
+  color: #193e2b;
+}
+
+.channel-card.is-selected .channel-card__check {
+  background: #2d5a43;
+  border-color: #2d5a43;
+  color: #ffffff;
 }
 
 .currency-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .currency-switch__option {
-  border: 1px solid var(--ledger-line);
-  border-radius: 6px;
-  background: var(--docket-paper);
-  color: var(--roast-ink);
-  padding: 0.5rem 0.75rem;
+  border: 1.5px solid #e1ebe5;
+  border-radius: 9px;
+  background: #f9fbf9;
+  color: #4f6356;
+  padding: 0.62rem 0.85rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.8rem;
+  font-size: 0.81rem;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.currency-switch__val {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+}
+
+.currency-switch__option:hover:not(.is-selected) {
+  border-color: #bdd1c4;
+  background: #f3f8f5;
 }
 
 .currency-switch__option.is-selected {
-  background: var(--botanical-espresso);
-  border-color: var(--botanical-espresso);
-  color: #ffffff;
+  background: #eaf5ee;
+  border-color: #3b7054;
+  color: #193e2b;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.08);
+}
+
+.currency-switch__option.is-selected .currency-switch__val {
+  color: #193e2b;
+}
+
+.cash-tender-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.72rem 0.95rem;
+  border-radius: 9px;
+  background: #f8fbf9;
+  border: 1.5px solid #dfeae3;
+}
+
+.cash-tender-summary__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #4f6356;
+}
+
+.cash-tender-summary__label i {
+  font-size: 0.95rem;
+  color: #3b7054;
+}
+
+.cash-tender-summary__amount {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #193e2b;
 }
 
 .bank-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-bottom: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.42rem;
 }
 
 .bank-chip {
-  border: 1px solid var(--ledger-line);
-  border-radius: 5px;
-  background: var(--docket-paper);
-  padding: 0.25rem 0.6rem;
-  font-size: 0.75rem;
+  border: 1.5px solid #e1ebe5;
+  border-radius: 8px;
+  background: #f9fbf9;
+  padding: 0.44rem 0.35rem;
+  font-size: 0.76rem;
   font-weight: 600;
-  color: var(--botanical-espresso);
+  color: #3d5245;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.14s ease;
 }
 
-.bank-chip.is-selected,
-.bank-chip:hover {
-  background: var(--botanical-espresso);
-  border-color: var(--botanical-espresso);
-  color: #ffffff;
+.bank-chip:hover:not(.is-selected) {
+  background: #f1f7f3;
+  border-color: #bdd1c4;
+  color: var(--roast-ink);
+}
+
+.bank-chip.is-selected {
+  background: #eaf5ee;
+  border-color: #3b7054;
+  color: #193e2b;
+  font-weight: 700;
+  box-shadow: 0 2px 5px rgba(45, 90, 67, 0.08);
+}
+
+.checkout-verify-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+  padding: 0.48rem 0.7rem;
+  border-radius: 7px;
+  background: #f4f9f6;
+  border: 1px solid #e0ece5;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: #4e6457;
+}
+
+.checkout-verify-hint i {
+  color: #3b7054;
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
 /* Open Queue Modal List */
