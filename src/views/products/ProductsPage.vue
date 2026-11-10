@@ -5,12 +5,21 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useDebounce } from '@/composables/useDebounce'
 import { useCurrency } from '@/composables/useCurrency'
+import { useI18n } from '@/i18n'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const authStore = useAuthStore()
 const toast = useToast()
 const { formatUsd } = useCurrency()
+const { t } = useI18n()
+
+const getProductTypeLabel = (type) => {
+  if (type === 'DRINK') return t('common.drink')
+  if (type === 'FOOD') return t('common.food')
+  if (type === 'ADDON') return t('common.addon')
+  return type || '—'
+}
 
 const isOwner = computed(() => authStore.isOwner)
 
@@ -472,77 +481,82 @@ const clearFilters = () => {
 </script>
 
 <template>
-  <div class="products-page mx-auto">
-    <!-- Clean Page Tabs & Action Bar -->
-    <div class="products-nav-tabs d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-      <div class="d-flex align-items-center gap-4">
+  <div class="products-page">
+    <!-- Top Segmented Tabs & Primary Action Bar -->
+    <div class="products-top-bar">
+      <div class="products-segmented-tabs" role="tablist">
         <button
           type="button"
-          class="nav-tab-btn"
+          class="seg-tab-btn"
           :class="{ active: activeTab === 'products' }"
           @click="activeTab = 'products'"
         >
           <i class="bi bi-cup-hot"></i>
           <span>{{ $t('products.tabProducts') }}</span>
-          <span class="tab-badge">{{ pagination.total || products.length }}</span>
+          <span class="seg-tab-count tabular">{{ pagination.total || products.length }}</span>
         </button>
         <button
           type="button"
-          class="nav-tab-btn"
+          class="seg-tab-btn"
           :class="{ active: activeTab === 'categories' }"
           @click="activeTab = 'categories'"
         >
           <i class="bi bi-tags"></i>
           <span>{{ $t('products.tabCategories') }}</span>
-          <span class="tab-badge">{{ categories.length }}</span>
+          <span class="seg-tab-count tabular">{{ categories.length }}</span>
         </button>
       </div>
 
-      <div v-if="isOwner" class="pb-2">
-        <BaseButton
+      <div v-if="isOwner" class="products-top-bar__right">
+        <button
           v-if="activeTab === 'products'"
-          variant="primary"
-          size="sm"
+          type="button"
+          class="btn-primary-action"
           @click="openCreateProduct"
         >
-          <template #prefix><i class="bi bi-plus-lg"></i></template>
-          {{ $t('products.addProduct') }}
-        </BaseButton>
-        <BaseButton
+          <i class="bi bi-plus-lg"></i>
+          <span>{{ $t('products.addProduct') }}</span>
+        </button>
+        <button
           v-else
-          variant="primary"
-          size="sm"
+          type="button"
+          class="btn-primary-action"
           @click="openCreateCategory"
         >
-          <template #prefix><i class="bi bi-plus-lg"></i></template>
-          {{ $t('products.addCategory') }}
-        </BaseButton>
+          <i class="bi bi-plus-lg"></i>
+          <span>{{ $t('products.addCategory') }}</span>
+        </button>
       </div>
     </div>
 
     <!-- ========================================== -->
     <!-- TAB 1: PRODUCTS VIEW                       -->
     <!-- ========================================== -->
-    <div v-if="activeTab === 'products'">
-      <!-- Products Table Card -->
-      <div class="clean-card bg-white overflow-hidden">
-        <!-- Single-Row Filter Toolbar -->
-        <div class="filter-bar d-flex align-items-center flex-wrap gap-2">
-          <div style="min-width: 220px; max-width: 320px" class="flex-grow-1">
-            <BaseInput
+    <div v-if="activeTab === 'products'" class="clean-card">
+      <!-- Single-Row Filter Toolbar -->
+      <div class="filter-bar">
+        <div class="filter-bar__left">
+          <div class="search-wrap">
+            <i class="bi bi-search search-icon"></i>
+            <input
               v-model="searchQuery"
-              type="search"
+              type="text"
+              class="filter-input search-input"
               :placeholder="$t('products.searchProduct')"
-              size="sm"
-              clearable
-              class="mb-0"
             />
+            <button
+              v-if="searchQuery"
+              type="button"
+              class="search-clear"
+              @click="searchQuery = ''"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
 
           <select
             v-model="selectedCategoryId"
-            class="form-select form-select-sm clean-select"
-            style="width: auto; min-width: 155px"
+            class="filter-input filter-select"
           >
             <option value="">{{ $t('common.allCategories') }}</option>
             <option v-for="cat in categories" :key="cat.id" :value="cat.id">
@@ -552,174 +566,197 @@ const clearFilters = () => {
 
           <select
             v-model="selectedProductType"
-            class="form-select form-select-sm clean-select"
-            style="width: auto; min-width: 120px"
+            class="filter-input filter-select"
           >
             <option value="">{{ $t('common.allTypes') }}</option>
-            <option value="DRINK">{{ $t('pos.drink') }}</option>
-            <option value="FOOD">{{ $t('pos.food') }}</option>
-            <option value="ADDON">{{ $t('pos.addon') }}</option>
+            <option value="DRINK">{{ $t('common.drink') }}</option>
+            <option value="FOOD">{{ $t('common.food') }}</option>
+            <option value="ADDON">{{ $t('common.addon') }}</option>
           </select>
+        </div>
 
+        <div class="filter-bar__right">
           <button
             v-if="searchQuery || selectedCategoryId || selectedProductType"
             type="button"
-            class="btn btn-light-coffee btn-sm d-inline-flex align-items-center gap-1 ms-auto"
-            title="Clear filters"
+            class="toolbar-btn"
             @click="clearFilters"
           >
-            <i class="bi bi-x-circle"></i>
-            <span>{{ $t('common.clear') }}</span>
+            <i class="bi bi-arrow-counterclockwise"></i>
+            <span>{{ $t('common.reset') }}</span>
           </button>
         </div>
-        <div v-if="isLoadingProducts" class="text-center py-5 text-muted small">
-          <span class="spinner-border spinner-border-sm me-2"></span>
-          {{ $t('products.loadingProducts') }}
+      </div>
+
+      <div v-if="isLoadingProducts" class="empty-box">
+        <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
+        <div class="small text-muted">{{ $t('products.loadingProducts') }}</div>
+      </div>
+
+      <div v-else-if="products.length === 0" class="empty-box">
+        <div class="empty-box__icon">
+          <i class="bi bi-cup-hot"></i>
         </div>
-
-        <div v-else-if="products.length === 0" class="text-center py-5 px-3">
-          <i class="bi bi-cup-hot fs-2 text-muted d-block mb-2"></i>
-          <div class="fw-semibold mb-1">{{ $t('products.noProductsFound') }}</div>
-          <p class="text-muted small mb-3">
-            {{ $t('products.noProductsFoundDesc') }}
-          </p>
-          <BaseButton v-if="isOwner" variant="primary" size="sm" @click="openCreateProduct">
-            {{ $t('products.addFirstProduct') }}
-          </BaseButton>
-        </div>
-
-        <div v-else class="table-responsive">
-          <table class="table align-middle mb-0 clean-table">
-            <thead>
-              <tr>
-                <th class="ps-4">{{ $t('products.colProduct') }}</th>
-                <th>{{ $t('products.colCategory') }}</th>
-                <th>{{ $t('products.colType') }}</th>
-                <th>{{ $t('products.colVariantsPrice') }}</th>
-                <th>{{ $t('common.status') }}</th>
-                <th v-if="isOwner" class="text-end pe-4">{{ $t('common.actions') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="prod in products" :key="prod.id">
-                <td class="ps-4">
-                  <div class="d-flex align-items-center gap-3">
-                    <div
-                      class="prod-thumb d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0"
-                    >
-                      <img
-                        v-if="prod.image"
-                        :src="getAssetUrl(prod.image)"
-                        :alt="prod.name"
-                        class="w-100 h-100 object-fit-cover"
-                      />
-                      <i
-                        v-else
-                        class="bi text-muted"
-                        :class="
-                          prod.product_type === 'FOOD'
-                            ? 'bi-cake2'
-                            : prod.product_type === 'ADDON'
-                              ? 'bi-plus-circle'
-                              : 'bi-cup-hot'
-                        "
-                      ></i>
-                    </div>
-                    <div>
-                      <div class="fw-semibold text-dark">{{ prod.name }}</div>
-                      <div v-if="prod.description" class="text-muted small text-truncate" style="max-width: 220px">
-                        {{ prod.description }}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-
-                <td>
-                  <span class="text-secondary small fw-medium">{{ $tCategory(prod.category_name) }}</span>
-                </td>
-
-                <td>
-                  <span class="type-pill" :class="`type-pill--${prod.product_type.toLowerCase()}`">
-                    {{ prod.product_type }}
-                  </span>
-                </td>
-
-                <td>
-                  <div v-if="prod.variants && prod.variants.length > 0" class="d-inline-block">
-                    <select
-                      class="form-select form-select-sm variant-select numeric-tabular"
-                      title="Select variant to view price"
-                    >
-                      <option
-                        v-for="v in prod.variants"
-                        :key="v.id"
-                        :value="v.id"
-                      >
-                        {{ v.name }} — {{ formatUsd(v.price) }}{{ !v.is_active ? ` (${$t('common.inactive')})` : '' }}
-                      </option>
-                    </select>
-                  </div>
-                  <span v-else class="text-muted small">—</span>
-                </td>
-
-                <td>
-                  <span
-                    class="status-dot-badge"
-                    :class="prod.is_active ? 'status-active' : 'status-inactive'"
-                  >
-                    {{ prod.is_active ? $t('common.active') : $t('common.inactive') }}
-                  </span>
-                </td>
-
-                <td v-if="isOwner" class="text-end pe-4">
-                  <div class="d-inline-flex gap-1">
-                    <button
-                      type="button"
-                      class="btn-action"
-                      :title="$t('common.edit')"
-                      @click="openEditProduct(prod)"
-                    >
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-action btn-action--danger"
-                      :title="$t('common.delete')"
-                      @click="confirmDeleteProduct(prod)"
-                    >
-                      <i class="bi bi-trash3"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination Footer -->
-        <div
-          v-if="pagination.totalPages > 1"
-          class="d-flex align-items-center justify-content-between px-4 py-3 border-top small text-muted"
+        <div class="empty-box__title">{{ $t('products.noProductsFound') }}</div>
+        <div class="empty-box__desc">{{ $t('products.noProductsFoundDesc') }}</div>
+        <button
+          v-if="isOwner"
+          type="button"
+          class="btn-primary-action mt-3"
+          @click="openCreateProduct"
         >
-          <span>{{ $t('common.pageOf', { page: pagination.page, total: pagination.totalPages }) }}</span>
-          <div class="d-flex gap-2">
-            <BaseButton
-              variant="secondary"
-              size="sm"
-              :disabled="pagination.page <= 1"
-              @click="fetchProducts(pagination.page - 1)"
-            >
-              {{ $t('common.previous') }}
-            </BaseButton>
-            <BaseButton
-              variant="secondary"
-              size="sm"
-              :disabled="pagination.page >= pagination.totalPages"
-              @click="fetchProducts(pagination.page + 1)"
-            >
-              {{ $t('common.next') }}
-            </BaseButton>
-          </div>
+          <i class="bi bi-plus-lg"></i>
+          <span>{{ $t('products.addFirstProduct') }}</span>
+        </button>
+      </div>
+
+      <div v-else class="table-responsive">
+        <table class="table align-middle mb-0 clean-table">
+          <thead>
+            <tr>
+              <th>{{ $t('products.colProduct') }}</th>
+              <th>{{ $t('products.colCategory') }}</th>
+              <th>{{ $t('products.colType') }}</th>
+              <th>{{ $t('products.colVariantsPrice') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th v-if="isOwner" class="text-end">{{ $t('common.actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="prod in products" :key="prod.id">
+              <td>
+                <div class="product-cell">
+                  <div class="prod-thumb">
+                    <img
+                      v-if="prod.image"
+                      :src="getAssetUrl(prod.image)"
+                      :alt="prod.name"
+                      class="w-100 h-100 object-fit-cover"
+                    />
+                    <i
+                      v-else
+                      class="bi"
+                      :class="
+                        prod.product_type === 'FOOD'
+                          ? 'bi-cake2'
+                          : prod.product_type === 'ADDON'
+                            ? 'bi-plus-circle'
+                            : 'bi-cup-hot'
+                      "
+                    ></i>
+                  </div>
+                  <div class="product-cell__info">
+                    <div class="product-cell__name">{{ prod.name }}</div>
+                    <div v-if="prod.description" class="product-cell__desc text-truncate">
+                      {{ prod.description }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <td>
+                <span class="cat-badge">
+                  <i class="bi bi-tag"></i>
+                  <span>{{ $tCategory(prod.category_name) }}</span>
+                </span>
+              </td>
+
+              <td>
+                <span class="type-pill" :class="`type-pill--${prod.product_type.toLowerCase()}`">
+                  <i
+                    class="bi"
+                    :class="
+                      prod.product_type === 'FOOD'
+                        ? 'bi-cake2'
+                        : prod.product_type === 'ADDON'
+                          ? 'bi-plus-circle'
+                          : 'bi-cup-straw'
+                    "
+                  ></i>
+                  <span>{{ getProductTypeLabel(prod.product_type) }}</span>
+                </span>
+              </td>
+
+              <td>
+                <div v-if="prod.variants && prod.variants.length > 0" class="variant-dropdown-wrap">
+                  <select
+                    class="form-select form-select-sm variant-select tabular"
+                    title="Select variant to view price"
+                  >
+                    <option
+                      v-for="v in prod.variants"
+                      :key="v.id"
+                      :value="v.id"
+                    >
+                      {{ v.name }} — {{ formatUsd(v.price) }}{{ !v.is_active ? ` (${$t('common.inactive')})` : '' }}
+                    </option>
+                  </select>
+                </div>
+                <span v-else class="text-muted small">—</span>
+              </td>
+
+              <td>
+                <span
+                  class="status-badge"
+                  :class="prod.is_active ? 'active' : 'inactive'"
+                >
+                  <span class="status-badge__dot"></span>
+                  <span>{{ prod.is_active ? $t('common.active') : $t('common.inactive') }}</span>
+                </span>
+              </td>
+
+              <td v-if="isOwner" class="text-end">
+                <div class="action-group">
+                  <button
+                    type="button"
+                    class="btn-action-icon"
+                    :title="$t('common.edit')"
+                    @click="openEditProduct(prod)"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-action-icon is-danger"
+                    :title="$t('common.delete')"
+                    @click="confirmDeleteProduct(prod)"
+                  >
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div
+        v-if="pagination.totalPages > 1"
+        class="pagination-bar"
+      >
+        <span class="pagination-info tabular">
+          {{ $t('common.pageOf', { page: pagination.page, total: pagination.totalPages }) }}
+        </span>
+        <div class="d-flex gap-2">
+          <button
+            type="button"
+            class="toolbar-btn"
+            :disabled="pagination.page <= 1"
+            @click="fetchProducts(pagination.page - 1)"
+          >
+            <i class="bi bi-chevron-left"></i>
+            <span>{{ $t('common.previous') }}</span>
+          </button>
+          <button
+            type="button"
+            class="toolbar-btn"
+            :disabled="pagination.page >= pagination.totalPages"
+            @click="fetchProducts(pagination.page + 1)"
+          >
+            <span>{{ $t('common.next') }}</span>
+            <i class="bi bi-chevron-right"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -727,76 +764,85 @@ const clearFilters = () => {
     <!-- ========================================== -->
     <!-- TAB 2: CATEGORIES VIEW                     -->
     <!-- ========================================== -->
-    <div v-else>
-      <div class="clean-card bg-white overflow-hidden">
-        <div v-if="isLoadingCategories" class="text-center py-5 text-muted small">
-          <span class="spinner-border spinner-border-sm me-2"></span>
-          {{ $t('products.loadingCategories') }}
-        </div>
+    <div v-else class="clean-card">
+      <div v-if="isLoadingCategories" class="empty-box">
+        <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
+        <div class="small text-muted">{{ $t('products.loadingCategories') }}</div>
+      </div>
 
-        <div v-else-if="categories.length === 0" class="text-center py-5 px-3">
-          <i class="bi bi-tags fs-2 text-muted d-block mb-2"></i>
-          <div class="fw-semibold mb-1">{{ $t('products.noCategoriesYet') }}</div>
-          <p class="text-muted small mb-3">
-            {{ $t('products.noCategoriesYetDesc') }}
-          </p>
-          <BaseButton v-if="isOwner" variant="primary" size="sm" @click="openCreateCategory">
-            {{ $t('products.createFirstCategory') }}
-          </BaseButton>
+      <div v-else-if="categories.length === 0" class="empty-box">
+        <div class="empty-box__icon">
+          <i class="bi bi-tags"></i>
         </div>
+        <div class="empty-box__title">{{ $t('products.noCategoriesYet') }}</div>
+        <div class="empty-box__desc">{{ $t('products.noCategoriesYetDesc') }}</div>
+        <button
+          v-if="isOwner"
+          type="button"
+          class="btn-primary-action mt-3"
+          @click="openCreateCategory"
+        >
+          <i class="bi bi-plus-lg"></i>
+          <span>{{ $t('products.createFirstCategory') }}</span>
+        </button>
+      </div>
 
-        <div v-else class="table-responsive">
-          <table class="table align-middle mb-0 clean-table">
-            <thead>
-              <tr>
-                <th class="ps-4" style="width: 90px">{{ $t('products.colOrder') }}</th>
-                <th>{{ $t('products.colCategoryName') }}</th>
-                <th>{{ $t('products.colProducts') }}</th>
-                <th>{{ $t('common.status') }}</th>
-                <th v-if="isOwner" class="text-end pe-4">{{ $t('common.actions') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="cat in categories" :key="cat.id">
-                <td class="ps-4 text-muted small numeric-tabular">#{{ cat.sort_order }}</td>
-                <td class="fw-semibold text-dark">{{ $tCategory(cat.name) }}</td>
-                <td>
-                  <span class="text-muted small numeric-tabular">
-                    {{ $t('orders.itemsCount', { count: cat.total_products }) }}
-                  </span>
-                </td>
-                <td>
-                  <span
-                    class="status-dot-badge"
-                    :class="cat.is_active ? 'status-active' : 'status-inactive'"
+      <div v-else class="table-responsive">
+        <table class="table align-middle mb-0 clean-table">
+          <thead>
+            <tr>
+              <th style="width: 100px">{{ $t('products.colOrder') }}</th>
+              <th>{{ $t('products.colCategoryName') }}</th>
+              <th>{{ $t('products.colProducts') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th v-if="isOwner" class="text-end">{{ $t('common.actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="cat in categories" :key="cat.id">
+              <td>
+                <span class="order-badge tabular">#{{ cat.sort_order }}</span>
+              </td>
+              <td>
+                <span class="product-cell__name">{{ $tCategory(cat.name) }}</span>
+              </td>
+              <td>
+                <span class="items-pill tabular">
+                  {{ $t('orders.itemsCount', { count: cat.total_products }) }}
+                </span>
+              </td>
+              <td>
+                <span
+                  class="status-badge"
+                  :class="cat.is_active ? 'active' : 'inactive'"
+                >
+                  <span class="status-badge__dot"></span>
+                  <span>{{ cat.is_active ? $t('common.active') : $t('common.inactive') }}</span>
+                </span>
+              </td>
+              <td v-if="isOwner" class="text-end">
+                <div class="action-group">
+                  <button
+                    type="button"
+                    class="btn-action-icon"
+                    :title="$t('common.edit')"
+                    @click="openEditCategory(cat)"
                   >
-                    {{ cat.is_active ? $t('common.active') : $t('common.inactive') }}
-                  </span>
-                </td>
-                <td v-if="isOwner" class="text-end pe-4">
-                  <div class="d-inline-flex gap-1">
-                    <button
-                      type="button"
-                      class="btn-action"
-                      :title="$t('common.edit')"
-                      @click="openEditCategory(cat)"
-                    >
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-action btn-action--danger"
-                      :title="$t('common.delete')"
-                      @click="confirmDeleteCategory(cat)"
-                    >
-                      <i class="bi bi-trash3"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-action-icon is-danger"
+                    :title="$t('common.delete')"
+                    @click="confirmDeleteCategory(cat)"
+                  >
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -945,9 +991,9 @@ const clearFilters = () => {
               <div class="col-6 col-md-3 mb-3">
                 <label class="form-label mb-1 fw-medium small text-dark">{{ $t('products.colType') }}</label>
                 <select v-model="productForm.product_type" class="form-select clean-select-input">
-                  <option value="DRINK">{{ $t('pos.drink') }}</option>
-                  <option value="FOOD">{{ $t('pos.food') }}</option>
-                  <option value="ADDON">{{ $t('pos.addon') }}</option>
+                  <option value="DRINK">{{ $t('common.drink') }}</option>
+                  <option value="FOOD">{{ $t('common.food') }}</option>
+                  <option value="ADDON">{{ $t('common.addon') }}</option>
                 </select>
               </div>
             </div>
@@ -1116,243 +1162,552 @@ const clearFilters = () => {
 
 <style scoped>
 .products-page {
-  max-width: 1080px;
+  --botanical-primary: #2d5a43;
+  --botanical-deep: #193e2b;
+  --botanical-tint: #eaf5ee;
+  --botanical-border: #3b7054;
+  --ledger-line: #dce6e0;
+  --ledger-hairline: #ecf2ee;
+  --roast-ink: #1e2a23;
+  --sage-muted: #62756a;
+
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
 }
 
-.clean-card {
-  border-radius: 16px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-/* Page Tabs */
-.products-nav-tabs {
-  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
+/* ── Top Bar: Segmented Tabs & Primary Action ── */
+.products-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
 }
 
-.nav-tab-btn {
-  border: none;
-  background: transparent;
-  padding: 0.65rem 0.25rem;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--on-surface-variant, #716762);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+.products-segmented-tabs {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  transition: all 0.15s ease;
+  gap: 4px;
+  padding: 4px;
+  background: #e9f0ec;
+  border: 1px solid var(--ledger-line);
+  border-radius: 10px;
+}
+
+.seg-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.44rem 0.95rem;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #4f6356;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.nav-tab-btn:hover {
-  color: var(--on-surface, #1c1b1b);
+.seg-tab-btn i {
+  font-size: 0.9rem;
 }
 
-.nav-tab-btn.active {
-  color: var(--primary, #2d5a43);
-  font-weight: 600;
-  border-bottom-color: var(--primary, #2d5a43);
+.seg-tab-btn:hover:not(.active) {
+  color: var(--roast-ink);
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.tab-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 0.1rem 0.45rem;
+.seg-tab-btn.active {
+  background: #ffffff;
+  color: var(--botanical-deep);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(20, 35, 26, 0.08);
+}
+
+.seg-tab-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.08rem 0.42rem;
   border-radius: 999px;
-  background-color: var(--surface-container-low, #f6f3f2);
-  color: var(--on-surface-variant, #504440);
+  background: #dce8e1;
+  color: var(--botanical-primary);
 }
 
-.nav-tab-btn.active .tab-badge {
-  background-color: var(--primary, #2d5a43);
+.seg-tab-btn.active .seg-tab-count {
+  background: var(--botanical-tint);
+  color: var(--botanical-deep);
+}
+
+.products-top-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.btn-primary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  height: 38px;
+  padding: 0 1.05rem;
+  border-radius: 9px;
+  background: var(--botanical-primary);
+  border: 1px solid var(--botanical-primary);
   color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.16);
+}
+
+.btn-primary-action:hover {
+  background: var(--botanical-deep);
+  border-color: var(--botanical-deep);
+}
+
+/* ── Main Card & Filter Toolbar ── */
+.clean-card {
+  background: #ffffff;
+  border: 1px solid var(--ledger-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
 }
 
 .filter-bar {
-  padding: 0.85rem 1.15rem;
-  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
-  background: #fcfbfa;
+  padding: 0.78rem 1.05rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  background: #f8fbf9;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
 }
 
-.btn-light-coffee {
-  background: #f4f1ed;
-  color: #2d5a43;
-  border: 1px solid #e6e1da;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 13px;
-  padding: 0.35rem 0.65rem;
-  transition: all 0.15s ease;
+.filter-bar__left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
 }
 
-.btn-light-coffee:hover {
-  background: #eae5de;
+.filter-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
-/* Filter Select */
-.clean-select {
+.search-wrap {
+  position: relative;
+  min-width: 245px;
+  flex: 0 1 290px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sage-muted);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.search-clear {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--sage-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.search-clear:hover {
+  background: #e8f0eb;
+  color: var(--roast-ink);
+}
+
+.filter-input {
   height: 36px;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle, #e5e7eb);
-  font-size: 13px;
-  box-shadow: none !important;
+  border: 1.5px solid #dce6e0;
+  background: #ffffff;
+  color: var(--roast-ink);
+  font-size: 0.81rem;
+  font-weight: 500;
+  padding: 0 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
 }
 
-.clean-select:focus,
-.clean-select-input:focus {
-  border-color: var(--primary, #2d5a43);
-  box-shadow: none !important;
+.filter-input:focus {
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
-.clean-select-input {
-  height: 44px;
+.search-input {
+  width: 100%;
+  padding-left: 32px;
+  padding-right: 28px;
+}
+
+.filter-select {
+  padding-right: 1.85rem;
+  cursor: pointer;
+}
+
+/* Toolbar Buttons */
+.toolbar-btn {
+  height: 36px;
+  padding: 0 0.8rem;
+  border: 1.5px solid #dce6e0;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle, #e5e7eb);
-  font-size: 14px;
+  background: #ffffff;
+  color: #3d5245;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  white-space: nowrap;
 }
 
-/* Clean Table */
+.toolbar-btn:hover:not(:disabled) {
+  border-color: #b8ccc0;
+  background: #f2f7f4;
+  color: var(--roast-ink);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Clean Ledger Table ── */
 .clean-table th {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--outline, #827470);
-  background-color: var(--surface-container-low, #f6f3f2);
-  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
-  padding-top: 12px;
-  padding-bottom: 12px;
+  background: #f4f8f5;
+  font-size: 0.75rem;
+  color: #4f6356;
+  font-weight: 700;
+  padding: 0.72rem 1rem;
+  border-bottom: 1px solid var(--ledger-line);
+  white-space: nowrap;
 }
 
 .clean-table td {
-  padding-top: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
-  font-size: 14px;
+  padding: 0.78rem 1rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  font-size: 0.84rem;
+  color: var(--roast-ink);
+}
+
+.clean-table tbody tr:hover td {
+  background-color: #f8fbf9;
 }
 
 .clean-table tbody tr:last-child td {
   border-bottom: none;
 }
 
+/* Product Cell */
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
 .prod-thumb {
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background-color: var(--surface-container-low, #f6f3f2);
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  font-size: 18px;
+  background: #f2f7f4;
+  border: 1px solid var(--ledger-line);
+  color: var(--botanical-primary);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.product-cell__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.product-cell__name {
+  font-weight: 700;
+  color: var(--roast-ink);
+  font-size: 0.87rem;
+}
+
+.product-cell__desc {
+  font-size: 0.75rem;
+  color: var(--sage-muted);
+  max-width: 240px;
+}
+
+/* Category & Type Badges */
+.cat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #f3f7f4;
+  border: 1px solid #dce8e0;
+  color: #354a3d;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.22rem 0.6rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.cat-badge i {
+  font-size: 0.72rem;
+  color: var(--botanical-primary);
 }
 
 .type-pill {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
   border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .type-pill--drink {
-  background-color: var(--secondary-fixed, #d6ede0);
-  color: var(--on-secondary-fixed, #2b1707);
+  background: #eef6f1;
+  border: 1px solid #d2e4d9;
+  color: var(--botanical-deep);
 }
 
 .type-pill--food {
-  background-color: #fef3c7;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
   color: #92400e;
 }
 
 .type-pill--addon {
-  background-color: var(--surface-container, #f0eded);
-  color: var(--on-surface-variant, #504440);
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+}
+
+/* Variant Dropdown */
+.variant-dropdown-wrap {
+  display: inline-block;
+  min-width: 175px;
+  max-width: 235px;
 }
 
 .variant-select {
-  max-width: 210px;
-  min-width: 165px;
-  height: 32px;
-  font-size: 13px;
-  font-weight: 500;
+  height: 33px;
+  font-size: 0.79rem;
+  font-weight: 600;
   border-radius: 8px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  background-color: var(--surface-container-low, #fcfbfa);
-  color: var(--on-surface, #1c1b1b);
+  border: 1.5px solid #dce6e0;
+  background-color: #f8fbf9;
+  color: var(--botanical-deep);
   cursor: pointer;
-  padding: 0.25rem 1.75rem 0.25rem 0.65rem;
-  background-position: right 0.5rem center;
-  transition: all 0.15s ease;
+  padding: 0.2rem 1.85rem 0.2rem 0.68rem;
+  transition: all 0.14s ease;
+  outline: none;
 }
 
 .variant-select:hover {
   background-color: #ffffff;
-  border-color: #d1cdc7;
+  border-color: #b8ccc0;
 }
 
 .variant-select:focus {
-  border-color: var(--primary, #2d5a43);
-  box-shadow: none;
   background-color: #ffffff;
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
-.status-dot-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-dot-badge::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-
-.status-active {
-  color: #166534;
-}
-.status-active::before {
-  background-color: #16a34a;
-}
-
-.status-inactive {
-  color: var(--outline, #827470);
-}
-.status-inactive::before {
-  background-color: #9ca3af;
-}
-
-.btn-action {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #64748b;
+/* Order & Items Badges (Categories Tab) */
+.order-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  transition: all 0.15s ease;
+  min-width: 34px;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  background: #f2f7f4;
+  border: 1px solid #dce8e0;
+  color: var(--botanical-deep);
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
-.btn-action:hover {
-  background-color: #f1f5f9;
-  color: #1e293b;
+.items-pill {
+  display: inline-block;
+  padding: 0.2rem 0.58rem;
+  border-radius: 6px;
+  background: #f3f7f4;
+  border: 1px solid #e2ece6;
+  color: #485e50;
+  font-size: 0.76rem;
+  font-weight: 600;
 }
 
-.btn-action--danger:hover {
-  background-color: #fef2f2;
-  color: #dc2626;
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  font-size: 0.73rem;
+  font-weight: 700;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.status-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.status-badge.active {
+  background: #e6f6ec;
+  color: #166534;
+  border: 1px solid #ccebd7;
+}
+
+.status-badge.inactive {
+  background: #f1f5f3;
+  color: #526358;
+  border: 1px solid #dce5df;
+}
+
+/* Action Buttons */
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.btn-action-icon {
+  width: 31px;
+  height: 31px;
+  border-radius: 7px;
+  border: 1px solid #dce6e0;
+  background: #ffffff;
+  color: #465a4e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  transition: all 0.14s ease;
+  cursor: pointer;
+}
+
+.btn-action-icon:hover {
+  background: var(--botanical-tint);
+  border-color: var(--botanical-border);
+  color: var(--botanical-deep);
+}
+
+.btn-action-icon.is-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.btn-action-icon.is-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+/* Pagination & Empty States */
+.pagination-bar {
+  padding: 0.72rem 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fbf9;
+  border-top: 1px solid var(--ledger-hairline);
+}
+
+.pagination-info {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3d5245;
+}
+
+.empty-box {
+  padding: 3.5rem 1.25rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.empty-box__icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 0.65rem;
+  border-radius: 10px;
+  background: #f0f6f2;
+  border: 1px solid #dce6e0;
+  color: #3b7054;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+
+.empty-box__title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+  margin-bottom: 2px;
+}
+
+.empty-box__desc {
+  font-size: 0.8rem;
+  color: var(--sage-muted);
+  max-width: 380px;
 }
 
 /* Modal Styles */
 .modal-backdrop-custom {
   position: fixed;
   inset: 0;
-  background-color: rgba(28, 27, 27, 0.45);
+  background-color: rgba(18, 28, 22, 0.45);
   backdrop-filter: blur(2px);
   z-index: 1060;
 }
@@ -1360,35 +1715,48 @@ const clearFilters = () => {
 .modal-card {
   width: 100%;
   border-radius: 16px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
+  border: 1px solid var(--ledger-line);
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 20px 45px rgba(15, 28, 21, 0.16);
 }
 
 .modal-card--lg {
   max-width: 680px;
 }
 
+.clean-select-input {
+  height: 42px;
+  border-radius: 9px;
+  border: 1.5px solid #dce6e0;
+  font-size: 0.85rem;
+}
+
+.clean-select-input:focus {
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
 .prod-image-box {
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  background-color: var(--surface-container-low, #f6f3f2);
-  border: 1px solid var(--border-hairline, #e6e4e0);
+  background-color: #f2f7f4;
+  border: 1px solid var(--ledger-line);
 }
 
 .variants-box {
-  background-color: var(--surface-container-low, #f6f3f2);
-  border: 1px solid var(--border-hairline, #e6e4e0);
+  background-color: #f8fbf9;
+  border: 1px solid var(--ledger-line);
 }
 
 .add-variant-btn {
-  color: var(--primary, #2d5a43);
-  font-size: 13px;
+  color: var(--botanical-primary);
+  font-size: 0.82rem;
 }
 
 .custom-check:checked {
-  background-color: var(--primary, #2d5a43);
-  border-color: var(--primary, #2d5a43);
+  background-color: var(--botanical-primary);
+  border-color: var(--botanical-primary);
 }
 </style>

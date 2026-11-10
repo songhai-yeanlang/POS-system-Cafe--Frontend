@@ -1,51 +1,55 @@
 <template>
   <div class="expenses-page">
-    <!-- Clean Tab & Action Header Bar -->
-    <div class="expenses-nav-tabs d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-      <!-- Status Tabs -->
-      <div class="d-flex align-items-center gap-4">
+    <!-- Top Segmented Tabs & Summary Action Bar -->
+    <div class="expenses-top-bar">
+      <!-- Status Segmented Tabs -->
+      <div class="expenses-segmented-tabs" role="tablist">
         <button
           type="button"
-          class="nav-tab-btn"
+          class="seg-tab-btn"
           :class="{ active: filters.status === '' }"
           @click="setStatusFilter('')"
         >
+          <i class="bi bi-wallet2"></i>
           <span>{{ $t('expenses.allExpenses') }}</span>
-          <span v-if="filters.status === '' && pagination.total_items > 0" class="tab-badge">
+          <span v-if="filters.status === '' && pagination.total_items > 0" class="seg-tab-count tabular">
             {{ pagination.total_items }}
           </span>
         </button>
         <button
           type="button"
-          class="nav-tab-btn"
+          class="seg-tab-btn"
           :class="{ active: filters.status === 'ACTIVE' }"
           @click="setStatusFilter('ACTIVE')"
         >
+          <span class="seg-tab-dot active"></span>
           <span>{{ $t('expenses.active') }}</span>
         </button>
         <button
           type="button"
-          class="nav-tab-btn"
+          class="seg-tab-btn"
           :class="{ active: filters.status === 'VOIDED' }"
           @click="setStatusFilter('VOIDED')"
         >
+          <span class="seg-tab-dot voided"></span>
           <span>{{ $t('expenses.voided') }}</span>
         </button>
       </div>
 
-      <!-- Right Action & Summary -->
-      <div class="d-flex align-items-center gap-3 pb-2">
-        <div class="total-summary-tag d-none d-sm-inline-flex align-items-center gap-1.5">
-          <span class="text-muted small">{{ $t('common.total') }}:</span>
-          <span class="fw-bold text-dark numeric-tabular">{{ formatUsd(summaryTotals.total_equivalent_usd) }}</span>
-          <span v-if="summaryTotals.total_khr > 0" class="text-muted small numeric-tabular">
+      <!-- Right Summary Pill & Primary Record Action -->
+      <div class="expenses-top-bar__right">
+        <div class="expense-summary-pill tabular">
+          <i class="bi bi-calculator"></i>
+          <span class="expense-summary-pill__label">{{ $t('common.total') }}:</span>
+          <strong class="expense-summary-pill__usd">{{ formatUsd(summaryTotals.total_equivalent_usd) }}</strong>
+          <span v-if="summaryTotals.total_khr > 0" class="expense-summary-pill__khr">
             ({{ Number(summaryTotals.total_khr).toLocaleString() }} ៛)
           </span>
         </div>
 
         <button
           type="button"
-          class="btn btn-coffee btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-1.5"
+          class="btn-record-expense"
           @click="openCreateModal"
         >
           <i class="bi bi-plus-lg"></i>
@@ -57,33 +61,41 @@
     <!-- Main Expenses Card -->
     <div class="clean-card">
       <!-- Single-Row Filter Toolbar -->
-      <div class="filter-bar d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <div class="d-flex align-items-center flex-wrap gap-2 flex-grow-1">
+      <div class="filter-bar">
+        <div class="filter-bar__left">
           <div class="search-wrap">
             <i class="bi bi-search search-icon"></i>
             <input
               v-model="filters.search"
               type="text"
-              class="form-control form-control-sm search-input"
+              class="filter-input search-input"
               :placeholder="$t('expenses.searchPlaceholder')"
               @keyup.enter="applyFilters"
             />
+            <button
+              v-if="filters.search"
+              type="button"
+              class="search-clear"
+              @click="filters.search = ''; applyFilters()"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
 
           <select
             v-model="filters.category"
-            class="form-select form-select-sm filter-select"
+            class="filter-input filter-select"
             @change="applyFilters"
           >
             <option value="">{{ $t('common.allCategories') }}</option>
             <option v-for="cat in expenseCategories" :key="cat" :value="cat">
-              {{ $t(`expenses.categories.${cat}`) !== `expenses.categories.${cat}` ? $t(`expenses.categories.${cat}`) : cat }}
+              {{ getCategoryLabel(cat) }}
             </option>
           </select>
 
           <select
             v-model="filters.payment_method"
-            class="form-select form-select-sm filter-select"
+            class="filter-input filter-select"
             @change="applyFilters"
           >
             <option value="">{{ $t('common.allMethods') }}</option>
@@ -92,41 +104,46 @@
             <option value="BANK_TRANSFER">{{ $t('common.bankTransfer') }}</option>
           </select>
 
-          <div class="d-flex align-items-center gap-1">
+          <div class="date-range-group">
+            <i class="bi bi-calendar3 date-range-group__icon"></i>
             <input
               v-model="filters.start_date"
               type="date"
-              class="form-control form-control-sm filter-date"
+              class="date-range-group__input"
               @change="applyFilters"
             />
-            <span class="text-muted small">{{ $t('expenses.to') }}</span>
+            <span class="date-range-group__sep">→</span>
             <input
               v-model="filters.end_date"
               type="date"
-              class="form-control form-control-sm filter-date"
+              class="date-range-group__input"
               @change="applyFilters"
             />
           </div>
+        </div>
 
+        <div class="filter-bar__right">
           <button
             v-if="appStore.currentShift?.id"
             type="button"
-            class="btn btn-sm"
-            :class="filters.currentShiftOnly ? 'btn-coffee' : 'btn-light-coffee'"
+            class="toolbar-btn"
+            :class="{ 'is-active': filters.currentShiftOnly }"
             @click="toggleCurrentShiftOnly"
           >
-            {{ $t('expenses.currentShift') }}
+            <i class="bi bi-clock-history"></i>
+            <span>{{ $t('expenses.currentShift') }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="toolbar-btn"
+            :title="$t('common.reset')"
+            @click="resetFilters"
+          >
+            <i class="bi bi-arrow-counterclockwise"></i>
+            <span>{{ $t('common.reset') }}</span>
           </button>
         </div>
-
-        <button
-          type="button"
-          class="btn btn-light-coffee btn-sm d-inline-flex align-items-center gap-1"
-          @click="resetFilters"
-        >
-          <i class="bi bi-arrow-counterclockwise"></i>
-          <span>{{ $t('common.reset') }}</span>
-        </button>
       </div>
 
       <!-- Loading / Empty / Table -->
@@ -136,9 +153,11 @@
       </div>
 
       <div v-else-if="expensesList.length === 0" class="empty-box">
-        <i class="bi bi-wallet2 fs-2 text-muted mb-2 d-block"></i>
-        <div class="fw-semibold text-dark">{{ $t('expenses.noExpensesFound') }}</div>
-        <div class="small text-muted">{{ $t('expenses.noExpensesFoundDesc') }}</div>
+        <div class="empty-box__icon">
+          <i class="bi bi-wallet2"></i>
+        </div>
+        <div class="empty-box__title">{{ $t('expenses.noExpensesFound') }}</div>
+        <div class="empty-box__desc">{{ $t('expenses.noExpensesFoundDesc') }}</div>
       </div>
 
       <div v-else class="table-responsive">
@@ -162,41 +181,69 @@
               :class="{ 'row-voided': exp.status === 'VOIDED' }"
             >
               <td>
-                <div class="small text-dark fw-semibold">{{ formatDateTime(exp.incurred_at) }}</div>
-              </td>
-              <td>
-                <span class="cat-badge">{{ $t(`expenses.categories.${exp.category}`) !== `expenses.categories.${exp.category}` ? $t(`expenses.categories.${exp.category}`) : exp.category }}</span>
-              </td>
-              <td>
-                <div class="text-dark" style="max-width: 280px">{{ exp.description }}</div>
-                <div v-if="exp.status === 'VOIDED' && exp.void_reason" class="small text-danger mt-1">
-                  {{ $t('expenses.voided') }}: {{ exp.void_reason }}
+                <div class="date-cell tabular">
+                  <span class="date-cell__time">{{ formatDateTime(exp.incurred_at) }}</span>
+                  <span v-if="exp.shift_id" class="date-cell__shift">
+                    {{ $t('receipt.shift') }} #{{ exp.shift_id }}
+                  </span>
                 </div>
               </td>
               <td>
-                <span class="method-pill">{{ exp.payment_method }}</span>
+                <span class="cat-badge">{{ getCategoryLabel(exp.category, true) }}</span>
               </td>
               <td>
-                <div class="fw-bold" :class="exp.status === 'VOIDED' ? 'text-decoration-line-through text-muted' : 'text-dark'">
-                  {{ exp.currency === 'USD' ? formatUsd(exp.amount) : formatKhr(exp.amount) }}
+                <div class="desc-text">{{ exp.description }}</div>
+                <div v-if="exp.status === 'VOIDED' && exp.void_reason" class="void-reason-note">
+                  <i class="bi bi-info-circle me-1"></i>{{ $t('expenses.voided') }}: {{ exp.void_reason }}
                 </div>
-              </td>
-              <td>
-                <span class="small fw-semibold">{{ exp.created_by_name }}</span>
               </td>
               <td>
                 <span
-                  class="status-pill"
+                  class="method-pill"
+                  :class="exp.payment_method ? exp.payment_method.toLowerCase() : ''"
+                >
+                  <i
+                    :class="
+                      exp.payment_method === 'CASH'
+                        ? 'bi bi-cash-stack'
+                        : exp.payment_method === 'KHQR'
+                          ? 'bi bi-qr-code-scan'
+                          : 'bi bi-bank'
+                    "
+                  ></i>
+                  <span>{{ getMethodLabel(exp.payment_method) }}</span>
+                </span>
+              </td>
+              <td>
+                <div
+                  class="amount-cell tabular"
+                  :class="{ 'is-voided': exp.status === 'VOIDED' }"
+                >
+                  <strong class="amount-cell__main">
+                    {{ exp.currency === 'USD' ? formatUsd(exp.amount) : formatKhr(exp.amount) }}
+                  </strong>
+                  <span v-if="exp.currency === 'USD'" class="amount-cell__sub">
+                    {{ formatKhr(usdToKhr(exp.amount)) }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="recorder-name">{{ exp.created_by_name }}</span>
+              </td>
+              <td>
+                <span
+                  class="status-badge"
                   :class="exp.status === 'ACTIVE' ? 'active' : 'voided'"
                 >
-                  {{ exp.status }}
+                  <span class="status-badge__dot"></span>
+                  <span>{{ exp.status === 'ACTIVE' ? $t('expenses.active') : $t('expenses.voided') }}</span>
                 </span>
               </td>
               <td class="text-end">
-                <div v-if="exp.status === 'ACTIVE' && canManageExpense(exp)" class="d-inline-flex gap-1">
+                <div v-if="exp.status === 'ACTIVE' && canManageExpense(exp)" class="action-group">
                   <button
                     type="button"
-                    class="btn btn-action-icon"
+                    class="btn-action-icon"
                     :title="$t('common.edit')"
                     @click="openEditModal(exp)"
                   >
@@ -204,7 +251,7 @@
                   </button>
                   <button
                     type="button"
-                    class="btn btn-action-icon btn-action-icon--danger"
+                    class="btn-action-icon is-danger"
                     :title="$t('common.delete')"
                     @click="openVoidModal(exp)"
                   >
@@ -220,25 +267,27 @@
 
       <!-- Pagination -->
       <div v-if="pagination.total_pages > 1" class="pagination-bar">
-        <div class="small text-muted">
+        <div class="pagination-info tabular">
           {{ $t('common.pageOf', { page: pagination.current_page, total: pagination.total_pages }) }}
         </div>
-        <div class="d-flex gap-1">
+        <div class="d-flex gap-2">
           <button
             type="button"
-            class="btn btn-light-coffee btn-sm"
+            class="toolbar-btn"
             :disabled="pagination.current_page <= 1"
             @click="fetchExpenses(pagination.current_page - 1)"
           >
-            {{ $t('common.prev') }}
+            <i class="bi bi-chevron-left"></i>
+            <span>{{ $t('common.prev') }}</span>
           </button>
           <button
             type="button"
-            class="btn btn-light-coffee btn-sm"
+            class="toolbar-btn"
             :disabled="pagination.current_page >= pagination.total_pages"
             @click="fetchExpenses(pagination.current_page + 1)"
           >
-            {{ $t('common.next') }}
+            <span>{{ $t('common.next') }}</span>
+            <i class="bi bi-chevron-right"></i>
           </button>
         </div>
       </div>
@@ -261,17 +310,17 @@
             <!-- Warning if CASH selected without open shift -->
             <div
               v-if="form.payment_method === 'CASH' && !appStore.hasOpenShift && !authStore.isOwner"
-              class="alert alert-warning py-2 px-3 small mb-3"
+              class="shift-warn-banner mb-3"
             >
-              <i class="bi bi-exclamation-triangle me-1"></i>
-              {{ $t('expenses.cashShiftWarning') }}
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              <span>{{ $t('expenses.cashShiftWarning') }}</span>
             </div>
 
             <div class="mb-3">
               <label class="form-label-clean">{{ $t('expenses.categoryLabel') }} <span class="text-danger">*</span></label>
               <select v-model="form.category" class="form-select form-control-clean" required>
                 <option v-for="cat in expenseCategories" :key="cat" :value="cat">
-                  {{ $t(`expenses.categories.${cat}`) !== `expenses.categories.${cat}` ? $t(`expenses.categories.${cat}`) : cat }}
+                  {{ getCategoryLabel(cat) }}
                 </option>
               </select>
             </div>
@@ -285,7 +334,8 @@
                   :class="{ active: form.payment_method === 'CASH' }"
                   @click="form.payment_method = 'CASH'"
                 >
-                  {{ $t('common.cash') }}
+                  <i class="bi bi-cash-stack"></i>
+                  <span>{{ $t('common.cash') }}</span>
                 </button>
                 <button
                   type="button"
@@ -293,7 +343,8 @@
                   :class="{ active: form.payment_method === 'KHQR' }"
                   @click="form.payment_method = 'KHQR'"
                 >
-                  {{ $t('common.khqr') }}
+                  <i class="bi bi-qr-code-scan"></i>
+                  <span>{{ $t('common.khqr') }}</span>
                 </button>
                 <button
                   type="button"
@@ -301,7 +352,8 @@
                   :class="{ active: form.payment_method === 'BANK_TRANSFER' }"
                   @click="form.payment_method = 'BANK_TRANSFER'"
                 >
-                  {{ $t('common.bankTransfer') }}
+                  <i class="bi bi-bank"></i>
+                  <span>{{ $t('common.bankTransfer') }}</span>
                 </button>
               </div>
             </div>
@@ -338,14 +390,14 @@
                   type="number"
                   :step="form.currency === 'USD' ? '0.01' : '100'"
                   min="0.01"
-                  class="form-control form-control-clean fw-bold"
+                  class="form-control form-control-clean fw-bold tabular"
                   placeholder="0.00"
                   required
                 />
               </div>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-1">
               <label class="form-label-clean">{{ $t('expenses.descriptionLabel') }} <span class="text-danger">*</span></label>
               <textarea
                 v-model="form.description"
@@ -359,10 +411,10 @@
           </div>
 
           <div class="modal-footer-custom">
-            <button type="button" class="btn btn-light-coffee" @click="showFormModal = false">
+            <button type="button" class="toolbar-btn" @click="showFormModal = false">
               {{ $t('common.cancel') }}
             </button>
-            <button type="submit" class="btn btn-coffee flex-grow-1" :disabled="isSubmitting">
+            <button type="submit" class="btn-coffee flex-grow-1" :disabled="isSubmitting">
               <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
               {{ editingExpense ? $t('common.saveChanges') : $t('expenses.recordExpense') }}
             </button>
@@ -390,7 +442,7 @@
                     voidingExpense.currency === 'USD'
                       ? formatUsd(voidingExpense.amount)
                       : formatKhr(voidingExpense.amount),
-                  category: voidingExpense.category,
+                  category: getCategoryLabel(voidingExpense.category),
                 })
               }}
             </p>
@@ -408,7 +460,7 @@
           </div>
 
           <div class="modal-footer-custom">
-            <button type="button" class="btn btn-light-coffee" @click="showVoidModal = false">
+            <button type="button" class="toolbar-btn" @click="showVoidModal = false">
               {{ $t('expenses.keepActive') }}
             </button>
             <button type="submit" class="btn btn-danger flex-grow-1" :disabled="isVoiding">
@@ -430,12 +482,52 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useCurrency } from '@/composables/useCurrency'
 import { useFormatDate } from '@/composables/useFormatDate'
+import { useI18n } from '@/i18n'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const toast = useToast()
 const { formatUsd, formatKhr, usdToKhr } = useCurrency()
 const { formatDateTime } = useFormatDate()
+const { t } = useI18n()
+
+const CATEGORY_KEY_MAP = {
+  'INGREDIENTS & SUPPLIES': 'INGREDIENTS',
+  'INGREDIENTS': 'INGREDIENTS',
+  'SUPPLIES': 'SUPPLIES',
+  'PACKAGING & CUPS': 'SUPPLIES',
+  'UTILITIES': 'UTILITIES',
+  'UTILITIES & INTERNET': 'UTILITIES',
+  'MAINTENANCE': 'MAINTENANCE',
+  'REPAIR & MAINTENANCE': 'MAINTENANCE',
+  'SALARY': 'SALARY',
+  'STAFF & SALARY': 'SALARY',
+  'MARKETING': 'MARKETING',
+  'RENT': 'RENT',
+  'EQUIPMENT': 'EQUIPMENT',
+  'OTHER': 'OTHER',
+  'MISCELLANEOUS': 'OTHER',
+}
+
+const getCategoryLabel = (cat, short = false) => {
+  if (!cat) return '—'
+  const upper = String(cat).trim().toUpperCase()
+  const mappedKey = CATEGORY_KEY_MAP[upper] || upper
+  const key = `expenses.categories.${mappedKey}`
+  const translated = t(key)
+  const label = translated !== key ? translated : cat
+  if (short) {
+    return label.replace(/\s*\([A-Z_&\s]+\)\s*$/, '').trim()
+  }
+  return label
+}
+
+const getMethodLabel = (method) => {
+  if (method === 'CASH') return t('common.cash')
+  if (method === 'KHQR') return t('common.khqr')
+  if (method === 'BANK_TRANSFER') return t('common.bankTransfer')
+  return method || '—'
+}
 
 const expenseCategories = ref([
   'INGREDIENTS',
@@ -695,287 +787,612 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page-header-bar {
+.expenses-page {
+  --botanical-primary: #2d5a43;
+  --botanical-deep: #193e2b;
+  --botanical-tint: #eaf5ee;
+  --botanical-border: #3b7054;
+  --ledger-line: #dce6e0;
+  --ledger-hairline: #ecf2ee;
+  --roast-ink: #1e2a23;
+  --sage-muted: #62756a;
+
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Top Bar: Segmented Status Tabs & Summary Actions ── */
+.expenses-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
 }
 
-.kpi-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 0.85rem;
+.expenses-segmented-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: #e9f0ec;
+  border: 1px solid var(--ledger-line);
+  border-radius: 10px;
 }
 
-.kpi-card {
+.seg-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.44rem 0.95rem;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #4f6356;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.seg-tab-btn i {
+  font-size: 0.9rem;
+}
+
+.seg-tab-btn:hover:not(.active) {
+  color: var(--roast-ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.seg-tab-btn.active {
   background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 14px;
-  padding: 0.9rem 1.1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
+  color: var(--botanical-deep);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(20, 35, 26, 0.08);
 }
 
-.kpi-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
+.seg-tab-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  background: var(--botanical-tint);
+  color: var(--botanical-primary);
+}
+
+.seg-tab-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.bg-coffee-soft {
-  background: #f4eee8;
-  color: #2d5a43;
+.seg-tab-dot.active {
+  background: #16a34a;
 }
 
-.bg-warning-soft {
-  background: #fef3c7;
-  color: #b45309;
+.seg-tab-dot.voided {
+  background: #dc2626;
 }
 
-.bg-info-soft {
-  background: #e0f2fe;
-  color: #0369a1;
+/* ── Top Right Summary & Primary CTA ── */
+.expenses-top-bar__right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
 }
 
-.kpi-label {
-  font-size: 0.74rem;
-  color: #78716c;
-  font-weight: 600;
-}
-
-.kpi-value {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: #1c1917;
-  line-height: 1.2;
-}
-
-.kpi-sub {
-  font-size: 0.7rem;
-  color: #8a7f78;
-}
-
-.expenses-nav-tabs {
-  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
-}
-
-.nav-tab-btn {
-  border: none;
-  background: transparent;
-  padding: 0.65rem 0.25rem;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--on-surface-variant, #716762);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+.expense-summary-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  transition: all 0.15s ease;
-  cursor: pointer;
+  gap: 0.45rem;
+  height: 38px;
+  padding: 0 0.95rem;
+  border-radius: 9px;
+  background: #f3f9f5;
+  border: 1.5px solid #cde2d5;
+  color: var(--roast-ink);
 }
 
-.nav-tab-btn:hover {
-  color: var(--on-surface, #1c1b1b);
+.expense-summary-pill i {
+  color: var(--botanical-primary);
+  font-size: 0.92rem;
 }
 
-.nav-tab-btn.active {
-  color: var(--primary, #2d5a43);
+.expense-summary-pill__label {
+  font-size: 0.78rem;
   font-weight: 600;
-  border-bottom-color: var(--primary, #2d5a43);
+  color: #4f6356;
 }
 
-.tab-badge {
-  font-size: 11px;
+.expense-summary-pill__usd {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--botanical-deep);
+}
+
+.expense-summary-pill__khr {
+  font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  background-color: var(--surface-container-low, #f6f3f2);
-  color: var(--on-surface-variant, #504440);
+  color: var(--sage-muted);
 }
 
-.nav-tab-btn.active .tab-badge {
-  background-color: var(--primary, #2d5a43);
+.btn-record-expense {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  height: 38px;
+  padding: 0 1.05rem;
+  border-radius: 9px;
+  background: var(--botanical-primary);
+  border: 1px solid var(--botanical-primary);
   color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.16);
 }
 
-.total-summary-tag {
-  font-size: 13px;
-  padding: 0.35rem 0.75rem;
-  border-radius: 8px;
-  background-color: var(--surface-container-low, #f6f3f2);
-  border: 1px solid var(--border-hairline, #e6e4e0);
+.btn-record-expense:hover {
+  background: var(--botanical-deep);
+  border-color: var(--botanical-deep);
 }
 
+/* ── Main Ledger Card & Filter Toolbar ── */
 .clean-card {
   background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 16px;
+  border: 1px solid var(--ledger-line);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
 }
 
 .filter-bar {
-  padding: 0.9rem 1.1rem;
-  border-bottom: 1px solid #eeeae4;
-  background: #fcfbfa;
+  padding: 0.78rem 1.05rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  background: #f8fbf9;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.65rem;
+}
+
+.filter-bar__left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+}
+
+.filter-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .search-wrap {
   position: relative;
-  min-width: 210px;
+  min-width: 245px;
+  flex: 0 1 285px;
 }
 
 .search-icon {
   position: absolute;
-  left: 10px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
-  color: #8a7f78;
+  color: var(--sage-muted);
   font-size: 0.8rem;
+  pointer-events: none;
 }
 
-.search-input {
-  padding-left: 30px;
-  border-radius: 9px;
-  border: 1px solid #dedad4;
-}
-
-.filter-select,
-.filter-date {
-  width: auto;
-  border-radius: 9px;
-  border: 1px solid #dedad4;
-}
-
-.clean-table th {
-  background: #faf9f7;
-  font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #6b5b52;
-  font-weight: 700;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #eeeae4;
-}
-
-.clean-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f3f0ec;
-  font-size: 0.85rem;
-}
-
-.row-voided {
-  background: #fafaf9;
-  opacity: 0.75;
-}
-
-.cat-badge {
-  background: #edf7f1;
-  border: 1px solid #f5d0b5;
-  color: #2d5a43;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.18rem 0.55rem;
-  border-radius: 6px;
-}
-
-.method-pill {
-  background: #f4f1ed;
-  color: #4f433d;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.18rem 0.55rem;
-  border-radius: 6px;
-}
-
-.status-pill {
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-}
-
-.status-pill.active {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.status-pill.voided {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.btn-action-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+.search-clear {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
   border: none;
+  border-radius: 5px;
   background: transparent;
-  color: #64748b;
+  color: var(--sage-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  transition: all 0.15s ease;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.search-clear:hover {
+  background: #e8f0eb;
+  color: var(--roast-ink);
+}
+
+.filter-input {
+  height: 36px;
+  border-radius: 8px;
+  border: 1.5px solid #dce6e0;
+  background: #ffffff;
+  color: var(--roast-ink);
+  font-size: 0.81rem;
+  font-weight: 500;
+  padding: 0 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.filter-input:focus {
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.search-input {
+  width: 100%;
+  padding-left: 32px;
+  padding-right: 28px;
+}
+
+.filter-select {
+  padding-right: 1.85rem;
+  cursor: pointer;
+}
+
+/* Unified Date Range Pill */
+.date-range-group {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.65rem;
+  background: #ffffff;
+  border: 1.5px solid #dce6e0;
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.date-range-group:focus-within {
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.date-range-group__icon {
+  font-size: 0.78rem;
+  color: var(--sage-muted);
+  margin-right: 2px;
+}
+
+.date-range-group__input {
+  border: none;
+  background: transparent;
+  color: var(--roast-ink);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0;
+  width: 112px;
+  cursor: pointer;
+  outline: none;
+}
+
+.date-range-group__sep {
+  color: #94a89c;
+  font-size: 0.75rem;
+  padding: 0 2px;
+}
+
+/* Toolbar Buttons */
+.toolbar-btn {
+  height: 36px;
+  padding: 0 0.8rem;
+  border: 1.5px solid #dce6e0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #3d5245;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover:not(:disabled):not(.is-active) {
+  border-color: #b8ccc0;
+  background: #f2f7f4;
+  color: var(--roast-ink);
+}
+
+.toolbar-btn.is-active {
+  background: var(--botanical-tint);
+  border-color: var(--botanical-border);
+  color: var(--botanical-deep);
+  font-weight: 700;
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Table Styling ── */
+.clean-table th {
+  background: #f4f8f5;
+  font-size: 0.75rem;
+  color: #4f6356;
+  font-weight: 700;
+  padding: 0.72rem 1rem;
+  border-bottom: 1px solid var(--ledger-line);
+  white-space: nowrap;
+}
+
+.clean-table td {
+  padding: 0.78rem 1rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  font-size: 0.84rem;
+  color: var(--roast-ink);
+}
+
+.clean-table tbody tr:hover td {
+  background-color: #f8fbf9;
+}
+
+.clean-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.row-voided td {
+  background: #fafcfb;
+}
+
+.date-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.date-cell__time {
+  font-weight: 600;
+  color: var(--roast-ink);
+  font-size: 0.81rem;
+  white-space: nowrap;
+}
+
+.date-cell__shift {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+  white-space: nowrap;
+}
+
+.cat-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #eef6f1;
+  border: 1px solid #d2e4d9;
+  color: var(--botanical-deep);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.24rem 0.62rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.desc-text {
+  font-weight: 600;
+  color: var(--roast-ink);
+  line-height: 1.4;
+}
+
+.void-reason-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  margin-top: 0.25rem;
+  padding: 0.14rem 0.5rem;
+  border-radius: 5px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.method-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.22rem 0.6rem;
+  border-radius: 6px;
+  background: #eef5f1;
+  border: 1px solid #d8e6de;
+  color: var(--botanical-deep);
+  white-space: nowrap;
+}
+
+.method-pill.khqr {
+  background: #eff6ff;
+  border-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.method-pill.bank_transfer {
+  background: #f5f3ff;
+  border-color: #ede9fe;
+  color: #6d28d9;
+}
+
+.amount-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: nowrap;
+}
+
+.amount-cell__main {
+  font-weight: 800;
+  color: var(--botanical-deep);
+  font-size: 0.88rem;
+}
+
+.amount-cell__sub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--sage-muted);
+}
+
+.amount-cell.is-voided .amount-cell__main {
+  color: #7c8b82;
+  text-decoration: line-through;
+}
+
+.recorder-name {
+  font-size: 0.81rem;
+  font-weight: 600;
+  color: #35473c;
+  white-space: nowrap;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  font-size: 0.73rem;
+  font-weight: 700;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.status-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.status-badge.active {
+  background: #e6f6ec;
+  color: #166534;
+  border: 1px solid #ccebd7;
+}
+
+.status-badge.voided {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Table Actions */
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.btn-action-icon {
+  width: 31px;
+  height: 31px;
+  border-radius: 7px;
+  border: 1px solid #dce6e0;
+  background: #ffffff;
+  color: #465a4e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  transition: all 0.14s ease;
+  cursor: pointer;
 }
 
 .btn-action-icon:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: var(--botanical-tint);
+  border-color: var(--botanical-border);
+  color: var(--botanical-deep);
 }
 
-.btn-action-icon--danger:hover {
+.btn-action-icon.is-danger {
   background: #fef2f2;
-  color: #dc2626;
+  border-color: #fecaca;
+  color: #b91c1c;
 }
 
+.btn-action-icon.is-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+/* Pagination */
 .pagination-bar {
-  padding: 0.75rem 1.1rem;
+  padding: 0.72rem 1.05rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fcfbfa;
+  background: #f8fbf9;
+  border-top: 1px solid var(--ledger-hairline);
 }
 
+.pagination-info {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3d5245;
+}
+
+/* Empty State */
 .empty-box {
-  padding: 3.5rem 1rem;
+  padding: 3.5rem 1.25rem;
   text-align: center;
 }
 
-.btn-coffee {
-  background: #2d5a43;
-  color: #ffffff;
-  border: none;
-  border-radius: 9px;
-  font-weight: 600;
+.empty-box__icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 0.65rem;
+  border-radius: 10px;
+  background: #f0f6f2;
+  border: 1px solid #dce6e0;
+  color: #3b7054;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
 }
 
-.btn-light-coffee {
-  background: #f4f1ed;
-  color: #2d5a43;
-  border: 1px solid #e6e1da;
-  border-radius: 9px;
-  font-weight: 600;
+.empty-box__title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+  margin-bottom: 2px;
 }
 
-/* Modal */
+.empty-box__desc {
+  font-size: 0.8rem;
+  color: var(--sage-muted);
+}
+
+/* ── Modals ── */
 .modal-backdrop-custom {
   position: fixed;
   inset: 0;
-  background: rgba(28, 25, 23, 0.45);
+  background: rgba(18, 28, 22, 0.45);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -986,82 +1403,141 @@ onMounted(async () => {
 
 .modal-card-custom {
   background: #ffffff;
-  border-radius: 18px;
-  border: 1px solid #e6e4e0;
+  border-radius: 16px;
+  border: 1px solid var(--ledger-line);
   width: 100%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 45px rgba(15, 28, 21, 0.16);
 }
 
 .modal-sm-custom {
-  max-width: 440px;
+  max-width: 450px;
 }
 
 .modal-header-custom {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #eeeae4;
+  border-bottom: 1px solid var(--ledger-hairline);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .modal-body-custom {
-  padding: 1.15rem 1.25rem;
+  padding: 1.2rem 1.25rem;
   overflow-y: auto;
 }
 
 .modal-footer-custom {
   padding: 0.85rem 1.25rem;
-  border-top: 1px solid #eeeae4;
-  background: #faf9f7;
+  border-top: 1px solid var(--ledger-hairline);
+  background: #f8fbf9;
   display: flex;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .btn-close-custom {
-  border: none;
-  background: #f4f1ed;
+  border: 1px solid var(--ledger-line);
+  background: #f8fbf9;
+  color: #4f6356;
   width: 32px;
   height: 32px;
   border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn-close-custom:hover {
+  background: #eaf5ee;
+  color: var(--botanical-deep);
+}
+
+.shift-warn-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 0.78rem;
+  font-weight: 500;
 }
 
 .form-label-clean {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #4f433d;
+  color: #35473c;
   margin-bottom: 0.35rem;
   display: block;
 }
 
 .form-control-clean {
-  border-radius: 10px;
-  border: 1px solid #dedad4;
-  background: #faf9f7;
-  font-size: 0.86rem;
+  border-radius: 9px;
+  border: 1.5px solid #dce6e0;
+  background: #ffffff;
+  font-size: 0.85rem;
+  color: var(--roast-ink);
+}
+
+.form-control-clean:focus {
+  background: #ffffff;
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
 .option-pills {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .opt-pill {
-  border: 1px solid #e2ddd6;
-  background: #faf9f7;
-  color: #4f433d;
+  border: 1.5px solid #dce6e0;
+  background: #ffffff;
+  color: #3d5245;
   border-radius: 9px;
-  padding: 0.4rem 0.65rem;
+  padding: 0.44rem 0.65rem;
   font-size: 0.78rem;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.opt-pill:hover:not(.active) {
+  background: #f2f7f4;
+  border-color: #b8ccc0;
 }
 
 .opt-pill.active {
-  background: #2d5a43;
+  background: var(--botanical-primary);
   color: #ffffff;
-  border-color: #2d5a43;
+  border-color: var(--botanical-primary);
+}
+
+.btn-coffee {
+  background: var(--botanical-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  height: 36px;
+  padding: 0 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-coffee:hover:not(:disabled) {
+  background: var(--botanical-deep);
+  color: #ffffff;
 }
 </style>
