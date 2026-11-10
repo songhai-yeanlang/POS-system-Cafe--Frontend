@@ -293,10 +293,27 @@ const handleLogout = async () => {
           <button
             type="button"
             class="btn btn-icon-toggle d-flex align-items-center justify-content-center"
+            :class="{ 'is-collapsed': isSidebarCollapsed }"
             :title="t('nav.toggleNav')"
+            :aria-label="t('nav.toggleNav')"
             @click="toggleSidebar"
           >
-            <i class="bi bi-layout-sidebar-inset fs-5"></i>
+            <svg
+              class="toggle-sidebar-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="4" />
+              <path d="M9 3v18" />
+              <path d="m14 9-2.5 3 2.5 3" class="toggle-arrow" />
+            </svg>
           </button>
 
           <div class="text-truncate">
@@ -589,14 +606,44 @@ const handleLogout = async () => {
 .btn-icon-toggle {
   width: 38px;
   height: 38px;
-  border-radius: 8px;
+  border-radius: 9px;
   border: 1px solid var(--border-hairline, #e6e4e0);
   background-color: var(--surface-container-lowest, #ffffff);
-  color: var(--on-surface, #1c1b1b);
+  color: var(--on-surface-variant, #4f5f56);
+  box-shadow: 0 1px 2px rgba(23, 33, 28, 0.04);
+  transition: all 0.16s ease;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .btn-icon-toggle:hover {
-  background-color: var(--surface-container-low, #f6f3f2);
+  background-color: var(--primary-container, #e8f2ec);
+  border-color: rgba(45, 90, 67, 0.28);
+  color: var(--primary, #2d5a43);
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.08);
+}
+
+.btn-icon-toggle:active {
+  transform: scale(0.95);
+}
+
+.toggle-sidebar-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.toggle-arrow {
+  transform-origin: 13px 12px;
+  transition: transform 0.24s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn-icon-toggle.is-collapsed .toggle-arrow {
+  transform: rotate(180deg);
 }
 
 .topbar-title {
