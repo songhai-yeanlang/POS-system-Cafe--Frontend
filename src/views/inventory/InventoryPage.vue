@@ -1,23 +1,24 @@
 <template>
   <div class="inventory-page">
-    <!-- Clean Tab Switcher & Primary Actions -->
-    <div class="inventory-nav-tabs d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-      <div class="d-flex align-items-center gap-4">
+    <!-- Top Segmented Tabs & Primary Actions -->
+    <div class="inventory-top-bar">
+      <div class="inventory-segmented-tabs" role="tablist">
         <button
           type="button"
-          class="nav-tab-btn"
+          class="seg-tab-btn"
           :class="{ active: activeTab === 'INGREDIENTS' }"
           @click="switchTab('INGREDIENTS')"
         >
           <i class="bi bi-boxes"></i>
           <span>{{ $t('inventory.tabIngredients') }}</span>
-          <span v-if="lowStockCount > 0" class="low-stock-count-pill ms-1">
+          <span class="seg-tab-count tabular">{{ ingredientPagination.total || ingredientsList.length }}</span>
+          <span v-if="lowStockCount > 0" class="low-stock-count-pill tabular">
             {{ $t('inventory.lowCount', { count: lowStockCount }) }}
           </span>
         </button>
         <button
           type="button"
-          class="nav-tab-btn"
+          class="seg-tab-btn"
           :class="{ active: activeTab === 'MOVEMENTS' }"
           @click="switchTab('MOVEMENTS')"
         >
@@ -26,20 +27,22 @@
         </button>
       </div>
 
-      <div v-if="authStore.isOwner" class="d-flex align-items-center gap-2 pb-2">
+      <div v-if="authStore.isOwner" class="inventory-top-bar__right">
         <button
           type="button"
-          class="btn btn-outline-coffee btn-sm"
+          class="btn-secondary-action"
           @click="openStockMovementModal()"
         >
-          <i class="bi bi-plus-slash-minus me-1"></i>{{ $t('inventory.recordMovement') }}
+          <i class="bi bi-plus-slash-minus"></i>
+          <span>{{ $t('inventory.recordMovement') }}</span>
         </button>
         <button
           type="button"
-          class="btn btn-coffee btn-sm"
+          class="btn-primary-action"
           @click="openCreateIngredientModal"
         >
-          <i class="bi bi-plus-lg me-1"></i>{{ $t('inventory.addIngredient') }}
+          <i class="bi bi-plus-lg"></i>
+          <span>{{ $t('inventory.addIngredient') }}</span>
         </button>
       </div>
     </div>
@@ -47,21 +50,29 @@
     <!-- ================= TAB 1: INGREDIENTS ================= -->
     <div v-if="activeTab === 'INGREDIENTS'" class="clean-card">
       <div class="filter-bar">
-        <div class="d-flex flex-wrap gap-2 align-items-center">
+        <div class="filter-bar__left">
           <div class="search-wrap">
             <i class="bi bi-search search-icon"></i>
             <input
               v-model="ingredientFilters.search"
               type="text"
-              class="form-control form-control-sm search-input"
+              class="filter-input search-input"
               :placeholder="$t('inventory.searchIngredientPlaceholder')"
               @keyup.enter="fetchIngredients(1)"
             />
+            <button
+              v-if="ingredientFilters.search"
+              type="button"
+              class="search-clear"
+              @click="ingredientFilters.search = ''; fetchIngredients(1)"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
 
           <select
             v-model="ingredientFilters.unit"
-            class="form-select form-select-sm filter-select"
+            class="filter-input filter-select"
             @change="fetchIngredients(1)"
           >
             <option value="">{{ $t('inventory.allUnits') }}</option>
@@ -72,7 +83,7 @@
 
           <select
             v-model="ingredientFilters.is_active"
-            class="form-select form-select-sm filter-select"
+            class="filter-input filter-select"
             @change="fetchIngredients(1)"
           >
             <option value="">{{ $t('common.allStatus') }}</option>
@@ -82,21 +93,25 @@
 
           <button
             type="button"
-            class="btn btn-sm"
-            :class="ingredientFilters.low_stock ? 'btn-warning text-dark fw-bold' : 'btn-light-coffee'"
+            class="toolbar-btn"
+            :class="{ 'is-warning-active': ingredientFilters.low_stock }"
             @click="toggleLowStockQuickFilter"
           >
-            <i class="bi bi-exclamation-circle me-1"></i>{{ $t('inventory.lowStockOnly') }}
+            <i class="bi bi-exclamation-circle"></i>
+            <span>{{ $t('inventory.lowStockOnly') }}</span>
           </button>
         </div>
 
-        <button
-          type="button"
-          class="btn btn-light-coffee btn-sm"
-          @click="resetIngredientFilters"
-        >
-          <i class="bi bi-arrow-counterclockwise me-1"></i>{{ $t('common.reset') }}
-        </button>
+        <div class="filter-bar__right">
+          <button
+            type="button"
+            class="toolbar-btn"
+            @click="resetIngredientFilters"
+          >
+            <i class="bi bi-arrow-counterclockwise"></i>
+            <span>{{ $t('common.reset') }}</span>
+          </button>
+        </div>
       </div>
 
       <!-- Loading / Empty / Table -->
@@ -106,9 +121,11 @@
       </div>
 
       <div v-else-if="ingredientsList.length === 0" class="empty-box">
-        <i class="bi bi-boxes fs-2 text-muted mb-2 d-block"></i>
-        <div class="fw-semibold text-dark">{{ $t('inventory.noIngredientsFound') }}</div>
-        <div class="small text-muted">{{ $t('inventory.noIngredientsFoundDesc') }}</div>
+        <div class="empty-box__icon">
+          <i class="bi bi-boxes"></i>
+        </div>
+        <div class="empty-box__title">{{ $t('inventory.noIngredientsFound') }}</div>
+        <div class="empty-box__desc">{{ $t('inventory.noIngredientsFoundDesc') }}</div>
       </div>
 
       <div v-else class="table-responsive">
@@ -127,58 +144,71 @@
           <tbody>
             <tr v-for="ing in ingredientsList" :key="ing.id">
               <td>
-                <div class="fw-semibold text-dark">{{ ing.name }}</div>
+                <span class="ing-name-text">{{ ing.name }}</span>
               </td>
               <td>
-                <span
-                  class="fw-bold"
-                  :class="ing.is_low_stock ? 'text-danger' : 'text-dark'"
-                >
-                  {{ formatStockQty(ing.current_stock) }}
-                </span>
-                <span class="small text-muted ms-1">{{ ing.unit }}</span>
+                <div class="stock-qty-cell tabular">
+                  <strong
+                    class="stock-qty-val"
+                    :class="
+                      Number(ing.current_stock) <= 0
+                        ? 'is-out'
+                        : ing.is_low_stock
+                          ? 'is-low'
+                          : ''
+                    "
+                  >
+                    {{ formatStockQty(ing.current_stock) }}
+                  </strong>
+                  <span class="unit-tag">{{ ing.unit }}</span>
+                </div>
               </td>
               <td>
-                <span class="text-muted small">
-                  {{ formatStockQty(ing.minimum_stock) }} {{ ing.unit }}
-                </span>
+                <div class="stock-qty-cell tabular">
+                  <span class="min-stock-val">{{ formatStockQty(ing.minimum_stock) }}</span>
+                  <span class="unit-tag">{{ ing.unit }}</span>
+                </div>
               </td>
               <td>
                 <span
                   v-if="Number(ing.current_stock) <= 0"
                   class="stock-pill out"
                 >
-                  {{ $t('inventory.outOfStock') }}
+                  <span class="stock-pill__dot"></span>
+                  <span>{{ $t('inventory.outOfStock') }}</span>
                 </span>
                 <span
                   v-else-if="ing.is_low_stock"
                   class="stock-pill low"
                 >
-                  {{ $t('inventory.lowStock') }}
+                  <span class="stock-pill__dot"></span>
+                  <span>{{ $t('inventory.lowStock') }}</span>
                 </span>
                 <span v-else class="stock-pill ok">
-                  {{ $t('inventory.inStock') }}
+                  <span class="stock-pill__dot"></span>
+                  <span>{{ $t('inventory.inStock') }}</span>
                 </span>
               </td>
               <td>
-                <span class="text-muted small">
+                <span class="recipes-pill tabular">
                   {{ ing.total_recipes || 0 }}
                 </span>
               </td>
               <td>
                 <span
-                  class="status-dot-badge"
+                  class="status-badge"
                   :class="ing.is_active ? 'active' : 'inactive'"
                 >
-                  {{ ing.is_active ? $t('common.active') : $t('common.inactive') }}
+                  <span class="status-badge__dot"></span>
+                  <span>{{ ing.is_active ? $t('common.active') : $t('common.inactive') }}</span>
                 </span>
               </td>
               <td class="text-end">
-                <div class="d-inline-flex gap-1">
+                <div class="action-group">
                   <button
                     type="button"
-                    class="btn btn-action-icon"
-                    title="View Movement History"
+                    class="btn-action-icon"
+                    :title="$t('inventory.tabMovements')"
                     @click="viewIngredientMovements(ing)"
                   >
                     <i class="bi bi-clock-history"></i>
@@ -188,15 +218,15 @@
                     <button
                       v-if="ing.is_active"
                       type="button"
-                      class="btn btn-action-icon text-success"
-                      title="Restock / Adjust Stock"
+                      class="btn-action-icon is-adjust"
+                      :title="$t('inventory.recordMovement')"
                       @click="openStockMovementModal(ing)"
                     >
                       <i class="bi bi-plus-slash-minus"></i>
                     </button>
                     <button
                       type="button"
-                      class="btn btn-action-icon"
+                      class="btn-action-icon"
                       :title="$t('inventory.editIngredient')"
                       @click="openEditIngredientModal(ing)"
                     >
@@ -204,7 +234,7 @@
                     </button>
                     <button
                       type="button"
-                      class="btn btn-action-icon btn-action-icon--danger"
+                      class="btn-action-icon is-danger"
                       :title="$t('common.delete')"
                       @click="confirmDeleteIngredient(ing)"
                     >
@@ -220,25 +250,27 @@
 
       <!-- Pagination -->
       <div v-if="ingredientPagination.totalPages > 1" class="pagination-bar">
-        <div class="small text-muted">
+        <div class="pagination-info tabular">
           {{ $t('common.pageOf', { page: ingredientPagination.page, total: ingredientPagination.totalPages }) }}
         </div>
-        <div class="d-flex gap-1">
+        <div class="d-flex gap-2">
           <button
             type="button"
-            class="btn btn-light-coffee btn-sm"
+            class="toolbar-btn"
             :disabled="ingredientPagination.page <= 1"
             @click="fetchIngredients(ingredientPagination.page - 1)"
           >
-            {{ $t('common.prev') }}
+            <i class="bi bi-chevron-left"></i>
+            <span>{{ $t('common.prev') }}</span>
           </button>
           <button
             type="button"
-            class="btn btn-light-coffee btn-sm"
+            class="toolbar-btn"
             :disabled="ingredientPagination.page >= ingredientPagination.totalPages"
             @click="fetchIngredients(ingredientPagination.page + 1)"
           >
-            {{ $t('common.next') }}
+            <span>{{ $t('common.next') }}</span>
+            <i class="bi bi-chevron-right"></i>
           </button>
         </div>
       </div>
@@ -247,10 +279,10 @@
     <!-- ================= TAB 2: STOCK MOVEMENTS LEDGER ================= -->
     <div v-if="activeTab === 'MOVEMENTS'" class="clean-card">
       <div class="filter-bar">
-        <div class="d-flex flex-wrap gap-2 align-items-center">
+        <div class="filter-bar__left">
           <select
             v-model="movementFilters.ingredient_id"
-            class="form-select form-select-sm filter-select"
+            class="filter-input filter-select"
             @change="fetchMovements(1)"
           >
             <option value="">{{ $t('inventory.allIngredients') }}</option>
@@ -261,7 +293,7 @@
 
           <select
             v-model="movementFilters.movement_type"
-            class="form-select form-select-sm filter-select"
+            class="filter-input filter-select"
             @change="fetchMovements(1)"
           >
             <option value="">{{ $t('inventory.allMovementTypes') }}</option>
@@ -272,27 +304,34 @@
             <option value="RETURN">{{ $t('inventory.returnPlus') }}</option>
           </select>
 
-          <input
-            v-model="movementFilters.start_date"
-            type="date"
-            class="form-control form-control-sm filter-date"
-            @change="fetchMovements(1)"
-          />
-          <input
-            v-model="movementFilters.end_date"
-            type="date"
-            class="form-control form-control-sm filter-date"
-            @change="fetchMovements(1)"
-          />
+          <div class="date-range-group">
+            <i class="bi bi-calendar3 date-range-group__icon"></i>
+            <input
+              v-model="movementFilters.start_date"
+              type="date"
+              class="date-range-group__input"
+              @change="fetchMovements(1)"
+            />
+            <span class="date-range-group__sep">→</span>
+            <input
+              v-model="movementFilters.end_date"
+              type="date"
+              class="date-range-group__input"
+              @change="fetchMovements(1)"
+            />
+          </div>
         </div>
 
-        <button
-          type="button"
-          class="btn btn-light-coffee btn-sm"
-          @click="resetMovementFilters"
-        >
-          <i class="bi bi-arrow-counterclockwise me-1"></i>{{ $t('common.reset') }}
-        </button>
+        <div class="filter-bar__right">
+          <button
+            type="button"
+            class="toolbar-btn"
+            @click="resetMovementFilters"
+          >
+            <i class="bi bi-arrow-counterclockwise"></i>
+            <span>{{ $t('common.reset') }}</span>
+          </button>
+        </div>
       </div>
 
       <div v-if="isLoadingMovements" class="empty-box">
@@ -301,9 +340,11 @@
       </div>
 
       <div v-else-if="movementsList.length === 0" class="empty-box">
-        <i class="bi bi-journal-x fs-2 text-muted mb-2 d-block"></i>
-        <div class="fw-semibold text-dark">{{ $t('inventory.noMovementsFound') }}</div>
-        <div class="small text-muted">{{ $t('inventory.noMovementsFoundDesc') }}</div>
+        <div class="empty-box__icon">
+          <i class="bi bi-journal-x"></i>
+        </div>
+        <div class="empty-box__title">{{ $t('inventory.noMovementsFound') }}</div>
+        <div class="empty-box__desc">{{ $t('inventory.noMovementsFoundDesc') }}</div>
       </div>
 
       <div v-else class="table-responsive">
@@ -322,46 +363,63 @@
           <tbody>
             <tr v-for="mov in movementsList" :key="mov.id">
               <td>
-                <div class="small text-dark">{{ formatDateTime(mov.created_at) }}</div>
-                <div class="text-muted" style="font-size: 0.7rem">#{{ mov.id }}</div>
+                <div class="date-cell tabular">
+                  <span class="date-cell__time">{{ formatDateTime(mov.created_at) }}</span>
+                  <span class="date-cell__id">#{{ mov.id }}</span>
+                </div>
               </td>
               <td>
-                <div class="fw-bold text-dark">{{ mov.ingredient_name }}</div>
+                <span class="ing-name-text">{{ mov.ingredient_name }}</span>
               </td>
               <td>
                 <span class="mov-badge" :class="mov.movement_type.toLowerCase()">
-                  {{ mov.movement_type }}
+                  <i
+                    class="bi"
+                    :class="
+                      mov.movement_type === 'PURCHASE'
+                        ? 'bi-box-arrow-in-down'
+                        : mov.movement_type === 'SALE'
+                          ? 'bi-cart-check'
+                          : mov.movement_type === 'WASTE'
+                            ? 'bi-trash3'
+                            : mov.movement_type === 'RETURN'
+                              ? 'bi-arrow-counterclockwise'
+                              : 'bi-sliders'
+                    "
+                  ></i>
+                  <span>{{ getMovementTypeLabel(mov.movement_type) }}</span>
                 </span>
               </td>
               <td>
                 <span
-                  class="fw-bold"
-                  :class="Number(mov.quantity_change) >= 0 ? 'text-success' : 'text-danger'"
+                  class="qty-change-pill tabular"
+                  :class="Number(mov.quantity_change) >= 0 ? 'is-plus' : 'is-minus'"
                 >
                   {{ Number(mov.quantity_change) > 0 ? '+' : '' }}{{ formatStockQty(mov.quantity_change) }}
                   {{ mov.ingredient_unit }}
                 </span>
               </td>
               <td>
-                <div v-if="mov.unit_cost !== null && mov.unit_cost !== undefined" class="small">
-                  <div class="fw-semibold">{{ formatUsd(mov.total_cost) }}</div>
-                  <div class="text-muted">{{ formatUsd(mov.unit_cost) }} / {{ mov.ingredient_unit }}</div>
+                <div v-if="mov.unit_cost !== null && mov.unit_cost !== undefined" class="cost-cell tabular">
+                  <strong class="cost-cell__total">{{ formatUsd(mov.total_cost) }}</strong>
+                  <span class="cost-cell__unit">{{ formatUsd(mov.unit_cost) }} / {{ mov.ingredient_unit }}</span>
                 </div>
                 <span v-else class="small text-muted">—</span>
               </td>
               <td>
-                <div v-if="mov.order_receipt_no" class="small">
-                  <span class="badge bg-light text-dark border">
-                    {{ $t('orders.colOrder') }} {{ mov.order_receipt_no }}
+                <div v-if="mov.order_receipt_no" class="mb-1">
+                  <span class="order-ref-badge tabular">
+                    <i class="bi bi-receipt"></i>
+                    <span>{{ mov.order_receipt_no }}</span>
                   </span>
                 </div>
-                <div v-if="mov.reason" class="small text-muted">
+                <div v-if="mov.reason" class="reason-text">
                   {{ mov.reason }}
                 </div>
                 <span v-if="!mov.order_receipt_no && !mov.reason" class="small text-muted">—</span>
               </td>
               <td>
-                <span class="small fw-semibold">{{ mov.created_by_name || $t('common.system') }}</span>
+                <span class="recorder-name">{{ mov.created_by_name || $t('common.system') }}</span>
               </td>
             </tr>
           </tbody>
@@ -369,26 +427,28 @@
       </div>
 
       <div v-if="movementPagination.totalPages > 1" class="pagination-bar">
-        <div class="small text-muted">
+        <div class="pagination-info tabular">
           {{ $t('common.pageOf', { page: movementPagination.page, total: movementPagination.totalPages }) }}
           ({{ movementPagination.total }})
         </div>
-        <div class="d-flex gap-1">
+        <div class="d-flex gap-2">
           <button
             type="button"
-            class="btn btn-light-coffee btn-sm"
+            class="toolbar-btn"
             :disabled="movementPagination.page <= 1"
             @click="fetchMovements(movementPagination.page - 1)"
           >
-            {{ $t('common.prev') }}
+            <i class="bi bi-chevron-left"></i>
+            <span>{{ $t('common.prev') }}</span>
           </button>
           <button
             type="button"
-            class="btn btn-light-coffee btn-sm"
+            class="toolbar-btn"
             :disabled="movementPagination.page >= movementPagination.totalPages"
             @click="fetchMovements(movementPagination.page + 1)"
           >
-            {{ $t('common.next') }}
+            <span>{{ $t('common.next') }}</span>
+            <i class="bi bi-chevron-right"></i>
           </button>
         </div>
       </div>
@@ -638,11 +698,22 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useCurrency } from '@/composables/useCurrency'
 import { useFormatDate } from '@/composables/useFormatDate'
+import { useI18n } from '@/i18n'
 
 const authStore = useAuthStore()
 const toast = useToast()
 const { formatUsd } = useCurrency()
 const { formatDateTime } = useFormatDate()
+const { t } = useI18n()
+
+const getMovementTypeLabel = (type) => {
+  if (type === 'PURCHASE') return t('inventory.purchasePlus').replace(/\s*\(\+\)\s*$/, '')
+  if (type === 'SALE') return t('inventory.saleMinus').replace(/\s*\(-\)\s*$/, '')
+  if (type === 'WASTE') return t('inventory.wasteMinus').replace(/\s*\(-\)\s*$/, '')
+  if (type === 'ADJUSTMENT') return t('inventory.adjustmentPlusMinus').replace(/\s*\(\+\/-\)\s*$/, '')
+  if (type === 'RETURN') return t('inventory.returnPlus').replace(/\s*\(\+\)\s*$/, '')
+  return type || '—'
+}
 
 const activeTab = ref('INGREDIENTS')
 
@@ -951,321 +1022,718 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page-header-bar {
+.inventory-page {
+  --botanical-primary: #2d5a43;
+  --botanical-deep: #193e2b;
+  --botanical-tint: #eaf5ee;
+  --botanical-border: #3b7054;
+  --ledger-line: #dce6e0;
+  --ledger-hairline: #ecf2ee;
+  --roast-ink: #1e2a23;
+  --sage-muted: #62756a;
+
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Top Bar: Segmented Tabs & Primary Actions ── */
+.inventory-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
 }
 
-.inventory-nav-tabs {
-  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
-}
-
-.nav-tab-btn {
-  border: none;
-  background: transparent;
-  padding: 0.65rem 0.25rem;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--on-surface-variant, #716762);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+.inventory-segmented-tabs {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  transition: all 0.15s ease;
-  cursor: pointer;
+  gap: 4px;
+  padding: 4px;
+  background: #e9f0ec;
+  border: 1px solid var(--ledger-line);
+  border-radius: 10px;
 }
 
-.nav-tab-btn:hover {
-  color: var(--on-surface, #1c1b1b);
-}
-
-.nav-tab-btn.active {
-  color: var(--primary, #2d5a43);
+.seg-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.44rem 0.95rem;
+  border-radius: 7px;
+  font-size: 0.82rem;
   font-weight: 600;
-  border-bottom-color: var(--primary, #2d5a43);
+  color: #4f6356;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
 }
 
-.nav-tab-btn i {
-  font-size: 15px;
+.seg-tab-btn i {
+  font-size: 0.9rem;
+}
+
+.seg-tab-btn:hover:not(.active) {
+  color: var(--roast-ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.seg-tab-btn.active {
+  background: #ffffff;
+  color: var(--botanical-deep);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(20, 35, 26, 0.08);
+}
+
+.seg-tab-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  background: #dce8e1;
+  color: var(--botanical-primary);
+}
+
+.seg-tab-btn.active .seg-tab-count {
+  background: var(--botanical-tint);
+  color: var(--botanical-deep);
 }
 
 .low-stock-count-pill {
   background: #dc2626;
   color: #ffffff;
   font-size: 0.68rem;
-  padding: 0.08rem 0.45rem;
+  font-weight: 700;
+  padding: 0.08rem 0.48rem;
   border-radius: 999px;
-  margin-left: 4px;
 }
 
-/* KPI Strip */
-.kpi-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.85rem;
+.inventory-top-bar__right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }
 
-.kpi-card {
+.btn-secondary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  height: 38px;
+  padding: 0 0.95rem;
+  border-radius: 9px;
   background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 14px;
-  padding: 0.9rem 1.1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-}
-
-.kpi-card.clickable {
+  border: 1.5px solid #cde2d5;
+  color: var(--botanical-deep);
+  font-size: 0.81rem;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.kpi-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
-  display: flex;
+.btn-secondary-action:hover {
+  background: #f2f8f4;
+  border-color: var(--botanical-border);
+}
+
+.btn-primary-action {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
+  gap: 0.42rem;
+  height: 38px;
+  padding: 0 1.05rem;
+  border-radius: 9px;
+  background: var(--botanical-primary);
+  border: 1px solid var(--botanical-primary);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.16);
 }
 
-.bg-coffee-soft {
-  background: #f4eee8;
-  color: #2d5a43;
+.btn-primary-action:hover {
+  background: var(--botanical-deep);
+  border-color: var(--botanical-deep);
 }
 
-.bg-success-soft {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.bg-warning-soft {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.kpi-label {
-  font-size: 0.76rem;
-  color: #78716c;
-  font-weight: 600;
-}
-
-.kpi-value {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #1c1917;
-  line-height: 1.15;
-}
-
-/* Clean Card & Table */
+/* ── Main Card & Filter Toolbar ── */
 .clean-card {
   background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 16px;
+  border: 1px solid var(--ledger-line);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
 }
 
 .filter-bar {
-  padding: 0.9rem 1.1rem;
-  border-bottom: 1px solid #eeeae4;
-  background: #fcfbfa;
+  padding: 0.78rem 1.05rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  background: #f8fbf9;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.65rem;
+}
+
+.filter-bar__left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+}
+
+.filter-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .search-wrap {
   position: relative;
-  min-width: 220px;
+  min-width: 255px;
+  flex: 0 1 295px;
 }
 
 .search-icon {
   position: absolute;
-  left: 10px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
-  color: #8a7f78;
+  color: var(--sage-muted);
   font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.search-clear {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--sage-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.search-clear:hover {
+  background: #e8f0eb;
+  color: var(--roast-ink);
+}
+
+.filter-input {
+  height: 36px;
+  border-radius: 8px;
+  border: 1.5px solid #dce6e0;
+  background: #ffffff;
+  color: var(--roast-ink);
+  font-size: 0.81rem;
+  font-weight: 500;
+  padding: 0 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.filter-input:focus {
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
 .search-input {
-  padding-left: 30px;
-  border-radius: 9px;
-  border: 1px solid #dedad4;
+  width: 100%;
+  padding-left: 32px;
+  padding-right: 28px;
 }
 
-.filter-select,
-.filter-date {
-  width: auto;
-  border-radius: 9px;
-  border: 1px solid #dedad4;
+.filter-select {
+  padding-right: 1.85rem;
+  cursor: pointer;
 }
 
-.clean-table th {
-  background: #faf9f7;
-  font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #6b5b52;
+/* Unified Date Range Pill */
+.date-range-group {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.65rem;
+  background: #ffffff;
+  border: 1.5px solid #dce6e0;
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.date-range-group:focus-within {
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.date-range-group__icon {
+  font-size: 0.78rem;
+  color: var(--sage-muted);
+  margin-right: 2px;
+}
+
+.date-range-group__input {
+  border: none;
+  background: transparent;
+  color: var(--roast-ink);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0;
+  width: 112px;
+  cursor: pointer;
+  outline: none;
+}
+
+.date-range-group__sep {
+  color: #94a89c;
+  font-size: 0.75rem;
+  padding: 0 2px;
+}
+
+/* Toolbar Buttons */
+.toolbar-btn {
+  height: 36px;
+  padding: 0 0.8rem;
+  border: 1.5px solid #dce6e0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #3d5245;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover:not(:disabled):not(.is-warning-active) {
+  border-color: #b8ccc0;
+  background: #f2f7f4;
+  color: var(--roast-ink);
+}
+
+.toolbar-btn.is-warning-active {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
   font-weight: 700;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #eeeae4;
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Clean Ledger Table ── */
+.clean-table th {
+  background: #f4f8f5;
+  font-size: 0.75rem;
+  color: #4f6356;
+  font-weight: 700;
+  padding: 0.72rem 1rem;
+  border-bottom: 1px solid var(--ledger-line);
+  white-space: nowrap;
 }
 
 .clean-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f3f0ec;
-  font-size: 0.85rem;
+  padding: 0.78rem 1rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  font-size: 0.84rem;
+  color: var(--roast-ink);
 }
 
-.unit-badge {
-  background: #f4f1ed;
-  color: #2d5a43;
+.clean-table tbody tr:hover td {
+  background-color: #f8fbf9;
+}
+
+.clean-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Ingredient Name Cell */
+.ing-name-text {
   font-weight: 700;
-  font-size: 0.74rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 6px;
+  color: var(--roast-ink);
+  font-size: 0.86rem;
 }
 
+/* Stock Quantity & Unit Tag */
+.stock-qty-cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.stock-qty-val {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+}
+
+.stock-qty-val.is-low {
+  color: #b45309;
+}
+
+.stock-qty-val.is-out {
+  color: #dc2626;
+}
+
+.min-stock-val {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #4b5e52;
+}
+
+.unit-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.38rem;
+  border-radius: 5px;
+  background: #f0f5f2;
+  border: 1px solid #dce6e0;
+  color: #4a5e51;
+}
+
+/* Stock Health Pill */
 .stock-pill {
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.73rem;
   font-weight: 700;
-  padding: 0.2rem 0.6rem;
+  padding: 0.22rem 0.62rem;
   border-radius: 999px;
+  white-space: nowrap;
+}
+
+.stock-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
 }
 
 .stock-pill.ok {
-  background: #dcfce7;
-  color: #15803d;
+  background: #e6f6ec;
+  color: #166534;
+  border: 1px solid #ccebd7;
 }
 
 .stock-pill.low {
   background: #fef3c7;
   color: #b45309;
+  border: 1px solid #fde68a;
 }
 
 .stock-pill.out {
   background: #fee2e2;
   color: #b91c1c;
+  border: 1px solid #fecaca;
 }
 
-.status-dot-badge {
-  font-size: 0.74rem;
+.recipes-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 0.16rem 0.5rem;
+  border-radius: 6px;
+  background: #f3f7f4;
+  border: 1px solid #e2ece6;
+  color: #485e50;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  font-size: 0.73rem;
+  font-weight: 700;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.status-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.status-badge.active {
+  background: #e6f6ec;
+  color: #166534;
+  border: 1px solid #ccebd7;
+}
+
+.status-badge.inactive {
+  background: #f1f5f3;
+  color: #526358;
+  border: 1px solid #dce5df;
+}
+
+/* Movements Tab Cells & Badges */
+.date-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.date-cell__time {
   font-weight: 600;
+  color: var(--roast-ink);
+  font-size: 0.81rem;
 }
 
-.status-dot-badge.active {
-  color: #15803d;
-}
-
-.status-dot-badge.inactive {
-  color: #78716c;
+.date-cell__id {
+  font-size: 0.71rem;
+  font-weight: 600;
+  color: var(--sage-muted);
 }
 
 .mov-badge {
-  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.73rem;
   font-weight: 700;
-  padding: 0.2rem 0.55rem;
+  padding: 0.22rem 0.6rem;
   border-radius: 6px;
+  white-space: nowrap;
 }
 
 .mov-badge.purchase {
-  background: #dcfce7;
-  color: #15803d;
+  background: #e6f6ec;
+  border: 1px solid #ccebd7;
+  color: #166534;
 }
 
 .mov-badge.sale {
-  background: #e0f2fe;
+  background: #e8f4fd;
+  border: 1px solid #cde6fa;
   color: #0369a1;
 }
 
 .mov-badge.waste {
   background: #fee2e2;
+  border: 1px solid #fecaca;
   color: #b91c1c;
 }
 
 .mov-badge.adjustment {
   background: #fef3c7;
+  border: 1px solid #fde68a;
   color: #b45309;
 }
 
 .mov-badge.return {
   background: #f3e8ff;
+  border: 1px solid #e9d5ff;
   color: #7e22ce;
 }
 
-.btn-action-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #64748b;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  transition: all 0.15s ease;
+.qty-change-pill {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.16rem 0.55rem;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 
-.btn-action-icon:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+.qty-change-pill.is-plus {
+  background: #eef8f2;
+  color: #15803d;
 }
 
-.btn-action-icon--danger:hover {
+.qty-change-pill.is-minus {
   background: #fef2f2;
   color: #dc2626;
 }
 
+.cost-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: nowrap;
+}
+
+.cost-cell__total {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+}
+
+.cost-cell__unit {
+  font-size: 0.72rem;
+  color: var(--sage-muted);
+}
+
+.order-ref-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 5px;
+  background: #f2f7f4;
+  border: 1px solid #dce6e0;
+  color: var(--botanical-deep);
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+
+.reason-text {
+  font-size: 0.8rem;
+  color: #4a5c51;
+}
+
+.recorder-name {
+  font-size: 0.81rem;
+  font-weight: 600;
+  color: #35473c;
+  white-space: nowrap;
+}
+
+/* Action Buttons */
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.btn-action-icon {
+  width: 31px;
+  height: 31px;
+  border-radius: 7px;
+  border: 1px solid #dce6e0;
+  background: #ffffff;
+  color: #465a4e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  transition: all 0.14s ease;
+  cursor: pointer;
+}
+
+.btn-action-icon:hover {
+  background: var(--botanical-tint);
+  border-color: var(--botanical-border);
+  color: var(--botanical-deep);
+}
+
+.btn-action-icon.is-adjust {
+  background: #eef7f1;
+  border-color: #c7e0d0;
+  color: var(--botanical-primary);
+}
+
+.btn-action-icon.is-adjust:hover {
+  background: var(--botanical-primary);
+  border-color: var(--botanical-primary);
+  color: #ffffff;
+}
+
+.btn-action-icon.is-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.btn-action-icon.is-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+/* Pagination & Empty States */
 .pagination-bar {
-  padding: 0.75rem 1.1rem;
+  padding: 0.72rem 1.05rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fcfbfa;
+  background: #f8fbf9;
+  border-top: 1px solid var(--ledger-hairline);
+}
+
+.pagination-info {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3d5245;
 }
 
 .empty-box {
-  padding: 3.5rem 1rem;
+  padding: 3.5rem 1.25rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.btn-coffee {
-  background: #2d5a43;
-  color: #ffffff;
-  border: none;
-  border-radius: 9px;
-  font-weight: 600;
+.empty-box__icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 0.65rem;
+  border-radius: 10px;
+  background: #f0f6f2;
+  border: 1px solid #dce6e0;
+  color: #3b7054;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
 }
 
-.btn-outline-coffee {
-  background: #ffffff;
-  color: #2d5a43;
-  border: 1px solid #2d5a43;
-  border-radius: 9px;
-  font-weight: 600;
+.empty-box__title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+  margin-bottom: 2px;
 }
 
-.btn-light-coffee {
-  background: #f4f1ed;
-  color: #2d5a43;
-  border: 1px solid #e6e1da;
-  border-radius: 9px;
-  font-weight: 600;
+.empty-box__desc {
+  font-size: 0.8rem;
+  color: var(--sage-muted);
+  max-width: 380px;
 }
 
 /* Modals */
 .modal-backdrop-custom {
   position: fixed;
   inset: 0;
-  background: rgba(28, 25, 23, 0.45);
+  background: rgba(18, 28, 22, 0.45);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -1276,82 +1744,138 @@ onMounted(async () => {
 
 .modal-card-custom {
   background: #ffffff;
-  border-radius: 18px;
-  border: 1px solid #e6e4e0;
+  border-radius: 16px;
+  border: 1px solid var(--ledger-line);
   width: 100%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 45px rgba(15, 28, 21, 0.16);
 }
 
 .modal-sm-custom {
-  max-width: 440px;
+  max-width: 460px;
 }
 
 .modal-header-custom {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #eeeae4;
+  border-bottom: 1px solid var(--ledger-hairline);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .modal-body-custom {
-  padding: 1.15rem 1.25rem;
+  padding: 1.2rem 1.25rem;
   overflow-y: auto;
 }
 
 .modal-footer-custom {
   padding: 0.85rem 1.25rem;
-  border-top: 1px solid #eeeae4;
-  background: #faf9f7;
+  border-top: 1px solid var(--ledger-hairline);
+  background: #f8fbf9;
   display: flex;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .btn-close-custom {
-  border: none;
-  background: #f4f1ed;
+  border: 1px solid var(--ledger-line);
+  background: #f8fbf9;
+  color: #4f6356;
   width: 32px;
   height: 32px;
   border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn-close-custom:hover {
+  background: #eaf5ee;
+  color: var(--botanical-deep);
 }
 
 .form-label-clean {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #4f433d;
+  color: #35473c;
   margin-bottom: 0.35rem;
   display: block;
 }
 
 .form-control-clean {
-  border-radius: 10px;
-  border: 1px solid #dedad4;
-  background: #faf9f7;
-  font-size: 0.86rem;
+  border-radius: 9px;
+  border: 1.5px solid #dce6e0;
+  background: #ffffff;
+  font-size: 0.85rem;
+  color: var(--roast-ink);
+}
+
+.form-control-clean:focus {
+  background: #ffffff;
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
 .option-pills {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .opt-pill {
-  border: 1px solid #e2ddd6;
-  background: #faf9f7;
-  color: #4f433d;
+  border: 1.5px solid #dce6e0;
+  background: #ffffff;
+  color: #3d5245;
   border-radius: 9px;
-  padding: 0.4rem 0.65rem;
-  font-size: 0.78rem;
+  padding: 0.42rem 0.65rem;
+  font-size: 0.77rem;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.opt-pill:hover:not(.active):not(:disabled) {
+  background: #f2f7f4;
+  border-color: #b8ccc0;
 }
 
 .opt-pill.active {
-  background: #2d5a43;
+  background: var(--botanical-primary);
   color: #ffffff;
-  border-color: #2d5a43;
+  border-color: var(--botanical-primary);
+}
+
+.btn-coffee {
+  background: var(--botanical-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  height: 36px;
+  padding: 0 1rem;
+  cursor: pointer;
+}
+
+.btn-coffee:hover:not(:disabled) {
+  background: var(--botanical-deep);
+  color: #ffffff;
+}
+
+.btn-light-coffee {
+  background: #ffffff;
+  color: #3d5245;
+  border: 1.5px solid #dce6e0;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  height: 36px;
+  padding: 0 0.85rem;
+}
+
+.btn-light-coffee:hover:not(:disabled) {
+  background: #f2f7f4;
 }
 </style>

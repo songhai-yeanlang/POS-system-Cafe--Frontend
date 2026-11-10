@@ -76,7 +76,7 @@
                 :title="$t('pos.refreshMenu')"
                 :aria-label="$t('pos.refreshMenu')"
                 :disabled="isLoadingCatalog"
-                @click="fetchCatalog"
+                @click="refreshAllData"
               >
                 <i class="bi bi-arrow-clockwise" :class="{ 'is-spinning': isLoadingCatalog }"></i>
               </button>
@@ -1461,7 +1461,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api, { getAssetUrl } from '@/api/api'
 import { useAppStore } from '@/stores/appStore'
@@ -2367,6 +2367,25 @@ const closeReceiptModal = () => {
   completedReceipt.value = null
 }
 
+// ================= METHODS: REFRESH & POLLING =================
+const refreshAllData = async () => {
+  await Promise.all([fetchCatalog(), fetchOpenOrders()])
+}
+
+let openOrdersPollInterval = null
+
+watch(
+  () => appStore.currentShift?.id,
+  (newShiftId) => {
+    if (newShiftId) {
+      fetchOpenOrders()
+    } else {
+      openOrdersList.value = []
+      openOrdersCount.value = 0
+    }
+  }
+)
+
 // ================= LIFECYCLE =================
 onMounted(async () => {
   await Promise.all([fetchCatalog(), appStore.fetchCurrentShift()])
@@ -2374,6 +2393,20 @@ onMounted(async () => {
 
   if (route.query.orderId) {
     await loadOrderIntoCart(Number(route.query.orderId))
+  }
+
+  // Periodic polling every 15s to keep waiting orders count synchronized
+  openOrdersPollInterval = setInterval(() => {
+    if (appStore.currentShift?.id && !isLoadingOpenOrders.value && !showOpenOrdersModal.value) {
+      fetchOpenOrders()
+    }
+  }, 15000)
+})
+
+onUnmounted(() => {
+  if (openOrdersPollInterval) {
+    clearInterval(openOrdersPollInterval)
+    openOrdersPollInterval = null
   }
 })
 </script>
@@ -2606,7 +2639,7 @@ onMounted(async () => {
 .queue-trigger {
   height: 40px;
   padding: 0 0.85rem;
-  border: 1px solid var(--ledger-line);
+  border: 1.5px solid var(--ledger-line);
   border-radius: 8px;
   background: var(--docket-paper);
   color: var(--roast-ink);
@@ -2614,28 +2647,36 @@ onMounted(async () => {
   font-weight: 600;
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   white-space: nowrap;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition: all 0.15s ease;
+  cursor: pointer;
 }
 
 .queue-trigger:hover {
   border-color: var(--botanical-espresso);
+  background: #f7faf8;
 }
 
 .queue-trigger.has-open {
-  border-color: #e6c699;
-  background: #fffcf7;
+  border-color: #fca5a5;
+  background: #fffafa;
 }
 
 .queue-trigger__count {
-  background: var(--crema-amber);
+  background: #dc2626;
   color: #ffffff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.08rem 0.44rem;
-  border-radius: 4px;
-  line-height: 1.3;
+  font-size: 0.74rem;
+  font-weight: 800;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 0.42rem;
+  border-radius: 5px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.3);
 }
 
 .icon-trigger {
