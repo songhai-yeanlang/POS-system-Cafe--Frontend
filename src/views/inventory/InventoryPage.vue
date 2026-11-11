@@ -171,36 +171,35 @@
               </td>
               <td>
                 <span
-                  v-if="Number(ing.current_stock) <= 0"
-                  class="stock-pill out"
+                  class="stock-text"
+                  :class="
+                    Number(ing.current_stock) <= 0
+                      ? 'out'
+                      : ing.is_low_stock
+                        ? 'low'
+                        : 'ok'
+                  "
                 >
-                  <span class="stock-pill__dot"></span>
-                  <span>{{ $t('inventory.outOfStock') }}</span>
-                </span>
-                <span
-                  v-else-if="ing.is_low_stock"
-                  class="stock-pill low"
-                >
-                  <span class="stock-pill__dot"></span>
-                  <span>{{ $t('inventory.lowStock') }}</span>
-                </span>
-                <span v-else class="stock-pill ok">
-                  <span class="stock-pill__dot"></span>
-                  <span>{{ $t('inventory.inStock') }}</span>
+                  {{
+                    Number(ing.current_stock) <= 0
+                      ? $t('inventory.outOfStock')
+                      : ing.is_low_stock
+                        ? $t('inventory.lowStock')
+                        : $t('inventory.inStock')
+                  }}
                 </span>
               </td>
               <td>
-                <span class="recipes-pill tabular">
+                <span class="recipes-text tabular">
                   {{ ing.total_recipes || 0 }}
                 </span>
               </td>
               <td>
                 <span
-                  class="status-badge"
+                  class="status-text"
                   :class="ing.is_active ? 'active' : 'inactive'"
                 >
-                  <span class="status-badge__dot"></span>
-                  <span>{{ ing.is_active ? $t('common.active') : $t('common.inactive') }}</span>
+                  {{ ing.is_active ? $t('common.active') : $t('common.inactive') }}
                 </span>
               </td>
               <td class="text-end">
@@ -1409,97 +1408,49 @@ onMounted(async () => {
 }
 
 .unit-tag {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 0.1rem 0.38rem;
-  border-radius: 5px;
-  background: #f0f5f2;
-  border: 1px solid #dce6e0;
-  color: #4a5e51;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #6c7f74;
 }
 
-/* Stock Health Pill */
-.stock-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.73rem;
+/* Stock Health Text */
+.stock-text {
+  font-size: 0.82rem;
   font-weight: 700;
-  padding: 0.22rem 0.62rem;
-  border-radius: 999px;
   white-space: nowrap;
 }
 
-.stock-pill__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-}
-
-.stock-pill.ok {
-  background: #e6f6ec;
+.stock-text.ok {
   color: #166534;
-  border: 1px solid #ccebd7;
 }
 
-.stock-pill.low {
-  background: #fef3c7;
+.stock-text.low {
   color: #b45309;
-  border: 1px solid #fde68a;
 }
 
-.stock-pill.out {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+.stock-text.out {
+  color: #dc2626;
 }
 
-.recipes-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  padding: 0.16rem 0.5rem;
-  border-radius: 6px;
-  background: #f3f7f4;
-  border: 1px solid #e2ece6;
-  color: #485e50;
-  font-size: 0.76rem;
+.recipes-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--roast-ink);
+}
+
+/* Status Text */
+.status-text {
+  font-size: 0.82rem;
   font-weight: 700;
-}
-
-/* Status Badges */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.36rem;
-  font-size: 0.73rem;
-  font-weight: 700;
-  padding: 0.22rem 0.65rem;
-  border-radius: 999px;
   white-space: nowrap;
 }
 
-.status-badge__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-}
-
-.status-badge.active {
-  background: #e6f6ec;
+.status-text.active {
   color: #166534;
-  border: 1px solid #ccebd7;
 }
 
-.status-badge.inactive {
-  background: #f1f5f3;
+.status-text.inactive {
   color: #526358;
-  border: 1px solid #dce5df;
 }
 
 /* Movements Tab Cells & Badges */
@@ -1525,60 +1476,44 @@ onMounted(async () => {
 .mov-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.73rem;
+  gap: 0.38rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  padding: 0.22rem 0.6rem;
-  border-radius: 6px;
   white-space: nowrap;
 }
 
 .mov-badge.purchase {
-  background: #e6f6ec;
-  border: 1px solid #ccebd7;
   color: #166534;
 }
 
 .mov-badge.sale {
-  background: #e8f4fd;
-  border: 1px solid #cde6fa;
   color: #0369a1;
 }
 
 .mov-badge.waste {
-  background: #fee2e2;
-  border: 1px solid #fecaca;
   color: #b91c1c;
 }
 
 .mov-badge.adjustment {
-  background: #fef3c7;
-  border: 1px solid #fde68a;
   color: #b45309;
 }
 
 .mov-badge.return {
-  background: #f3e8ff;
-  border: 1px solid #e9d5ff;
   color: #7e22ce;
 }
 
 .qty-change-pill {
   display: inline-block;
-  font-size: 0.82rem;
+  font-size: 0.86rem;
   font-weight: 800;
-  padding: 0.16rem 0.55rem;
-  border-radius: 6px;
   white-space: nowrap;
 }
 
 .qty-change-pill.is-plus {
-  background: #eef8f2;
   color: #15803d;
 }
 
 .qty-change-pill.is-minus {
-  background: #fef2f2;
   color: #dc2626;
 }
 
@@ -1604,12 +1539,8 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 5px;
-  background: #f2f7f4;
-  border: 1px solid #dce6e0;
   color: var(--botanical-deep);
-  font-size: 0.73rem;
+  font-size: 0.78rem;
   font-weight: 700;
 }
 

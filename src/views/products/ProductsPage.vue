@@ -655,25 +655,12 @@ const clearFilters = () => {
               </td>
 
               <td>
-                <span class="cat-badge">
-                  <i class="bi bi-tag"></i>
-                  <span>{{ $tCategory(prod.category_name) }}</span>
-                </span>
+                <span class="cat-text">{{ $tCategory(prod.category_name) }}</span>
               </td>
 
               <td>
-                <span class="type-pill" :class="`type-pill--${prod.product_type.toLowerCase()}`">
-                  <i
-                    class="bi"
-                    :class="
-                      prod.product_type === 'FOOD'
-                        ? 'bi-cake2'
-                        : prod.product_type === 'ADDON'
-                          ? 'bi-plus-circle'
-                          : 'bi-cup-straw'
-                    "
-                  ></i>
-                  <span>{{ getProductTypeLabel(prod.product_type) }}</span>
+                <span class="type-text" :class="`type-text--${prod.product_type.toLowerCase()}`">
+                  {{ getProductTypeLabel(prod.product_type) }}
                 </span>
               </td>
 
@@ -697,11 +684,10 @@ const clearFilters = () => {
 
               <td>
                 <span
-                  class="status-badge"
+                  class="status-text"
                   :class="prod.is_active ? 'active' : 'inactive'"
                 >
-                  <span class="status-badge__dot"></span>
-                  <span>{{ prod.is_active ? $t('common.active') : $t('common.inactive') }}</span>
+                  {{ prod.is_active ? $t('common.active') : $t('common.inactive') }}
                 </span>
               </td>
 
@@ -801,23 +787,22 @@ const clearFilters = () => {
           <tbody>
             <tr v-for="cat in categories" :key="cat.id">
               <td>
-                <span class="order-badge tabular">#{{ cat.sort_order }}</span>
+                <span class="order-text tabular">#{{ cat.sort_order }}</span>
               </td>
               <td>
                 <span class="product-cell__name">{{ $tCategory(cat.name) }}</span>
               </td>
               <td>
-                <span class="items-pill tabular">
+                <span class="items-text tabular">
                   {{ $t('orders.itemsCount', { count: cat.total_products }) }}
                 </span>
               </td>
               <td>
                 <span
-                  class="status-badge"
+                  class="status-text"
                   :class="cat.is_active ? 'active' : 'inactive'"
                 >
-                  <span class="status-badge__dot"></span>
-                  <span>{{ cat.is_active ? $t('common.active') : $t('common.inactive') }}</span>
+                  {{ cat.is_active ? $t('common.active') : $t('common.inactive') }}
                 </span>
               </td>
               <td v-if="isOwner" class="text-end">
@@ -1472,52 +1457,29 @@ const clearFilters = () => {
   max-width: 240px;
 }
 
-/* Category & Type Badges */
-.cat-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: #f3f7f4;
-  border: 1px solid #dce8e0;
-  color: #354a3d;
-  font-size: 0.76rem;
+/* Category & Type Text */
+.cat-text {
+  font-size: 0.85rem;
   font-weight: 600;
-  padding: 0.22rem 0.6rem;
-  border-radius: 6px;
+  color: var(--roast-ink);
   white-space: nowrap;
 }
 
-.cat-badge i {
-  font-size: 0.72rem;
-  color: var(--botanical-primary);
-}
-
-.type-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.22rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.74rem;
+.type-text {
+  font-size: 0.82rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
-.type-pill--drink {
-  background: #eef6f1;
-  border: 1px solid #d2e4d9;
+.type-text--drink {
   color: var(--botanical-deep);
 }
 
-.type-pill--food {
-  background: #fef3c7;
-  border: 1px solid #fde68a;
+.type-text--food {
   color: #92400e;
 }
 
-.type-pill--addon {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+.type-text--addon {
   color: #4b5563;
 }
 
@@ -1553,62 +1515,32 @@ const clearFilters = () => {
   box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
-/* Order & Items Badges (Categories Tab) */
-.order-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 34px;
-  padding: 0.18rem 0.5rem;
-  border-radius: 6px;
-  background: #f2f7f4;
-  border: 1px solid #dce8e0;
+/* Order & Items Text (Categories Tab) */
+.order-text {
+  font-size: 0.86rem;
+  font-weight: 700;
   color: var(--botanical-deep);
-  font-size: 0.76rem;
-  font-weight: 700;
 }
 
-.items-pill {
-  display: inline-block;
-  padding: 0.2rem 0.58rem;
-  border-radius: 6px;
-  background: #f3f7f4;
-  border: 1px solid #e2ece6;
-  color: #485e50;
-  font-size: 0.76rem;
+.items-text {
+  font-size: 0.85rem;
   font-weight: 600;
+  color: var(--roast-ink);
 }
 
-/* Status Badges */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.36rem;
-  font-size: 0.73rem;
+/* Status Text */
+.status-text {
+  font-size: 0.82rem;
   font-weight: 700;
-  padding: 0.22rem 0.65rem;
-  border-radius: 999px;
   white-space: nowrap;
 }
 
-.status-badge__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-}
-
-.status-badge.active {
-  background: #e6f6ec;
+.status-text.active {
   color: #166534;
-  border: 1px solid #ccebd7;
 }
 
-.status-badge.inactive {
-  background: #f1f5f3;
+.status-text.inactive {
   color: #526358;
-  border: 1px solid #dce5df;
 }
 
 /* Action Buttons */

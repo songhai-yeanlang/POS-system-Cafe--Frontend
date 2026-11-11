@@ -4,19 +4,19 @@
       <!-- ================= LEFT PANEL: PRODUCT LIST ================= -->
       <div class="products-sidebar-card">
         <div class="sidebar-header">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <span class="sidebar-title fw-bold text-dark small text-uppercase tracking-wider">
+          <div class="sidebar-top-row">
+            <span class="sidebar-title">
               {{ $t('recipes.productsCount', { count: filteredProducts.length }) }}
             </span>
-            <span class="badge bg-light text-muted border smaller">{{ $t('recipes.catalog') }}</span>
+            <span class="catalog-badge">{{ $t('recipes.catalog') }}</span>
           </div>
 
-          <div class="search-wrap mb-2">
+          <div class="search-wrap">
             <i class="bi bi-search search-icon"></i>
             <input
               v-model="productSearch"
               type="text"
-              class="form-control form-control-sm search-input"
+              class="search-input"
               :placeholder="$t('recipes.searchProduct')"
             />
             <button
@@ -30,7 +30,7 @@
             </button>
           </div>
 
-          <select v-model="selectedCategoryId" class="form-select form-select-sm category-select">
+          <select v-model="selectedCategoryId" class="category-select">
             <option value="ALL">{{ $t('recipes.allCategoriesCount', { count: products.length }) }}</option>
             <option v-for="cat in categories" :key="cat.id" :value="cat.id">
               {{ $tCategory(cat.name) }}
@@ -40,12 +40,14 @@
 
         <div v-if="isLoadingProducts" class="empty-side">
           <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-          <div class="small text-muted">{{ $t('products.loadingProducts') }}</div>
+          <div class="empty-side-text">{{ $t('products.loadingProducts') }}</div>
         </div>
 
         <div v-else-if="filteredProducts.length === 0" class="empty-side">
-          <i class="bi bi-inbox fs-3 text-muted mb-2 d-block"></i>
-          <div class="small text-muted">{{ $t('products.noProductsFound') }}</div>
+          <div class="empty-icon-circle empty-icon-circle--sm">
+            <i class="bi bi-inbox"></i>
+          </div>
+          <div class="empty-side-text">{{ $t('products.noProductsFound') }}</div>
         </div>
 
         <div v-else class="product-select-list">
@@ -70,13 +72,13 @@
               ></i>
             </div>
 
-            <div class="flex-grow-1 text-start overflow-hidden">
+            <div class="prod-info-col">
               <div class="prod-name-sm text-truncate">{{ prod.name }}</div>
-              <div class="prod-meta-sm text-muted text-truncate">{{ $tCategory(prod.category_name) }}</div>
+              <div class="prod-meta-sm text-truncate">{{ $tCategory(prod.category_name) }}</div>
             </div>
 
-            <span class="variant-pill-sm">
-              {{ prod.variants?.length || 0 }} var
+            <span class="variant-pill-sm tabular">
+              {{ $t('pos.sizesCount', { count: prod.variants?.length || 0 }) }}
             </span>
           </button>
         </div>
@@ -84,19 +86,21 @@
 
       <!-- ================= RIGHT PANEL: VARIANT RECIPES ================= -->
       <div class="variants-recipe-panel">
-        <div v-if="!selectedProduct" class="clean-card empty-main">
-          <i class="bi bi-journal-text fs-1 text-muted mb-2 d-block"></i>
-          <div class="fw-bold text-dark">{{ $t('recipes.selectAProduct') }}</div>
-          <div class="small text-muted">
+        <div v-if="!selectedProduct" class="surface-card empty-main">
+          <div class="empty-icon-circle">
+            <i class="bi bi-journal-text"></i>
+          </div>
+          <div class="empty-main-title">{{ $t('recipes.selectAProduct') }}</div>
+          <div class="empty-main-desc">
             {{ $t('recipes.selectAProductDesc') }}
           </div>
         </div>
 
         <template v-else>
           <!-- Selected Product Banner -->
-          <div class="clean-card product-banner mb-3 p-3 px-4">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-              <div class="d-flex align-items-center gap-3">
+          <div class="surface-card product-banner">
+            <div class="banner-inner">
+              <div class="banner-product-info">
                 <div class="prod-thumb-lg">
                   <img
                     v-if="selectedProduct.image"
@@ -109,37 +113,26 @@
                     :class="selectedProduct.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot'"
                   ></i>
                 </div>
-                <div>
-                  <div class="d-flex align-items-center gap-2 mb-1">
-                    <h5 class="fw-bold mb-0 text-dark">{{ selectedProduct.name }}</h5>
-                    <span class="type-pill" :class="selectedProduct.product_type?.toLowerCase()">
-                      {{ selectedProduct.product_type }}
-                    </span>
+                <div class="banner-text-col">
+                  <div class="banner-title-row">
+                    <h5 class="banner-product-title">{{ selectedProduct.name }}</h5>
                   </div>
-                  <div class="small text-muted d-flex align-items-center flex-wrap gap-2">
-                    <span>{{ $tCategory(selectedProduct.category_name) }}</span>
-                    <span>•</span>
-                    <span>{{ productVariantsRecipes.length }} variant(s)</span>
-                    <span>•</span>
-                    <span
-                      class="badge rounded-pill px-2 py-1 small"
-                      :class="configuredRecipesCount === productVariantsRecipes.length && productVariantsRecipes.length > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'"
-                    >
-                      <i class="bi" :class="configuredRecipesCount === productVariantsRecipes.length && productVariantsRecipes.length > 0 ? 'bi-check-circle-fill me-1' : 'bi-exclamation-circle me-1'"></i>
-                      {{ $t('recipes.configuredCount', { configured: configuredRecipesCount, total: productVariantsRecipes.length }) }}
-                    </span>
+                  <div class="banner-meta-row">
+                    <span class="banner-meta-item">{{ $tCategory(selectedProduct.category_name) }}</span>
+                    <span class="meta-dot">•</span>
+                    <span class="banner-meta-item tabular">{{ $t('pos.sizesCount', { count: productVariantsRecipes.length }) }}</span>
                   </div>
                 </div>
               </div>
 
-              <div class="d-flex align-items-center gap-2">
-                <router-link to="/inventory" class="btn btn-outline-coffee btn-sm d-inline-flex align-items-center gap-1">
+              <div class="banner-actions">
+                <router-link to="/inventory" class="btn-toolbar">
                   <i class="bi bi-boxes"></i>
                   <span>{{ $t('inventory.tabIngredients') }}</span>
                 </router-link>
                 <button
                   type="button"
-                  class="btn btn-light-coffee btn-sm"
+                  class="btn-toolbar-icon"
                   :title="$t('common.refresh')"
                   :disabled="isLoadingProductRecipes"
                   @click="fetchProductRecipes(selectedProduct.id)"
@@ -151,84 +144,80 @@
           </div>
 
           <!-- Variants Loading -->
-          <div v-if="isLoadingProductRecipes" class="clean-card empty-main">
+          <div v-if="isLoadingProductRecipes" class="surface-card empty-main">
             <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-            <div class="small text-muted">{{ $t('recipes.loadingVariantRecipes') }}</div>
+            <div class="empty-main-desc">{{ $t('recipes.loadingVariantRecipes') }}</div>
           </div>
 
           <!-- Empty Variants -->
-          <div v-else-if="productVariantsRecipes.length === 0" class="clean-card empty-main">
-            <i class="bi bi-box-seam fs-1 text-muted mb-2 d-block"></i>
-            <div class="fw-bold text-dark">{{ $t('recipes.noVariantsAvailable') }}</div>
-            <div class="small text-muted">
+          <div v-else-if="productVariantsRecipes.length === 0" class="surface-card empty-main">
+            <div class="empty-icon-circle">
+              <i class="bi bi-box-seam"></i>
+            </div>
+            <div class="empty-main-title">{{ $t('recipes.noVariantsAvailable') }}</div>
+            <div class="empty-main-desc">
               {{ $t('recipes.noVariantsAvailableDesc') }}
             </div>
           </div>
 
           <!-- Variants Recipe Table View -->
-          <div v-else class="clean-card">
+          <div v-else class="surface-card">
             <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
-                <thead class="table-head-clean">
+              <table class="clean-table">
+                <thead>
                   <tr>
-                    <th style="min-width: 170px;">{{ $t('recipes.colVariant') }}</th>
-                    <th style="min-width: 90px;">{{ $t('recipes.colPrice') }}</th>
-                    <th style="min-width: 290px;">{{ $t('recipes.colRecipeIngredients') }}</th>
-                    <th style="min-width: 120px;">{{ $t('recipes.colEstYield') }}</th>
-                    <th style="min-width: 120px;" class="text-end">{{ $t('common.actions') }}</th>
+                    <th style="min-width: 160px;">{{ $t('recipes.colVariant') }}</th>
+                    <th style="min-width: 100px;">{{ $t('recipes.colPrice') }}</th>
+                    <th style="min-width: 280px;">{{ $t('recipes.colRecipeIngredients') }}</th>
+                    <th style="min-width: 130px;">{{ $t('recipes.colEstYield') }}</th>
+                    <th style="min-width: 130px;" class="text-end">{{ $t('common.actions') }}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="v in productVariantsRecipes" :key="v.id">
-                    <!-- Variant Name & Spec -->
+                    <!-- Variant Name -->
                     <td>
-                      <div class="fw-semibold text-dark">{{ v.variant_name }}</div>
-                      <div class="small text-muted d-flex align-items-center gap-1 mt-0.5">
-                        <span
-                          v-if="v.temperature && v.temperature !== 'NONE'"
-                          class="badge-variant-temp"
-                          :class="v.temperature.toLowerCase()"
-                        >
-                          {{ v.temperature }}
-                        </span>
-                        <span v-if="v.size" class="badge-variant-size">{{ v.size }}</span>
-                      </div>
+                      <div class="variant-name">{{ v.variant_name }}</div>
                     </td>
 
                     <!-- Price -->
                     <td>
-                      <span class="fw-semibold text-dark font-monospace">{{ formatUsd(v.price) }}</span>
+                      <span class="price-val tabular">{{ formatUsd(v.price) }}</span>
                     </td>
 
                     <!-- Recipe Ingredients -->
                     <td>
-                      <div v-if="!v.recipe || v.recipe.length === 0" class="d-flex align-items-center flex-wrap gap-2">
-                        <span class="badge bg-light text-muted border fw-normal">{{ $t('recipes.noRecipeSet') }}</span>
-                        <div v-if="getSiblingsWithRecipes(v).length > 0" class="d-inline-flex align-items-center gap-1">
-                          <span class="smaller text-muted">{{ $t('recipes.copy') }}</span>
+                      <div v-if="!v.recipe || v.recipe.length === 0" class="no-recipe-wrap">
+                        <span class="no-recipe-pill">{{ $t('recipes.noRecipeSet') }}</span>
+                        <div v-if="getSiblingsWithRecipes(v).length > 0" class="copy-siblings-group">
+                          <span class="copy-label">{{ $t('recipes.copy') }}</span>
                           <button
                             v-for="sib in getSiblingsWithRecipes(v)"
                             :key="sib.id"
                             type="button"
-                            class="btn btn-xs btn-outline-secondary py-0 px-1.5"
+                            class="btn-copy-sibling"
                             :title="`Copy recipe from ${sib.variant_name}`"
                             @click="quickCopyRecipe(sib, v)"
                           >
-                            <i class="bi bi-copy me-1"></i>{{ sib.variant_name }}
+                            <i class="bi bi-copy"></i>
+                            <span>{{ sib.variant_name }}</span>
                           </button>
                         </div>
                       </div>
 
-                      <div v-else class="d-flex flex-wrap gap-1">
-                        <span
-                          v-for="item in v.recipe"
-                          :key="item.id"
-                          class="recipe-ing-tag"
-                          :title="`Stock: ${formatQty(item.current_stock)} ${item.unit}`"
+                      <div v-else class="recipe-dropdown-wrap">
+                        <select
+                          class="form-select form-select-sm recipe-select tabular"
+                          :title="$t('recipes.colRecipeIngredients')"
                         >
-                          <span class="ing-name">{{ item.ingredient_name }}</span>
-                          <span class="ing-qty">{{ formatQty(item.quantity) }} {{ item.unit }}</span>
-                        </span>
+                          <option
+                            v-for="item in v.recipe"
+                            :key="item.id"
+                            :value="item.id"
+                          >
+                            {{ item.ingredient_name }} — {{ formatQty(item.quantity) }} {{ item.unit }}
+                          </option>
+                        </select>
                       </div>
                     </td>
 
@@ -236,22 +225,22 @@
                     <td>
                       <template v-if="v.recipe && v.recipe.length > 0">
                         <span
-                          class="badge rounded-pill fw-semibold px-2 py-1"
-                          :class="getMaxMakeableUnits(v.recipe) <= 5 ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success border border-success-subtle'"
+                          class="yield-text tabular"
+                          :class="getMaxMakeableUnits(v.recipe) <= 5 ? 'is-low' : 'is-ok'"
                         >
                           {{ $t('recipes.cupsCount', { count: getMaxMakeableUnits(v.recipe) }) }}
                         </span>
                       </template>
-                      <span v-else class="text-muted small">—</span>
+                      <span v-else class="text-muted-dash">—</span>
                     </td>
 
                     <!-- Actions -->
                     <td class="text-end">
-                      <div v-if="authStore.isOwner" class="d-inline-flex align-items-center gap-1">
+                      <div v-if="authStore.isOwner" class="action-group">
                         <template v-if="v.recipe && v.recipe.length > 0">
                           <button
                             type="button"
-                            class="btn-action"
+                            class="btn-action-icon"
                             :title="$t('common.edit')"
                             @click="openRecipeBuilderModal(v)"
                           >
@@ -259,7 +248,7 @@
                           </button>
                           <button
                             type="button"
-                            class="btn-action btn-action--danger"
+                            class="btn-action-icon is-danger"
                             :title="$t('common.clear')"
                             @click="handleDeleteVariantRecipe(v)"
                           >
@@ -269,11 +258,11 @@
                         <button
                           v-else
                           type="button"
-                          class="btn btn-sm btn-coffee"
+                          class="btn-set-recipe"
                           @click="openRecipeBuilderModal(v)"
                         >
                           <i class="bi bi-plus-lg"></i>
-                          <span class="ms-1">{{ $t('recipes.setRecipe') }}</span>
+                          <span>{{ $t('recipes.setRecipe') }}</span>
                         </button>
                       </div>
                     </td>
@@ -291,10 +280,10 @@
       <div class="modal-card-custom modal-lg-custom">
         <div class="modal-header-custom">
           <div>
-            <h6 class="mb-0 fw-bold text-dark">
+            <h6 class="modal-title-custom">
               {{ $t('recipes.recipeBuilderTitle', { product: selectedProduct?.name, variant: editingVariant.variant_name }) }}
             </h6>
-            <div class="small text-muted">
+            <div class="modal-subtitle-custom">
               {{ $t('recipes.recipeBuilderSubtitle') }}
             </div>
           </div>
@@ -305,36 +294,39 @@
 
         <div class="modal-body-custom">
           <!-- Toolbar: Copy from sibling variant or Add Ingredient Row -->
-          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <div v-if="siblingVariantsWithRecipes.length > 0" class="d-flex align-items-center gap-2">
-              <span class="small text-muted">{{ $t('recipes.copyFrom') }}</span>
+          <div class="builder-toolbar">
+            <div v-if="siblingVariantsWithRecipes.length > 0" class="copy-siblings-group">
+              <span class="copy-label">{{ $t('recipes.copyFrom') }}</span>
               <button
                 v-for="sib in siblingVariantsWithRecipes"
                 :key="sib.id"
                 type="button"
-                class="btn btn-light-coffee btn-xs"
+                class="btn-copy-sibling"
                 @click="copyFromSiblingVariant(sib)"
               >
-                <i class="bi bi-files me-1"></i>{{ sib.variant_name }}
+                <i class="bi bi-files"></i>
+                <span>{{ sib.variant_name }}</span>
               </button>
             </div>
 
             <button
               type="button"
-              class="btn btn-outline-coffee btn-sm ms-auto"
+              class="btn-toolbar ms-auto"
               @click="addBuilderRow"
             >
-              <i class="bi bi-plus-lg me-1"></i>{{ $t('recipes.addIngredientRow') }}
+              <i class="bi bi-plus-lg"></i>
+              <span>{{ $t('recipes.addIngredientRow') }}</span>
             </button>
           </div>
 
           <div v-if="builderItems.length === 0" class="empty-builder-box">
-            <div class="fw-semibold text-dark mb-1">{{ $t('recipes.noIngredientsInRecipe') }}</div>
-            <div class="small text-muted mb-3">
+            <div class="empty-main-title">{{ $t('recipes.noIngredientsInRecipe') }}</div>
+            <div class="empty-main-desc mb-3">
               {{ $t('recipes.noIngredientsInRecipeDesc') }}
             </div>
-            <button type="button" class="btn btn-coffee btn-sm" @click="addBuilderRow">
-              <i class="bi bi-plus-lg me-1"></i>{{ $t('recipes.addFirstIngredient') }}
+            <button type="button" class="btn-primary-action" @click="addBuilderRow">
+              <i class="bi bi-plus-lg"></i>
+              <span>{{ $t('recipes.addFirstIngredient') }}</span>
             </button>
           </div>
 
@@ -345,10 +337,10 @@
               class="builder-row"
             >
               <div class="flex-grow-1">
-                <label class="form-label-xs">{{ $t('inventory.colIngredient') }}</label>
+                <label class="form-label-clean">{{ $t('inventory.colIngredient') }}</label>
                 <select
                   v-model.number="row.ingredient_id"
-                  class="form-select form-select-sm form-control-clean"
+                  class="form-select form-control-clean"
                   required
                 >
                   <option :value="null" disabled>{{ $t('recipes.chooseActiveIngredient') }}</option>
@@ -363,28 +355,28 @@
                 </select>
               </div>
 
-              <div style="width: 170px">
-                <label class="form-label-xs">{{ $t('recipes.quantityRequired') }}</label>
-                <div class="input-group input-group-sm">
+              <div class="builder-qty-col">
+                <label class="form-label-clean">{{ $t('recipes.quantityRequired') }}</label>
+                <div class="qty-input-group">
                   <input
                     v-model.number="row.quantity"
                     type="number"
                     step="0.01"
                     min="0.01"
-                    class="form-control form-control-clean"
+                    class="form-control form-control-clean tabular"
                     placeholder="0.00"
                     required
                   />
-                  <span class="input-group-text bg-light text-muted small">
+                  <span class="qty-unit-addon">
                     {{ getIngredientUnit(row.ingredient_id) || 'Unit' }}
                   </span>
                 </div>
               </div>
 
-              <div class="pt-3">
+              <div class="builder-remove-col">
                 <button
                   type="button"
-                  class="btn btn-action-icon"
+                  class="btn-action-icon is-danger"
                   :title="$t('common.remove')"
                   @click="removeBuilderRow(idx)"
                 >
@@ -396,18 +388,18 @@
         </div>
 
         <div class="modal-footer-custom">
-          <button type="button" class="btn btn-light-coffee" @click="showBuilderModal = false">
+          <button type="button" class="btn-cancel-clean" @click="showBuilderModal = false">
             {{ $t('common.cancel') }}
           </button>
           <button
             type="button"
-            class="btn btn-coffee flex-grow-1"
+            class="btn-primary-action flex-grow-1 justify-content-center"
             :disabled="isSavingRecipe"
             @click="handleSaveRecipe"
           >
-            <span v-if="isSavingRecipe" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="bi bi-check2-circle me-1"></i>
-            {{ $t('recipes.saveRecipeBtn', { count: builderItems.length }) }}
+            <span v-if="isSavingRecipe" class="spinner-border spinner-border-sm"></span>
+            <i v-else class="bi bi-check2-circle"></i>
+            <span>{{ $t('recipes.saveRecipeBtn', { count: builderItems.length }) }}</span>
           </button>
         </div>
       </div>
@@ -421,10 +413,21 @@ import api, { getAssetUrl } from '@/api/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useCurrency } from '@/composables/useCurrency'
+import { useI18n } from '@/i18n'
 
 const authStore = useAuthStore()
 const toast = useToast()
 const { formatUsd } = useCurrency()
+const { t } = useI18n()
+
+const getProductTypeLabel = (type) => {
+  if (!type) return ''
+  const upper = String(type).toUpperCase()
+  if (upper === 'DRINK') return t('common.drink')
+  if (upper === 'FOOD') return t('common.food')
+  if (upper === 'ADDON') return t('common.addon')
+  return type
+}
 
 // ================= STATE =================
 const categories = ref([])
@@ -654,12 +657,26 @@ onMounted(async () => {
 
 <style scoped>
 .recipes-page {
+  --botanical-deep: #1e3f2e;
+  --botanical-primary: #2d5a43;
+  --botanical-hover: #234735;
+  --botanical-tint: #eaf5ee;
+  --botanical-surface: #f4f9f6;
+  --ledger-border: #dce6e0;
+  --ledger-border-soft: #e8efe9;
+  --text-strong: #16241c;
+  --text-body: #3f5247;
+  --text-muted: #6c7f74;
   width: 100%;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 .recipes-layout {
   display: grid;
-  grid-template-columns: 310px 1fr;
+  grid-template-columns: 315px 1fr;
   gap: 1.25rem;
   align-items: start;
 }
@@ -670,24 +687,52 @@ onMounted(async () => {
   }
 }
 
-/* Left Sidebar: Product Navigator */
+/* ================= LEFT SIDEBAR: PRODUCT NAVIGATOR ================= */
 .products-sidebar-card {
   background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
+  border: 1px solid var(--ledger-border);
   border-radius: 16px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 120px);
-  box-shadow: 0 1px 3px rgba(45, 90, 67, 0.04), 0 4px 14px rgba(45, 90, 67, 0.02);
+  box-shadow: 0 2px 10px rgba(22, 36, 28, 0.03);
   position: sticky;
   top: 1rem;
 }
 
 .sidebar-header {
   padding: 1rem;
-  border-bottom: 1px solid var(--border-hairline, #eeeae4);
-  background: #ffffff;
+  border-bottom: 1px solid var(--ledger-border-soft);
+  background: #fcfefd;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sidebar-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sidebar-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--text-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.catalog-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--botanical-primary);
+  background: var(--botanical-surface);
+  border: 1px solid var(--ledger-border);
+  padding: 0.14rem 0.5rem;
+  border-radius: 999px;
 }
 
 .search-wrap {
@@ -699,23 +744,31 @@ onMounted(async () => {
   left: 11px;
   top: 50%;
   transform: translateY(-50%);
-  color: #8a7f78;
-  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
   pointer-events: none;
 }
 
 .search-input {
-  padding-left: 32px;
-  padding-right: 30px;
-  border-radius: 10px;
-  border: 1px solid #dedad4;
-  height: 38px;
-  font-size: 0.85rem;
+  width: 100%;
+  height: 36px;
+  padding: 0 28px 0 32px;
+  border-radius: 9px;
+  border: 1px solid var(--ledger-border);
+  background: #ffffff;
+  font-size: 0.83rem;
+  color: var(--text-strong);
+  transition: all 0.15s ease;
+}
+
+.search-input::placeholder {
+  color: #8fa096;
 }
 
 .search-input:focus {
-  border-color: #2d5a43;
-  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+  outline: none;
+  border-color: var(--botanical-primary);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.1);
 }
 
 .btn-search-clear {
@@ -725,78 +778,89 @@ onMounted(async () => {
   transform: translateY(-50%);
   border: none;
   background: transparent;
-  color: #8a7f78;
+  color: var(--text-muted);
   padding: 0 4px;
   font-size: 1rem;
   line-height: 1;
+  cursor: pointer;
 }
 
-/* Category Select (Clean Dropdown) */
+.btn-search-clear:hover {
+  color: var(--text-strong);
+}
+
 .category-select {
-  border-radius: 9px;
-  border: 1px solid #dedad4;
-  font-size: 0.82rem;
-  color: #44403c;
-  background-color: #faf9f7;
+  width: 100%;
   height: 36px;
+  padding: 0 2rem 0 0.75rem;
+  border-radius: 9px;
+  border: 1px solid var(--ledger-border);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-body);
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%232d5a43' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 11px 9px;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .category-select:focus {
-  border-color: #2d5a43;
-  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+  outline: none;
+  border-color: var(--botanical-primary);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.1);
 }
 
-/* Product list */
+/* Product Select List */
 .product-select-list {
   overflow-y: auto;
   padding: 0.65rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.38rem;
 }
 
 .product-select-item {
   border: 1px solid transparent;
   background: #ffffff;
   border-radius: 12px;
-  padding: 0.6rem 0.75rem;
+  padding: 0.58rem 0.7rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  transition: all 0.15s ease;
+  gap: 0.7rem;
+  transition: all 0.16s ease;
   width: 100%;
   cursor: pointer;
   outline: none !important;
 }
 
 .product-select-item:hover {
-  background: #f7f4f0;
+  background: var(--botanical-surface);
+  border-color: var(--ledger-border-soft);
 }
 
 .product-select-item.active {
-  background: #f2f7f4;
-  border-color: #2d5a43;
-  box-shadow: 0 1px 3px rgba(45, 90, 67, 0.08);
-}
-
-.product-select-item.active .prod-name-sm {
-  color: #1b3829;
-  font-weight: 700;
+  background: #f0f7f3;
+  border-color: var(--botanical-primary);
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.08);
 }
 
 .prod-thumb-sm {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: #f2efeb;
-  color: #8c6d58;
+  background: var(--botanical-surface);
+  color: var(--botanical-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  font-size: 1.1rem;
-  border: 1px solid #ebe6df;
+  font-size: 1.05rem;
+  border: 1px solid var(--ledger-border);
 }
 
 .prod-thumb-sm img {
@@ -805,64 +869,104 @@ onMounted(async () => {
   object-fit: cover;
 }
 
+.prod-info-col {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
 .prod-name-sm {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #1c1917;
+  font-weight: 700;
+  font-size: 0.87rem;
+  color: var(--text-strong);
   line-height: 1.25;
 }
 
+.product-select-item.active .prod-name-sm {
+  color: var(--botanical-deep);
+}
+
 .prod-meta-sm {
-  font-size: 0.72rem;
-  color: #78716c;
+  font-size: 0.73rem;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
 .variant-pill-sm {
-  font-size: 0.7rem;
-  font-weight: 600;
-  background: #f2efeb;
-  color: #574c45;
-  padding: 0.2rem 0.5rem;
-  border-radius: 8px;
+  font-size: 0.71rem;
+  font-weight: 700;
+  background: var(--botanical-surface);
+  color: var(--text-body);
+  border: 1px solid var(--ledger-border);
+  padding: 0.18rem 0.52rem;
+  border-radius: 999px;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.product-select-item.active .variant-pill-sm {
+  background: #ffffff;
+  color: var(--botanical-deep);
+  border-color: #bdd6c7;
 }
 
 .empty-side {
-  padding: 3rem 1rem;
+  padding: 2.75rem 1rem;
   text-align: center;
 }
 
-/* Right Panel: Clean Card & Banners */
-.clean-card {
+.empty-side-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ================= RIGHT PANEL: PRODUCT BANNER & TABLE ================= */
+.variants-recipe-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.surface-card {
   background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
+  border: 1px solid var(--ledger-border);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(45, 90, 67, 0.04), 0 4px 14px rgba(45, 90, 67, 0.02);
-}
-
-.empty-main {
-  padding: 4.5rem 1.5rem;
-  text-align: center;
+  box-shadow: 0 2px 10px rgba(22, 36, 28, 0.03);
 }
 
 .product-banner {
-  border-radius: 16px;
+  padding: 1rem 1.25rem;
+}
+
+.banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.banner-product-info {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
 }
 
 .prod-thumb-lg {
-  width: 58px;
-  height: 58px;
-  border-radius: 14px;
-  background: #f4f1ed;
-  color: #2d5a43;
+  width: 54px;
+  height: 54px;
+  border-radius: 13px;
+  background: var(--botanical-surface);
+  color: var(--botanical-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.45rem;
   overflow: hidden;
-  border: 1px solid #e8e4de;
+  border: 1px solid var(--ledger-border);
   flex-shrink: 0;
 }
 
@@ -872,144 +976,343 @@ onMounted(async () => {
   object-fit: cover;
 }
 
-.type-pill {
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: #f3efe9;
-  color: #2d5a43;
-  padding: 0.2rem 0.55rem;
-  border-radius: 6px;
-  text-transform: uppercase;
+.banner-text-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
 }
 
-.type-pill.drink {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.type-pill.food {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.type-pill.addon {
-  background: #f3e8ff;
-  color: #6b21a8;
-}
-
-/* Table View Styles */
-.table-head-clean th {
-  background-color: #faf9f7;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #6b7280;
-  font-weight: 600;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.badge-variant-temp {
-  font-size: 0.68rem;
-  font-weight: 600;
-  padding: 0.12rem 0.4rem;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.badge-variant-temp.hot {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.badge-variant-temp.iced,
-.badge-variant-temp.frappe {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.badge-variant-size {
-  font-size: 0.68rem;
-  font-weight: 500;
-  padding: 0.12rem 0.4rem;
-  border-radius: 4px;
-  background: #f3f4f6;
-  color: #4b5563;
-}
-
-.recipe-ing-tag {
-  display: inline-flex;
+.banner-title-row {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  background: #f8faf9;
-  border: 1px solid #d9e3dc;
-  border-radius: 6px;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.76rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.banner-product-title {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: var(--text-strong);
   line-height: 1.25;
 }
 
-.recipe-ing-tag .ing-name {
-  color: #374151;
-  font-weight: 500;
+.banner-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  font-size: 0.81rem;
+  color: var(--text-muted);
 }
 
-.recipe-ing-tag .ing-qty {
-  color: #2d5a43;
-  font-weight: 700;
+.banner-meta-item {
+  font-weight: 600;
+  color: var(--text-body);
 }
 
-/* Buttons */
-.btn-coffee {
-  background: #2d5a43;
-  color: #ffffff;
-  border: none;
+.meta-dot {
+  color: #b5c4bc;
+}
+
+.banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  height: 36px;
+  padding: 0 0.85rem;
   border-radius: 9px;
-  font-weight: 500;
-  padding: 0.4rem 0.9rem;
-  transition: all 0.15s ease;
-}
-
-.btn-coffee:hover {
-  background: #244a37;
-  color: #ffffff;
-}
-
-.btn-outline-coffee {
+  border: 1px solid var(--ledger-border);
   background: #ffffff;
-  color: #2d5a43;
-  border: 1px solid #2d5a43;
+  color: var(--text-body);
+  font-size: 0.81rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.btn-toolbar:hover {
+  background: var(--botanical-surface);
+  color: var(--botanical-deep);
+  border-color: #bdd1c5;
+}
+
+.btn-toolbar-icon {
+  width: 36px;
+  height: 36px;
   border-radius: 9px;
-  font-weight: 500;
-  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--ledger-border);
+  background: #ffffff;
+  color: var(--text-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.btn-toolbar-icon:hover:not(:disabled) {
+  background: var(--botanical-surface);
+  color: var(--botanical-deep);
+  border-color: #bdd1c5;
+}
+
+/* ================= CLEAN TABLE ================= */
+.clean-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.clean-table thead th {
+  background: #f8fbf9;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--ledger-border);
+  white-space: nowrap;
+}
+
+.clean-table tbody td {
+  padding: 0.88rem 1rem;
+  border-bottom: 1px solid var(--ledger-border-soft);
+  vertical-align: middle;
+  color: var(--text-body);
+  font-size: 0.86rem;
+}
+
+.clean-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.clean-table tbody tr {
+  transition: background-color 0.14s ease;
+}
+
+.clean-table tbody tr:hover {
+  background: #fafdfb;
+}
+
+.variant-name {
+  font-weight: 700;
+  color: var(--text-strong);
+  font-size: 0.9rem;
+}
+
+.price-val {
+  font-weight: 800;
+  color: var(--botanical-deep);
+  font-size: 0.92rem;
+}
+
+/* Recipe Ingredients Cell */
+.no-recipe-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.no-recipe-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.6rem;
+  border-radius: 7px;
+  background: #f4f7f5;
+  border: 1px solid var(--ledger-border);
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.copy-siblings-group {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.copy-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.btn-copy-sibling {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 7px;
+  border: 1px solid var(--ledger-border);
+  background: #ffffff;
+  color: var(--text-body);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.btn-outline-coffee:hover {
-  background: #f7f4f0;
-  color: #2d5a43;
+.btn-copy-sibling:hover {
+  background: var(--botanical-surface);
+  color: var(--botanical-deep);
+  border-color: var(--botanical-primary);
 }
 
-.btn-light-coffee {
-  background: #f4f1ed;
-  color: #2d5a43;
-  border: 1px solid #e6e1da;
-  border-radius: 9px;
-  font-weight: 500;
-  padding: 0.4rem 0.75rem;
+/* Recipe Ingredients Dropdown */
+.recipe-dropdown-wrap {
+  display: inline-block;
+  min-width: 210px;
+  max-width: 280px;
+  width: 100%;
+}
+
+.recipe-select {
+  height: 33px;
+  font-size: 0.81rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--ledger-border);
+  background-color: #fcfdfc;
+  color: var(--text-strong);
+  padding-left: 0.7rem;
+  padding-right: 1.8rem;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.btn-light-coffee:hover {
-  background: #e9e4dc;
-  color: #2d5a43;
+.recipe-select:focus {
+  background-color: #ffffff;
+  border-color: var(--botanical-primary);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
-.btn-xs {
-  font-size: 0.72rem;
-  padding: 0.18rem 0.5rem;
-  border-radius: 6px;
+/* Yield Text */
+.yield-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.yield-text.is-ok {
+  color: #1e6b43;
+}
+
+.yield-text.is-low {
+  color: #b91c1c;
+}
+
+.text-muted-dash {
+  color: #9aa8a0;
+  font-size: 0.85rem;
+}
+
+/* Actions Column */
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.btn-action-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--ledger-border);
+  background: #ffffff;
+  color: var(--text-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-action-icon:hover {
+  background: var(--botanical-surface);
+  color: var(--botanical-deep);
+  border-color: #bfd3c7;
+}
+
+.btn-action-icon.is-danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.btn-set-recipe {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  height: 32px;
+  padding: 0 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--botanical-primary);
+  background: var(--botanical-primary);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-set-recipe:hover {
+  background: var(--botanical-hover);
+  border-color: var(--botanical-hover);
+}
+
+/* Empty State */
+.empty-main {
+  padding: 3.75rem 1.5rem;
+  text-align: center;
+}
+
+.empty-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--botanical-surface);
+  border: 1px solid var(--ledger-border);
+  color: var(--botanical-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.empty-icon-circle--sm {
+  width: 42px;
+  height: 42px;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.empty-main-title {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--text-strong);
+  margin-bottom: 0.25rem;
+}
+
+.empty-main-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  max-width: 380px;
+  margin: 0 auto;
 }
 
 .spin-icon {
@@ -1022,12 +1325,12 @@ onMounted(async () => {
   to { transform: rotate(360deg); }
 }
 
-/* Builder Modal */
+/* ================= BUILDER MODAL ================= */
 .modal-backdrop-custom {
   position: fixed;
   inset: 0;
-  background: rgba(28, 25, 23, 0.45);
-  backdrop-filter: blur(2px);
+  background: rgba(18, 30, 23, 0.45);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1038,13 +1341,13 @@ onMounted(async () => {
 .modal-card-custom {
   background: #ffffff;
   border-radius: 18px;
-  border: 1px solid #e6e4e0;
+  border: 1px solid var(--ledger-border);
   width: 100%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 22px 48px rgba(18, 30, 23, 0.16);
 }
 
 .modal-lg-custom {
@@ -1052,50 +1355,76 @@ onMounted(async () => {
 }
 
 .modal-header-custom {
-  padding: 1.15rem 1.4rem;
-  border-bottom: 1px solid #eeeae4;
+  padding: 1.1rem 1.35rem;
+  border-bottom: 1px solid var(--ledger-border-soft);
+  background: #fcfefd;
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.modal-body-custom {
-  padding: 1.25rem 1.4rem;
-  overflow-y: auto;
-}
-
-.modal-footer-custom {
-  padding: 1rem 1.4rem;
-  border-top: 1px solid #eeeae4;
-  background: #faf9f7;
-  display: flex;
   gap: 0.75rem;
 }
 
+.modal-title-custom {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--text-strong);
+}
+
+.modal-subtitle-custom {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 .btn-close-custom {
-  border: none;
-  background: #f4f1ed;
+  border: 1px solid var(--ledger-border);
+  background: #ffffff;
   width: 32px;
   height: 32px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #716762;
+  color: var(--text-muted);
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .btn-close-custom:hover {
-  background: #e8e3dc;
-  color: #1c1b1b;
+  background: var(--botanical-surface);
+  color: var(--text-strong);
+}
+
+.modal-body-custom {
+  padding: 1.25rem 1.35rem;
+  overflow-y: auto;
+}
+
+.modal-footer-custom {
+  padding: 0.95rem 1.35rem;
+  border-top: 1px solid var(--ledger-border-soft);
+  background: #f9fcfa;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.builder-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.95rem;
 }
 
 .empty-builder-box {
-  border: 1px dashed #d8d2c9;
+  border: 1px dashed #c6d8ce;
   border-radius: 12px;
-  padding: 2.5rem 1.5rem;
+  padding: 2.25rem 1.5rem;
   text-align: center;
-  background: #faf9f7;
+  background: #f9fcfa;
 }
 
 .builder-rows {
@@ -1106,80 +1435,110 @@ onMounted(async () => {
 
 .builder-row {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.75rem;
-  background: #faf9f7;
-  border: 1px solid #e8e4de;
-  border-radius: 11px;
+  background: #f9fcfa;
+  border: 1px solid var(--ledger-border);
+  border-radius: 12px;
   padding: 0.75rem 0.9rem;
 }
 
-.form-label-xs {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #6b5b52;
-  margin-bottom: 3px;
+.builder-qty-col {
+  width: 175px;
+  flex-shrink: 0;
+}
+
+.builder-remove-col {
+  padding-bottom: 2px;
+}
+
+.form-label-clean {
   display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-body);
+  margin-bottom: 0.32rem;
 }
 
 .form-control-clean {
   border-radius: 9px;
-  border: 1px solid #dedad4;
+  border: 1px solid var(--ledger-border);
+  font-size: 0.84rem;
+  color: var(--text-strong);
+  min-height: 36px;
 }
 
 .form-control-clean:focus {
-  border-color: #2d5a43;
-  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+  border-color: var(--botanical-primary);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.1);
 }
 
-.btn-action {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #64748b;
+.qty-input-group {
+  display: flex;
+  align-items: stretch;
+}
+
+.qty-input-group .form-control-clean {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.qty-unit-addon {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 14px;
+  padding: 0 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-body);
+  background: var(--botanical-surface);
+  border: 1px solid var(--ledger-border);
+  border-left: none;
+  border-top-right-radius: 9px;
+  border-bottom-right-radius: 9px;
+  white-space: nowrap;
+}
+
+.btn-primary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 38px;
+  padding: 0 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--botanical-primary);
+  background: var(--botanical-primary);
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.btn-primary-action:hover:not(:disabled) {
+  background: var(--botanical-hover);
+  border-color: var(--botanical-hover);
+}
+
+.btn-primary-action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-cancel-clean {
+  height: 38px;
+  padding: 0 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--ledger-border);
+  background: #ffffff;
+  color: var(--text-body);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.btn-action:hover {
-  background-color: #f1f5f9;
-  color: #1e293b;
-}
-
-.btn-action--danger:hover {
-  background-color: #fef2f2;
-  color: #dc2626;
-}
-
-.btn-action-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  border: none;
-  background: transparent;
-  color: #64748b;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  transition: all 0.15s ease;
-}
-
-.btn-action-icon:hover {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.smaller {
-  font-size: 11px;
-}
-
-.tracking-wider {
-  letter-spacing: 0.5px;
+.btn-cancel-clean:hover {
+  background: var(--botanical-surface);
+  color: var(--text-strong);
 }
 </style>

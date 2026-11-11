@@ -1,64 +1,70 @@
 <template>
   <div class="reports-page">
-    <!-- Single-Row Report Tabs & Date Filter Bar -->
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-      <!-- Report Tab Navigation -->
-      <div class="report-tabs">
+    <!-- ================= TOP BAR: REPORT TABS & DATE CONTROLS ================= -->
+    <header class="reports-top-bar">
+      <!-- Report Category Segmented Tabs -->
+      <div class="segmented-tabs" role="tablist">
         <button
           type="button"
-          class="report-tab"
+          class="seg-tab-btn"
           :class="{ active: activeTab === 'TOP_PRODUCTS' }"
           @click="switchTab('TOP_PRODUCTS')"
         >
-          <i class="bi bi-trophy me-1"></i>{{ $t('reports.tabTopProducts') }}
+          <i class="bi bi-trophy"></i>
+          <span>{{ $t('reports.tabTopProducts') }}</span>
         </button>
 
         <button
           type="button"
-          class="report-tab"
+          class="seg-tab-btn"
           :class="{ active: activeTab === 'INVENTORY_USAGE' }"
           @click="switchTab('INVENTORY_USAGE')"
         >
-          <i class="bi bi-boxes me-1"></i>{{ $t('reports.tabInventoryUsage') }}
+          <i class="bi bi-boxes"></i>
+          <span>{{ $t('reports.tabInventoryUsage') }}</span>
         </button>
 
         <template v-if="authStore.isOwner">
           <button
             type="button"
-            class="report-tab"
+            class="seg-tab-btn"
             :class="{ active: activeTab === 'CATEGORIES' }"
             @click="switchTab('CATEGORIES')"
           >
-            <i class="bi bi-tags me-1"></i>{{ $t('reports.tabCategories') }}
+            <i class="bi bi-tags"></i>
+            <span>{{ $t('reports.tabCategories') }}</span>
           </button>
 
           <button
             type="button"
-            class="report-tab"
+            class="seg-tab-btn"
             :class="{ active: activeTab === 'PAYMENT_METHODS' }"
             @click="switchTab('PAYMENT_METHODS')"
           >
-            <i class="bi bi-credit-card me-1"></i>{{ $t('reports.tabPayments') }}
+            <i class="bi bi-credit-card-2-front"></i>
+            <span>{{ $t('reports.tabPayments') }}</span>
           </button>
 
           <button
             type="button"
-            class="report-tab"
+            class="seg-tab-btn"
             :class="{ active: activeTab === 'STAFF_PERFORMANCE' }"
             @click="switchTab('STAFF_PERFORMANCE')"
           >
-            <i class="bi bi-people me-1"></i>{{ $t('reports.tabStaff') }}
+            <i class="bi bi-people"></i>
+            <span>{{ $t('reports.tabStaff') }}</span>
           </button>
         </template>
       </div>
 
-      <div class="d-flex flex-wrap align-items-center gap-2">
-        <div class="preset-pills">
+      <!-- Date Presets, Date Range & Refresh -->
+      <div class="reports-top-bar__right">
+        <div class="segmented-tabs segmented-tabs--sm" role="group" aria-label="Date presets">
           <button
             v-for="p in datePresets"
             :key="p.key"
             type="button"
-            class="preset-pill"
+            class="seg-tab-btn"
             :class="{ active: activePreset === p.key }"
             @click="applyPreset(p.key)"
           >
@@ -66,44 +72,56 @@
           </button>
         </div>
 
-        <input
-          v-model="dateRange.start_date"
-          type="date"
-          class="form-control form-control-sm filter-date"
-          @change="handleCustomDate"
-        />
-        <input
-          v-model="dateRange.end_date"
-          type="date"
-          class="form-control form-control-sm filter-date"
-          @change="handleCustomDate"
-        />
+        <div class="date-range-group">
+          <i class="bi bi-calendar3 date-range-group__icon"></i>
+          <input
+            v-model="dateRange.start_date"
+            type="date"
+            class="date-range-group__input"
+            aria-label="Start date"
+            @change="handleCustomDate"
+          />
+          <span class="date-range-group__sep">→</span>
+          <input
+            v-model="dateRange.end_date"
+            type="date"
+            class="date-range-group__input"
+            aria-label="End date"
+            @change="handleCustomDate"
+          />
+        </div>
 
         <button
           type="button"
-          class="btn btn-light-coffee btn-sm"
+          class="toolbar-btn"
           :disabled="isLoading"
+          :title="$t('dashboard.refresh')"
           @click="loadCurrentTabReport"
         >
-          <i class="bi bi-arrow-clockwise"></i>
+          <i class="bi bi-arrow-clockwise" :class="{ 'spin-anim': isLoading }"></i>
+          <span class="d-none d-md-inline">{{ $t('dashboard.refresh') }}</span>
         </button>
       </div>
-    </div>
+    </header>
 
     <!-- ================= TAB 1: TOP SELLING PRODUCTS ================= -->
-    <div v-if="activeTab === 'TOP_PRODUCTS'" class="clean-card">
-      <div class="card-toolbar">
-        <div>
-          <span class="fw-bold text-dark">{{ $t('reports.topSellingVariants') }}</span>
-          <span class="small text-muted ms-2">
-            {{ $t('reports.totalRevenueInList') }} <strong>{{ formatUsd(topProductsData.total_revenue_sum) }}</strong>
-          </span>
+    <section v-if="activeTab === 'TOP_PRODUCTS'" class="clean-card">
+      <div class="report-card-header">
+        <div class="report-card-header__left">
+          <h2 class="report-title">{{ $t('reports.topSellingVariants') }}</h2>
+          <div class="report-summary-inline tabular">
+            <span class="summary-item">
+              <span class="summary-label">{{ $t('reports.totalRevenueInList') }}</span>
+              <strong class="summary-value text-emerald">{{ formatUsd(topProductsData.total_revenue_sum) }}</strong>
+              <span class="summary-khr">({{ formatKhr(usdToKhr(topProductsData.total_revenue_sum)) }})</span>
+            </span>
+          </div>
         </div>
 
-        <div class="d-flex gap-2 align-items-center">
+        <div class="report-card-header__right">
           <select
             v-model="topProductsLimit"
-            class="form-select form-select-sm filter-select"
+            class="filter-select"
             @change="loadCurrentTabReport"
           >
             <option :value="10">{{ $t('reports.topN', { n: 10 }) }}</option>
@@ -113,303 +131,392 @@
         </div>
       </div>
 
-      <div v-if="isLoading" class="empty-box">
+      <div v-if="isLoading" class="empty-state">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-        <div class="small text-muted">{{ $t('reports.loadingReport') }}</div>
+        <div class="empty-text">{{ $t('reports.loadingReport') }}</div>
       </div>
 
-      <div v-else-if="topProductsData.products.length === 0" class="empty-box">
-        <div class="small text-muted">{{ $t('reports.noProductSales') }}</div>
+      <div v-else-if="topProductsData.products.length === 0" class="empty-state">
+        <i class="bi bi-cup-hot empty-icon"></i>
+        <div class="empty-text">{{ $t('reports.noProductSales') }}</div>
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="clean-table">
           <thead>
             <tr>
-              <th>{{ $t('reports.colRank') }}</th>
+              <th style="width: 72px">{{ $t('reports.colRank') }}</th>
               <th>{{ $t('reports.colProduct') }}</th>
               <th>{{ $t('reports.colVariant') }}</th>
               <th>{{ $t('reports.colCategory') }}</th>
-              <th>{{ $t('reports.colUnitsSold') }}</th>
-              <th>{{ $t('reports.colRevenue') }}</th>
-              <th style="width: 180px">{{ $t('reports.colRevenueShare') }}</th>
+              <th class="text-end">{{ $t('reports.colUnitsSold') }}</th>
+              <th class="text-end">{{ $t('reports.colRevenue') }}</th>
+              <th style="width: 210px">{{ $t('reports.colRevenueShare') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="item in topProductsData.products" :key="item.variant_id">
               <td>
-                <span class="rank-pill" :class="{ top3: item.rank <= 3 }">#{{ item.rank }}</span>
-              </td>
-              <td class="fw-bold text-dark">{{ item.product_name }}</td>
-              <td>
-                <span class="badge bg-light text-dark border">{{ item.variant_name }}</span>
-              </td>
-              <td class="small text-muted">{{ $tCategory(item.category_name) }}</td>
-              <td>
-                <span class="fw-bold">{{ item.total_quantity_sold }}</span>
+                <span class="rank-text tabular" :class="{ 'is-top': item.rank <= 3 }">
+                  #{{ item.rank }}
+                </span>
               </td>
               <td>
-                <div class="fw-bold text-dark">{{ formatUsd(item.total_revenue_usd) }}</div>
+                <span class="cell-primary">{{ item.product_name }}</span>
               </td>
               <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="share-bar-track flex-grow-1">
+                <span class="cell-secondary">{{ item.variant_name }}</span>
+              </td>
+              <td>
+                <span class="cell-secondary">{{ $tCategory(item.category_name) }}</span>
+              </td>
+              <td class="text-end">
+                <span class="cell-primary tabular">{{ item.total_quantity_sold }}</span>
+              </td>
+              <td class="text-end">
+                <div class="cell-primary tabular">{{ formatUsd(item.total_revenue_usd) }}</div>
+                <div class="cell-sub tabular">{{ formatKhr(usdToKhr(item.total_revenue_usd)) }}</div>
+              </td>
+              <td>
+                <div class="share-cell">
+                  <div class="share-bar-track">
                     <div
                       class="share-bar-fill"
-                      :style="{ width: `${Math.min(100, item.revenue_share_percentage)}%` }"
+                      :style="{ width: `${Math.min(100, Number(item.revenue_share_percentage) || 0)}%` }"
                     ></div>
                   </div>
-                  <span class="small fw-semibold">{{ item.revenue_share_percentage }}%</span>
+                  <span class="share-pct tabular">{{ item.revenue_share_percentage }}%</span>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
 
     <!-- ================= TAB 2: INVENTORY USAGE ================= -->
-    <div v-if="activeTab === 'INVENTORY_USAGE'" class="clean-card">
-      <div class="card-toolbar">
-        <div>
-          <span class="fw-bold text-dark">{{ $t('reports.ingredientConsumptionTitle') }}</span>
-          <span class="small text-muted ms-2">
+    <section v-if="activeTab === 'INVENTORY_USAGE'" class="clean-card">
+      <div class="report-card-header">
+        <div class="report-card-header__left">
+          <h2 class="report-title">{{ $t('reports.ingredientConsumptionTitle') }}</h2>
+          <span
+            v-if="inventoryUsageData.low_stock_alert_count > 0"
+            class="low-stock-inline tabular"
+          >
             {{ $t('reports.lowStockAlertsCount', { count: inventoryUsageData.low_stock_alert_count }) }}
           </span>
         </div>
 
-        <button
-          type="button"
-          class="btn btn-sm"
-          :class="inventoryLowStockOnly ? 'btn-warning text-dark fw-bold' : 'btn-light-coffee'"
-          @click="inventoryLowStockOnly = !inventoryLowStockOnly; loadCurrentTabReport()"
-        >
-          <i class="bi bi-exclamation-triangle me-1"></i>{{ $t('inventory.lowStockOnly') }}
-        </button>
+        <div class="report-card-header__right">
+          <button
+            type="button"
+            class="toolbar-btn"
+            :class="{ 'is-active': inventoryLowStockOnly }"
+            @click="inventoryLowStockOnly = !inventoryLowStockOnly; loadCurrentTabReport()"
+          >
+            <i class="bi bi-exclamation-triangle"></i>
+            <span>{{ $t('inventory.lowStockOnly') }}</span>
+          </button>
+        </div>
       </div>
 
-      <div v-if="isLoading" class="empty-box">
+      <div v-if="isLoading" class="empty-state">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-        <div class="small text-muted">{{ $t('reports.loadingReport') }}</div>
+        <div class="empty-text">{{ $t('reports.loadingReport') }}</div>
       </div>
 
-      <div v-else-if="inventoryUsageData.ingredients.length === 0" class="empty-box">
-        <div class="small text-muted">{{ $t('inventory.noIngredientsFound') }}</div>
+      <div v-else-if="inventoryUsageData.ingredients.length === 0" class="empty-state">
+        <i class="bi bi-boxes empty-icon"></i>
+        <div class="empty-text">{{ $t('inventory.noIngredientsFound') }}</div>
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="clean-table">
           <thead>
             <tr>
               <th>{{ $t('inventory.colIngredient') }}</th>
-              <th>{{ $t('inventory.colCurrentStock') }}</th>
-              <th>{{ $t('reports.colConsumedSales') }}</th>
-              <th>{{ $t('reports.colPurchased') }}</th>
-              <th>{{ $t('reports.colWasted') }}</th>
-              <th>{{ $t('reports.colReturned') }}</th>
-              <th>{{ $t('common.status') }}</th>
+              <th class="text-end">{{ $t('inventory.colCurrentStock') }}</th>
+              <th class="text-end">{{ $t('reports.colConsumedSales') }}</th>
+              <th class="text-end">{{ $t('reports.colPurchased') }}</th>
+              <th class="text-end">{{ $t('reports.colWasted') }}</th>
+              <th class="text-end">{{ $t('reports.colReturned') }}</th>
+              <th class="text-end">{{ $t('common.status') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="ing in inventoryUsageData.ingredients" :key="ing.ingredient_id">
               <td>
-                <div class="fw-bold text-dark">{{ ing.ingredient_name }}</div>
-                <div class="small text-muted">{{ $t('inventory.colMinAlert') }}: {{ ing.minimum_stock }} {{ ing.unit }}</div>
+                <div class="cell-primary">{{ ing.ingredient_name }}</div>
+                <div class="cell-sub tabular">
+                  {{ $t('inventory.colMinAlert') }}: {{ formatQty(ing.minimum_stock) }} {{ ing.unit }}
+                </div>
               </td>
-              <td>
-                <span class="fw-bold" :class="ing.is_low_stock ? 'text-danger' : 'text-dark'">
-                  {{ ing.current_stock }} {{ ing.unit }}
+              <td class="text-end">
+                <span
+                  class="cell-primary tabular"
+                  :class="getStockColorClass(ing)"
+                >
+                  {{ formatQty(ing.current_stock) }} {{ ing.unit }}
                 </span>
               </td>
-              <td>
-                <span class="fw-semibold text-primary">
-                  {{ ing.total_consumed_sales }} {{ ing.unit }}
+              <td class="text-end">
+                <span class="cell-secondary tabular">
+                  {{ Number(ing.total_consumed_sales) > 0 ? `${formatQty(ing.total_consumed_sales)} ${ing.unit}` : '0' }}
                 </span>
               </td>
-              <td class="text-success">+{{ ing.total_purchased }} {{ ing.unit }}</td>
-              <td class="text-danger">
-                {{ ing.total_wasted > 0 ? `-${ing.total_wasted} ${ing.unit}` : '0' }}
+              <td class="text-end">
+                <span class="tabular" :class="Number(ing.total_purchased) > 0 ? 'text-emerald fw-bold' : 'text-muted-dash'">
+                  {{ Number(ing.total_purchased) > 0 ? `+${formatQty(ing.total_purchased)} ${ing.unit}` : '0' }}
+                </span>
               </td>
-              <td>{{ ing.total_returned }} {{ ing.unit }}</td>
-              <td>
-                <span v-if="ing.is_low_stock" class="status-tag low">{{ $t('inventory.lowStock') }}</span>
-                <span v-else class="status-tag ok">{{ $t('reports.healthy') }}</span>
+              <td class="text-end">
+                <span class="tabular" :class="Number(ing.total_wasted) > 0 ? 'text-crimson fw-bold' : 'text-muted-dash'">
+                  {{ Number(ing.total_wasted) > 0 ? `-${formatQty(ing.total_wasted)} ${ing.unit}` : '0' }}
+                </span>
+              </td>
+              <td class="text-end">
+                <span class="cell-secondary tabular">
+                  {{ Number(ing.total_returned) > 0 ? `+${formatQty(ing.total_returned)} ${ing.unit}` : '0' }}
+                </span>
+              </td>
+              <td class="text-end">
+                <span class="status-text" :class="getStockColorClass(ing)">
+                  {{ getStockStatusLabel(ing) }}
+                </span>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
 
     <!-- ================= TAB 3: CATEGORIES SALES (OWNER) ================= -->
-    <div v-if="activeTab === 'CATEGORIES'" class="clean-card">
-      <div class="card-toolbar">
-        <div>
-          <span class="fw-bold text-dark">{{ $t('reports.salesByCategory') }}</span>
-          <span class="small text-muted ms-2">
-            {{ $t('reports.totalRevenue') }} <strong>{{ formatUsd(categoriesData.total_revenue_sum) }}</strong>
-          </span>
+    <section v-if="activeTab === 'CATEGORIES'" class="clean-card">
+      <div class="report-card-header">
+        <div class="report-card-header__left">
+          <h2 class="report-title">{{ $t('reports.salesByCategory') }}</h2>
+          <div class="report-summary-inline tabular">
+            <span class="summary-item">
+              <span class="summary-label">{{ $t('reports.totalRevenue') }}</span>
+              <strong class="summary-value text-emerald">{{ formatUsd(categoriesData.total_revenue_sum) }}</strong>
+              <span class="summary-khr">({{ formatKhr(usdToKhr(categoriesData.total_revenue_sum)) }})</span>
+            </span>
+          </div>
         </div>
       </div>
 
-      <div v-if="isLoading" class="empty-box">
+      <div v-if="isLoading" class="empty-state">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
+        <div class="empty-text">{{ $t('reports.loadingReport') }}</div>
+      </div>
+
+      <div v-else-if="categoriesData.categories.length === 0" class="empty-state">
+        <i class="bi bi-tags empty-icon"></i>
+        <div class="empty-text">{{ $t('reports.noProductSales') }}</div>
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="clean-table">
           <thead>
             <tr>
               <th>{{ $t('products.colCategoryName') }}</th>
-              <th>{{ $t('reports.colItemsSold') }}</th>
-              <th>{{ $t('reports.colTotalRevenueUsd') }}</th>
-              <th>{{ $t('reports.colEquivalentKhr') }}</th>
+              <th class="text-end">{{ $t('reports.colItemsSold') }}</th>
+              <th class="text-end">{{ $t('reports.colTotalRevenueUsd') }}</th>
+              <th class="text-end">{{ $t('reports.colEquivalentKhr') }}</th>
               <th style="width: 220px">{{ $t('reports.colShareOfRevenue') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="cat in categoriesData.categories" :key="cat.category_id">
-              <td class="fw-bold text-dark">{{ $tCategory(cat.category_name) }}</td>
-              <td class="fw-semibold">{{ cat.total_items_sold }}</td>
-              <td class="fw-bold text-dark">{{ formatUsd(cat.total_revenue_usd) }}</td>
-              <td class="small text-muted">{{ formatKhr(usdToKhr(cat.total_revenue_usd)) }}</td>
               <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="share-bar-track flex-grow-1">
+                <span class="cell-primary">{{ $tCategory(cat.category_name) }}</span>
+              </td>
+              <td class="text-end">
+                <span class="cell-primary tabular">{{ cat.total_items_sold }}</span>
+              </td>
+              <td class="text-end">
+                <span class="cell-primary tabular">{{ formatUsd(cat.total_revenue_usd) }}</span>
+              </td>
+              <td class="text-end">
+                <span class="cell-secondary tabular">{{ formatKhr(usdToKhr(cat.total_revenue_usd)) }}</span>
+              </td>
+              <td>
+                <div class="share-cell">
+                  <div class="share-bar-track">
                     <div
                       class="share-bar-fill"
-                      :style="{ width: `${Math.min(100, cat.revenue_share_percentage)}%` }"
+                      :style="{ width: `${Math.min(100, Number(cat.revenue_share_percentage) || 0)}%` }"
                     ></div>
                   </div>
-                  <span class="small fw-semibold">{{ cat.revenue_share_percentage }}%</span>
+                  <span class="share-pct tabular">{{ cat.revenue_share_percentage }}%</span>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
 
     <!-- ================= TAB 4: PAYMENT METHODS (OWNER) ================= -->
-    <div v-if="activeTab === 'PAYMENT_METHODS'" class="clean-card">
-      <div class="card-toolbar">
-        <div class="d-flex flex-wrap gap-3 align-items-center">
-          <span class="fw-bold text-dark">{{ $t('reports.paymentMethodsBreakdown') }}</span>
-          <span class="small text-muted">
-            {{ $t('reports.gross') }} <strong>{{ formatUsd(paymentMethodsData.summary.total_gross_amount_usd) }}</strong>
-          </span>
-          <span class="small text-danger">
-            {{ $t('reports.refunded') }} <strong>-{{ formatUsd(paymentMethodsData.summary.total_refunded_usd) }}</strong>
-          </span>
-          <span class="small text-success">
-            {{ $t('reports.netCollected') }} <strong>{{ formatUsd(paymentMethodsData.summary.total_net_amount_usd) }}</strong>
-          </span>
+    <section v-if="activeTab === 'PAYMENT_METHODS'" class="clean-card">
+      <div class="report-card-header">
+        <div class="report-card-header__left">
+          <h2 class="report-title">{{ $t('reports.paymentMethodsBreakdown') }}</h2>
+          <div class="report-summary-inline tabular">
+            <span class="summary-item">
+              <span class="summary-label">{{ $t('reports.gross') }}</span>
+              <strong class="summary-value">{{ formatUsd(paymentMethodsData.summary.total_gross_amount_usd) }}</strong>
+            </span>
+            <span class="summary-sep">·</span>
+            <span class="summary-item">
+              <span class="summary-label">{{ $t('reports.refunded') }}</span>
+              <strong class="summary-value text-crimson">
+                {{ paymentMethodsData.summary.total_refunded_usd > 0 ? `-${formatUsd(paymentMethodsData.summary.total_refunded_usd)}` : '$0.00' }}
+              </strong>
+            </span>
+            <span class="summary-sep">·</span>
+            <span class="summary-item">
+              <span class="summary-label">{{ $t('reports.netCollected') }}</span>
+              <strong class="summary-value text-emerald">{{ formatUsd(paymentMethodsData.summary.total_net_amount_usd) }}</strong>
+            </span>
+          </div>
         </div>
       </div>
 
-      <div v-if="isLoading" class="empty-box">
+      <div v-if="isLoading" class="empty-state">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
+        <div class="empty-text">{{ $t('reports.loadingReport') }}</div>
       </div>
 
-      <div v-else-if="paymentMethodsData.payment_methods.length === 0" class="empty-box">
-        <div class="small text-muted">{{ $t('dashboard.noCompletedPayments') }}</div>
+      <div v-else-if="paymentMethodsData.payment_methods.length === 0" class="empty-state">
+        <i class="bi bi-credit-card-2-front empty-icon"></i>
+        <div class="empty-text">{{ $t('dashboard.noCompletedPayments') }}</div>
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="clean-table">
           <thead>
             <tr>
               <th>{{ $t('orders.colMethod') }}</th>
               <th>{{ $t('expenses.currencyLabel') }}</th>
-              <th>{{ $t('reports.colTransactions') }}</th>
-              <th>{{ $t('reports.colRawGross') }}</th>
-              <th>{{ $t('reports.colRefundedUsd') }}</th>
-              <th>{{ $t('reports.colNetRevenueUsd') }}</th>
-              <th style="width: 180px">{{ $t('reports.colNetShare') }}</th>
+              <th class="text-end">{{ $t('reports.colTransactions') }}</th>
+              <th class="text-end">{{ $t('reports.colRawGross') }}</th>
+              <th class="text-end">{{ $t('reports.colRefundedUsd') }}</th>
+              <th class="text-end">{{ $t('reports.colNetRevenueUsd') }}</th>
+              <th style="width: 210px">{{ $t('reports.colNetShare') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(pm, idx) in paymentMethodsData.payment_methods" :key="idx">
-              <td><span class="method-pill">{{ pm.method }}</span></td>
-              <td><span class="fw-bold">{{ pm.currency }}</span></td>
-              <td>{{ pm.transaction_count }}</td>
-              <td class="fw-semibold">
-                {{ pm.currency === 'USD' ? formatUsd(pm.gross_amount) : formatKhr(pm.gross_amount) }}
-              </td>
-              <td class="text-danger">
-                {{ pm.refunded_amount_usd > 0 ? `-${formatUsd(pm.refunded_amount_usd)}` : '—' }}
-              </td>
-              <td class="fw-bold text-dark">{{ formatUsd(pm.net_amount_usd) }}</td>
               <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="share-bar-track flex-grow-1">
+                <span class="cell-primary">{{ formatMethodName(pm.method) }}</span>
+              </td>
+              <td>
+                <span class="cell-secondary tabular">{{ pm.currency }}</span>
+              </td>
+              <td class="text-end">
+                <span class="cell-primary tabular">{{ pm.transaction_count }}</span>
+              </td>
+              <td class="text-end">
+                <span class="cell-secondary tabular">
+                  {{ pm.currency === 'USD' ? formatUsd(pm.gross_amount) : formatKhr(pm.gross_amount) }}
+                </span>
+              </td>
+              <td class="text-end">
+                <span class="tabular" :class="Number(pm.refunded_amount_usd) > 0 ? 'text-crimson fw-bold' : 'text-muted-dash'">
+                  {{ Number(pm.refunded_amount_usd) > 0 ? `-${formatUsd(pm.refunded_amount_usd)}` : '—' }}
+                </span>
+              </td>
+              <td class="text-end">
+                <span class="cell-primary tabular">{{ formatUsd(pm.net_amount_usd) }}</span>
+              </td>
+              <td>
+                <div class="share-cell">
+                  <div class="share-bar-track">
                     <div
                       class="share-bar-fill"
-                      :style="{ width: `${Math.min(100, pm.revenue_share_percentage)}%` }"
+                      :style="{ width: `${Math.min(100, Number(pm.revenue_share_percentage) || 0)}%` }"
                     ></div>
                   </div>
-                  <span class="small fw-semibold">{{ pm.revenue_share_percentage }}%</span>
+                  <span class="share-pct tabular">{{ pm.revenue_share_percentage }}%</span>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
 
     <!-- ================= TAB 5: STAFF PERFORMANCE (OWNER) ================= -->
-    <div v-if="activeTab === 'STAFF_PERFORMANCE'" class="clean-card">
-      <div class="card-toolbar">
-        <span class="fw-bold text-dark">{{ $t('reports.staffPerformanceTitle') }}</span>
+    <section v-if="activeTab === 'STAFF_PERFORMANCE'" class="clean-card">
+      <div class="report-card-header">
+        <div class="report-card-header__left">
+          <h2 class="report-title">{{ $t('reports.staffPerformanceTitle') }}</h2>
+        </div>
       </div>
 
-      <div v-if="isLoading" class="empty-box">
+      <div v-if="isLoading" class="empty-state">
         <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
+        <div class="empty-text">{{ $t('reports.loadingReport') }}</div>
+      </div>
+
+      <div v-else-if="staffPerformanceData.staff.length === 0" class="empty-state">
+        <i class="bi bi-people empty-icon"></i>
+        <div class="empty-text">{{ $t('users.noUsersFound') }}</div>
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="clean-table">
           <thead>
             <tr>
               <th>{{ $t('reports.colStaffMember') }}</th>
               <th>{{ $t('reports.colRole') }}</th>
-              <th>{{ $t('reports.colShiftsOpened') }}</th>
-              <th>{{ $t('reports.colPaidOrders') }}</th>
-              <th>{{ $t('reports.colAvgOrderValue') }}</th>
-              <th>{{ $t('reports.colDiscountsGiven') }}</th>
+              <th class="text-end">{{ $t('reports.colShiftsOpened') }}</th>
+              <th class="text-end">{{ $t('reports.colPaidOrders') }}</th>
+              <th class="text-end">{{ $t('reports.colAvgOrderValue') }}</th>
+              <th class="text-end">{{ $t('reports.colDiscountsGiven') }}</th>
               <th class="text-end">{{ $t('reports.colTotalPaidSales') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="st in staffPerformanceData.staff" :key="st.staff_id">
               <td>
-                <div class="fw-bold text-dark">{{ st.staff_name }}</div>
-                <div class="small text-muted">{{ st.staff_email }}</div>
+                <div class="cell-primary">{{ st.staff_name }}</div>
+                <div class="cell-sub">{{ st.staff_email }}</div>
               </td>
               <td>
-                <span class="method-pill">{{ st.role }}</span>
-              </td>
-              <td>{{ st.shifts_count }}</td>
-              <td class="fw-semibold">{{ st.paid_orders_count }}</td>
-              <td>{{ formatUsd(st.average_order_value_usd) }}</td>
-              <td class="text-danger">
-                {{ st.total_discounts_usd > 0 ? formatUsd(st.total_discounts_usd) : '$0.00' }}
+                <span class="cell-secondary">{{ formatRoleName(st.role) }}</span>
               </td>
               <td class="text-end">
-                <div class="fw-bold text-dark">{{ formatUsd(st.total_sales_usd) }}</div>
-                <div class="small text-muted">{{ formatKhr(usdToKhr(st.total_sales_usd)) }}</div>
+                <span class="cell-secondary tabular">{{ st.shifts_count }}</span>
+              </td>
+              <td class="text-end">
+                <span class="cell-primary tabular">{{ st.paid_orders_count }}</span>
+              </td>
+              <td class="text-end">
+                <span class="cell-secondary tabular">{{ formatUsd(st.average_order_value_usd) }}</span>
+              </td>
+              <td class="text-end">
+                <span class="tabular" :class="Number(st.total_discounts_usd) > 0 ? 'text-amber fw-bold' : 'text-muted-dash'">
+                  {{ Number(st.total_discounts_usd) > 0 ? formatUsd(st.total_discounts_usd) : '$0.00' }}
+                </span>
+              </td>
+              <td class="text-end">
+                <div class="cell-primary tabular">{{ formatUsd(st.total_sales_usd) }}</div>
+                <div class="cell-sub tabular">{{ formatKhr(usdToKhr(st.total_sales_usd)) }}</div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import api from '@/api/api'
+import { t } from '@/i18n'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useCurrency } from '@/composables/useCurrency'
@@ -479,9 +586,9 @@ const applyPreset = (key) => {
   const now = new Date()
 
   if (key === 'TODAY') {
-    const t = toIsoDateStr(now)
-    dateRange.start_date = t
-    dateRange.end_date = t
+    const today = toIsoDateStr(now)
+    dateRange.start_date = today
+    dateRange.end_date = today
   } else if (key === '7D') {
     const past = new Date(now)
     past.setDate(now.getDate() - 6)
@@ -514,6 +621,37 @@ const buildDateParams = () => {
   if (dateRange.start_date) p.start_date = dateRange.start_date
   if (dateRange.end_date) p.end_date = dateRange.end_date
   return p
+}
+
+const formatQty = (qty) => {
+  const n = Number(qty)
+  if (Number.isNaN(n)) return qty
+  return Number.isInteger(n) ? n : Number(n.toFixed(2))
+}
+
+const formatMethodName = (method) => {
+  if (method === 'BANK_TRANSFER') return t('common.bankTransfer')
+  if (method === 'CASH') return t('common.cash')
+  if (method === 'KHQR') return t('common.khqr')
+  return method
+}
+
+const formatRoleName = (role) => {
+  if (role === 'OWNER') return t('common.owner')
+  if (role === 'STAFF') return t('common.staff')
+  return role
+}
+
+const getStockColorClass = (ing) => {
+  if (Number(ing.current_stock) <= 0) return 'text-crimson'
+  if (ing.is_low_stock) return 'text-amber'
+  return 'text-emerald'
+}
+
+const getStockStatusLabel = (ing) => {
+  if (Number(ing.current_stock) <= 0) return t('inventory.outOfStock')
+  if (ing.is_low_stock) return t('inventory.lowStock')
+  return t('reports.healthy')
 }
 
 const loadCurrentTabReport = async () => {
@@ -559,169 +697,416 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-header-bar {
+.reports-page {
+  --roast-ink: #14231a;
+  --sage-muted: #54665b;
+  --botanical-primary: #2d5a43;
+  --botanical-deep: #1e3f2f;
+  --botanical-tint: #eaf3ee;
+  --ledger-line: #dce6e0;
+  --ledger-hairline: #edf3ef;
+  --surface-tint: #f8fbf9;
+  --emerald-ok: #1e6b43;
+  --amber-warn: #b45309;
+  --crimson-debit: #b91c1c;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  color: var(--roast-ink);
+  padding-bottom: 1.5rem;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-emerald {
+  color: var(--emerald-ok) !important;
+}
+
+.text-amber {
+  color: var(--amber-warn) !important;
+}
+
+.text-crimson {
+  color: var(--crimson-debit) !important;
+}
+
+.text-muted-dash {
+  color: #95a59b;
+}
+
+/* ================= TOP BAR: TABS & DATE CONTROLS ================= */
+.reports-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.preset-pills {
-  display: inline-flex;
-  background: #f2efeb;
-  padding: 3px;
-  border-radius: 10px;
-  border: 1px solid #e6e2dc;
-}
-
-.preset-pill {
-  border: none;
-  background: transparent;
-  color: #574c45;
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 0.32rem 0.75rem;
-  border-radius: 8px;
-}
-
-.preset-pill.active {
-  background: #2d5a43;
-  color: #ffffff;
-}
-
-.filter-date,
-.filter-select {
-  width: auto;
-  border-radius: 9px;
-  border: 1px solid #dedad4;
-}
-
-.report-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.report-tab {
-  border: 1px solid #e2ddd6;
-  background: #ffffff;
-  color: #4f433d;
-  border-radius: 11px;
-  padding: 0.5rem 1rem;
-  font-size: 0.84rem;
-  font-weight: 700;
-  transition: all 0.15s ease;
-}
-
-.report-tab.active {
-  background: #2d5a43;
-  color: #ffffff;
-  border-color: #2d5a43;
-}
-
-.clean-card {
-  background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.card-toolbar {
-  padding: 0.9rem 1.15rem;
-  border-bottom: 1px solid #eeeae4;
-  background: #fcfbfa;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
 }
 
-.clean-table th {
-  background: #faf9f7;
-  font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #6b5b52;
+.segmented-tabs {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: #e9f0ec;
+  border: 1px solid var(--ledger-line);
+  border-radius: 10px;
+}
+
+.segmented-tabs--sm {
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.seg-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.42rem 0.88rem;
+  border-radius: 7px;
+  font-size: 0.81rem;
+  font-weight: 600;
+  color: #4f6356;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.seg-tab-btn i {
+  font-size: 0.88rem;
+}
+
+.segmented-tabs--sm .seg-tab-btn {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.76rem;
+  border-radius: 6px;
+}
+
+.seg-tab-btn:hover:not(.active) {
+  color: var(--roast-ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.seg-tab-btn.active {
+  background: #ffffff;
+  color: var(--botanical-deep);
   font-weight: 700;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #eeeae4;
+  box-shadow: 0 1px 3px rgba(20, 35, 26, 0.08);
+}
+
+.reports-top-bar__right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.date-range-group {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.65rem;
+  background: #ffffff;
+  border: 1.5px solid var(--ledger-line);
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.date-range-group:focus-within {
+  border-color: var(--botanical-primary);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.date-range-group__icon {
+  font-size: 0.78rem;
+  color: var(--sage-muted);
+  margin-right: 2px;
+}
+
+.date-range-group__input {
+  border: none;
+  background: transparent;
+  color: var(--roast-ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0;
+  width: 112px;
+  cursor: pointer;
+  outline: none;
+}
+
+.date-range-group__sep {
+  color: var(--sage-muted);
+  font-size: 0.76rem;
+}
+
+.toolbar-btn {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.8rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--ledger-line);
+  background: #ffffff;
+  color: var(--roast-ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background: var(--surface-tint);
+  border-color: #c6d8ce;
+}
+
+.toolbar-btn.is-active {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: var(--amber-warn);
+  font-weight: 700;
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.filter-select {
+  height: 36px;
+  padding: 0 2rem 0 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--ledger-line);
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2354665b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 11px 9px;
+  appearance: none;
+  color: var(--roast-ink);
+  font-size: 0.81rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.filter-select:focus {
+  border-color: var(--botanical-primary);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+/* ================= MAIN CARD & REPORT HEADER ================= */
+.clean-card {
+  background: #ffffff;
+  border: 1px solid var(--ledger-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
+}
+
+.report-card-header {
+  padding: 0.88rem 1.15rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  background: var(--surface-tint);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.report-card-header__left {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.report-card-header__right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.report-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+}
+
+.report-summary-inline {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.81rem;
+}
+
+.summary-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.summary-label {
+  color: var(--sage-muted);
+  font-weight: 600;
+}
+
+.summary-value {
+  font-weight: 800;
+  color: var(--roast-ink);
+}
+
+.summary-khr {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+}
+
+.summary-sep {
+  color: #b7c8be;
+}
+
+.low-stock-inline {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--amber-warn);
+}
+
+/* ================= REPORT TABLES ================= */
+.clean-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.clean-table th {
+  background: #fafcfb;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--sage-muted);
+  padding: 0.68rem 1.15rem;
+  border-bottom: 1px solid var(--ledger-line);
+  white-space: nowrap;
 }
 
 .clean-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f3f0ec;
-  font-size: 0.85rem;
+  padding: 0.78rem 1.15rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  font-size: 0.83rem;
+  vertical-align: middle;
 }
 
-.rank-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 30px;
-  height: 24px;
-  border-radius: 6px;
-  background: #f2efeb;
-  color: #574c45;
+.clean-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.clean-table tbody tr:hover td {
+  background: #fafcfb;
+}
+
+.rank-text {
+  font-size: 0.82rem;
   font-weight: 700;
-  font-size: 0.75rem;
+  color: var(--sage-muted);
 }
 
-.rank-pill.top3 {
-  background: #d6ede0;
-  color: #2d5a43;
+.rank-text.is-top {
+  color: var(--botanical-primary);
+  font-weight: 800;
+}
+
+.cell-primary {
+  font-weight: 700;
+  color: var(--roast-ink);
+}
+
+.cell-secondary {
+  font-weight: 600;
+  color: #384b40;
+}
+
+.cell-sub {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--sage-muted);
+  margin-top: 2px;
+}
+
+.status-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.share-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .share-bar-track {
-  height: 8px;
-  background: #f2efeb;
+  flex: 1;
+  height: 6px;
+  background: #e9f0ec;
   border-radius: 999px;
   overflow: hidden;
 }
 
 .share-bar-fill {
   height: 100%;
-  background: #2d5a43;
+  background: var(--botanical-primary);
   border-radius: 999px;
+  transition: width 0.25s ease;
 }
 
-.method-pill {
-  background: #f4f1ed;
-  color: #2d5a43;
-  font-size: 0.72rem;
+.share-pct {
+  font-size: 0.78rem;
   font-weight: 700;
-  padding: 0.2rem 0.55rem;
-  border-radius: 6px;
+  color: var(--roast-ink);
+  min-width: 48px;
+  text-align: right;
 }
 
-.status-tag {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-}
-
-.status-tag.low {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.status-tag.ok {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.btn-light-coffee {
-  background: #f4f1ed;
-  color: #2d5a43;
-  border: 1px solid #e6e1da;
-  border-radius: 9px;
-  font-weight: 600;
-}
-
-.empty-box {
-  padding: 3.5rem 1rem;
+/* ================= EMPTY STATES ================= */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  padding: 3rem 1rem;
+  color: var(--sage-muted);
+}
+
+.empty-icon {
+  font-size: 1.6rem;
+  margin-bottom: 0.4rem;
+  opacity: 0.65;
+}
+
+.empty-text {
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-anim {
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
 }
 </style>
