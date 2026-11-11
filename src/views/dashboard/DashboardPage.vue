@@ -1,35 +1,35 @@
 <template>
-  <div class="dashboard-ledger">
-    <!-- ================= TOP CONTROL BAR ================= -->
-    <header class="ledger-toolbar">
-      <div class="period-segmented" role="group" aria-label="Date presets">
+  <div class="dashboard-page">
+    <!-- ================= TOP FILTER & PERIOD BAR ================= -->
+    <header class="dashboard-top-bar">
+      <div class="segmented-tabs" role="tablist" aria-label="Date presets">
         <button
           v-for="p in datePresets"
           :key="p.key"
           type="button"
-          class="segment-btn"
+          class="seg-tab-btn"
           :class="{ active: activePreset === p.key }"
           @click="applyDatePreset(p.key)"
         >
-          {{ $t(p.labelKey) }}
+          <span>{{ $t(p.labelKey) }}</span>
         </button>
       </div>
 
-      <div class="toolbar-dates">
-        <div class="date-range-capsule">
-          <i class="bi bi-calendar3 text-muted"></i>
+      <div class="dashboard-top-bar__right">
+        <div class="date-range-group">
+          <i class="bi bi-calendar3 date-range-group__icon"></i>
           <input
             v-model="filters.start_date"
             type="date"
-            class="date-input-clean"
+            class="date-range-group__input"
             aria-label="Start date"
             @change="handleCustomDateChange"
           />
-          <span class="date-range-sep">–</span>
+          <span class="date-range-group__sep">→</span>
           <input
             v-model="filters.end_date"
             type="date"
-            class="date-input-clean"
+            class="date-range-group__input"
             aria-label="End date"
             @change="handleCustomDateChange"
           />
@@ -37,7 +37,7 @@
 
         <button
           type="button"
-          class="btn-refresh-ledger"
+          class="toolbar-btn"
           :disabled="isLoading"
           :title="$t('dashboard.refresh')"
           @click="fetchAllDashboardData"
@@ -48,146 +48,150 @@
       </div>
     </header>
 
-    <!-- ================= HERO FINANCIAL STATEMENT SHEET ================= -->
-    <section class="financial-statement-sheet">
-      <!-- Primary Revenue & Profit Anchor -->
-      <div class="statement-hero">
-        <div class="statement-hero-split">
-          <!-- Net Sales Column -->
-          <div class="hero-metric-block">
-            <div class="metric-label-row">
-              <span class="metric-label">{{ $t('dashboard.netSales') }}</span>
-              <span v-if="financials.gross_sales_usd > 0" class="metric-pill-neutral tabular">
-                {{ $t('dashboard.grossSales') }}: {{ formatUsd(financials.gross_sales_usd) }}
+    <!-- ================= 4-COLUMN FINANCIAL & OPERATIONAL SUMMARY ================= -->
+    <section class="clean-card kpi-summary-card">
+      <div class="kpi-grid">
+        <!-- 1. Net Sales (ចំណូលលក់សុទ្ធ) -->
+        <div class="kpi-col">
+          <div class="kpi-col__head">
+            <span class="kpi-col__title">{{ $t('dashboard.netSales') }}</span>
+          </div>
+          <div class="kpi-col__main tabular">{{ formatUsd(financials.net_sales_usd) }}</div>
+          <div class="kpi-col__sub tabular">{{ formatKhr(usdToKhr(financials.net_sales_usd)) }}</div>
+
+          <div class="kpi-breakdown">
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('dashboard.grossSales') }}</span>
+              <span class="kpi-breakdown__val tabular">{{ formatUsd(financials.gross_sales_usd) }}</span>
+            </div>
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('dashboard.discounts') }}</span>
+              <span class="kpi-breakdown__val tabular" :class="{ 'text-amber': financials.total_discounts_usd > 0 }">
+                {{ financials.total_discounts_usd > 0 ? `-${formatUsd(financials.total_discounts_usd)}` : '$0.00' }}
               </span>
             </div>
-            <div class="hero-figure tabular">{{ formatUsd(financials.net_sales_usd) }}</div>
-            <div class="hero-khr tabular">
-              {{ formatKhr(usdToKhr(financials.net_sales_usd)) }}
-            </div>
-          </div>
-
-          <!-- Net Operating Profit Column -->
-          <div class="hero-metric-block hero-profit-block">
-            <div class="metric-label-row">
-              <span class="metric-label">{{ $t('dashboard.netProfit') }}</span>
-              <span
-                class="margin-pill tabular"
-                :class="profitMarginPercent >= 0 ? 'positive' : 'negative'"
-              >
-                {{ $t('dashboard.margin') }} {{ profitMarginPercent >= 0 ? '+' : '' }}{{ profitMarginPercent }}%
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('orders.tabRefunds') }}</span>
+              <span class="kpi-breakdown__val tabular" :class="{ 'text-crimson': financials.total_refunded_usd > 0 }">
+                {{ financials.total_refunded_usd > 0 ? `-${formatUsd(financials.total_refunded_usd)}` : '$0.00' }}
               </span>
             </div>
-            <div
-              class="hero-figure tabular"
-              :class="financials.net_operating_profit_usd >= 0 ? 'figure-positive' : 'figure-negative'"
-            >
-              {{ formatUsd(financials.net_operating_profit_usd) }}
-            </div>
-            <div class="hero-khr tabular">
-              {{ formatKhr(usdToKhr(financials.net_operating_profit_usd)) }}
-            </div>
           </div>
         </div>
 
-        <!-- Revenue Flow Proportion Bar -->
-        <div class="revenue-flow-strip">
-          <div class="flow-bar-track" aria-hidden="true">
-            <div
-              class="flow-segment seg-profit"
-              :style="{ width: `${flowWidths.profit}%` }"
-              :title="`${$t('dashboard.netProfit')}: ${formatUsd(Math.max(0, financials.net_operating_profit_usd))}`"
-            ></div>
-            <div
-              class="flow-segment seg-expenses"
-              :style="{ width: `${flowWidths.expenses}%` }"
-              :title="`${$t('dashboard.expenses')}: ${formatUsd(financials.total_expenses_usd)}`"
-            ></div>
-            <div
-              class="flow-segment seg-deductions"
-              :style="{ width: `${flowWidths.deductions}%` }"
-              :title="`${$t('dashboard.discounts')} & ${$t('dashboard.refunds', { amount: formatUsd(financials.total_refunded_usd) })}`"
-            ></div>
+        <!-- 2. Total Expenses (ចំណាយសរុប) -->
+        <div class="kpi-col">
+          <div class="kpi-col__head">
+            <span class="kpi-col__title">{{ $t('dashboard.expenses') }}</span>
           </div>
-          <div class="flow-legend">
-            <span class="flow-legend-item">
-              <span class="legend-dot seg-profit"></span>
-              <span>{{ $t('dashboard.netProfit') }}</span>
-              <strong class="tabular">{{ formatUsd(financials.net_operating_profit_usd) }}</strong>
-            </span>
-            <span class="flow-legend-item">
-              <span class="legend-dot seg-expenses"></span>
-              <span>{{ $t('dashboard.expenses') }}</span>
-              <strong class="tabular">{{ formatUsd(financials.total_expenses_usd) }}</strong>
-            </span>
-            <span class="flow-legend-item">
-              <span class="legend-dot seg-deductions"></span>
-              <span>{{ $t('dashboard.discounts') }}</span>
-              <strong class="tabular">{{ formatUsd(financials.total_discounts_usd) }}</strong>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Secondary Operational Counters -->
-      <div class="statement-side-metrics">
-        <!-- Paid Orders & Ticket Average -->
-        <div class="side-metric-cell">
-          <div class="d-flex justify-content-between align-items-baseline mb-1">
-            <span class="metric-label">{{ $t('dashboard.paidOrders') }}</span>
-            <span class="side-meta tabular">
-              {{ $t('dashboard.avgOrder', { amount: formatUsd(financials.average_order_value_usd) }) }}
-            </span>
-          </div>
-          <div class="side-figure tabular">{{ ordersStats.paid_orders }}</div>
-          <div class="side-sub-pills">
-            <span class="status-micro-pill">
-              {{ $t('dashboard.openCount', { count: ordersStats.open_orders || 0 }) }}
-            </span>
-            <span v-if="ordersStats.cancelled_orders > 0" class="status-micro-pill muted">
-              {{ $t('dashboard.cancelledCount', { count: ordersStats.cancelled_orders }) }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Expenses & Refunds Outflow -->
-        <div class="side-metric-cell">
-          <div class="d-flex justify-content-between align-items-baseline mb-1">
-            <span class="metric-label">{{ $t('dashboard.expenses') }}</span>
-            <span class="side-meta tabular">
-              {{ $t('dashboard.transactions', { count: expensesCount }) }}
-            </span>
-          </div>
-          <div class="side-figure figure-negative tabular">
+          <div
+            class="kpi-col__main tabular"
+            :class="financials.total_expenses_usd > 0 ? 'text-crimson' : ''"
+          >
             {{ formatUsd(financials.total_expenses_usd) }}
           </div>
-          <div class="side-sub-row tabular">
-            <span>{{ $t('dashboard.refunds', { amount: formatUsd(financials.total_refunded_usd) }) }}</span>
-            <span v-if="refundsCount > 0" class="text-muted">({{ refundsCount }})</span>
+          <div class="kpi-col__sub tabular">{{ formatKhr(usdToKhr(financials.total_expenses_usd)) }}</div>
+
+          <div class="kpi-breakdown">
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('reports.colTransactions') }}</span>
+              <span class="kpi-breakdown__val tabular">{{ $t('dashboard.transactions', { count: expensesCount }) }}</span>
+            </div>
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('shifts.cashExpenses') }}</span>
+              <span class="kpi-breakdown__val tabular">{{ formatUsd(financials.cash_expenses_usd || 0) }}</span>
+            </div>
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('orders.tabRefunds') }}</span>
+              <span class="kpi-breakdown__val tabular">
+                {{ formatUsd(financials.total_refunded_usd) }} ({{ refundsCount }})
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Net Operating Profit (ប្រាក់ចំណេញសុទ្ធ) -->
+        <div class="kpi-col">
+          <div class="kpi-col__head">
+            <span class="kpi-col__title">{{ $t('dashboard.netProfit') }}</span>
+          </div>
+          <div
+            class="kpi-col__main tabular"
+            :class="financials.net_operating_profit_usd >= 0 ? 'text-emerald' : 'text-crimson'"
+          >
+            {{ formatUsd(financials.net_operating_profit_usd) }}
+          </div>
+          <div class="kpi-col__sub tabular">{{ formatKhr(usdToKhr(financials.net_operating_profit_usd)) }}</div>
+
+          <div class="kpi-breakdown">
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('dashboard.netSales') }}</span>
+              <span class="kpi-breakdown__val tabular">{{ formatUsd(financials.net_sales_usd) }}</span>
+            </div>
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('dashboard.expenses') }}</span>
+              <span class="kpi-breakdown__val tabular" :class="{ 'text-crimson': financials.total_expenses_usd > 0 }">
+                {{ financials.total_expenses_usd > 0 ? `-${formatUsd(financials.total_expenses_usd)}` : '$0.00' }}
+              </span>
+            </div>
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('dashboard.margin') }}</span>
+              <span
+                class="kpi-breakdown__val tabular"
+                :class="financials.net_operating_profit_usd >= 0 ? 'text-emerald' : 'text-crimson'"
+              >
+                {{ profitMarginDisplay }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Paid Orders (វិក្កយបត្របានបង់ប្រាក់) -->
+        <div class="kpi-col">
+          <div class="kpi-col__head">
+            <span class="kpi-col__title">{{ $t('dashboard.paidOrders') }}</span>
+          </div>
+          <div class="kpi-col__main tabular">{{ ordersStats.paid_orders }}</div>
+          <div class="kpi-col__sub tabular">
+            {{ $t('dashboard.avgOrder', { amount: formatUsd(financials.average_order_value_usd) }) }}
+          </div>
+
+          <div class="kpi-breakdown">
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('orders.statusOpen') }}</span>
+              <span class="kpi-breakdown__val tabular">{{ ordersStats.open_orders || 0 }}</span>
+            </div>
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('orders.statusCancelled') }}</span>
+              <span class="kpi-breakdown__val tabular">{{ ordersStats.cancelled_orders || 0 }}</span>
+            </div>
+            <div class="kpi-breakdown__row">
+              <span class="kpi-breakdown__label">{{ $t('orders.statusRefunded') }}</span>
+              <span class="kpi-breakdown__val tabular">{{ ordersStats.refunded_orders || 0 }}</span>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ================= MIDDLE WORKSPACE: TREND & PAYMENT CHANNELS ================= -->
-    <div class="ledger-grid-mid">
+    <!-- ================= MIDDLE ROW: SALES TREND & PAYMENT CHANNELS ================= -->
+    <div class="dashboard-mid-grid">
       <!-- Sales Trend Panel -->
-      <section class="ledger-panel">
-        <div class="panel-head">
-          <div class="d-flex align-items-center gap-2 flex-wrap">
-            <h2 class="panel-title mb-0">{{ $t('dashboard.salesTrend') }}</h2>
-            <span v-if="salesTrend.peak_period" class="peak-callout tabular">
-              <i class="bi bi-lightning-charge-fill"></i>
+      <section class="clean-card panel-card">
+        <div class="panel-header">
+          <div class="panel-header__left">
+            <h2 class="panel-title">{{ $t('dashboard.salesTrend') }}</h2>
+            <span v-if="salesTrend.peak_period" class="panel-subtitle tabular">
               {{ $t('dashboard.peakPeriod', { period: formatPeriodShort(salesTrend.peak_period) }) }}
             </span>
           </div>
 
-          <div class="period-segmented period-segmented-sm" role="group">
+          <div class="segmented-tabs segmented-tabs--sm" role="group">
             <button
               v-for="g in ['hour', 'day', 'month']"
               :key="g"
               type="button"
-              class="segment-btn"
+              class="seg-tab-btn"
               :class="{ active: trendGroupBy === g }"
               @click="changeTrendGroupBy(g)"
             >
@@ -202,23 +206,23 @@
           </div>
         </div>
 
-        <!-- Active / Hovered Bar Readout Strip -->
-        <div v-if="visibleTrendPoints.length > 0 && activeTrendPoint" class="trend-inspector-bar">
-          <div class="d-flex align-items-center gap-2">
-            <span class="inspector-period tabular">{{ activeTrendPoint.period }}</span>
+        <!-- Active / Hovered Period Summary Bar -->
+        <div v-if="visibleTrendPoints.length > 0 && activeTrendPoint" class="trend-readout-strip">
+          <div class="trend-readout__left">
+            <span class="trend-readout__period tabular">{{ activeTrendPoint.period }}</span>
             <span
               v-if="activeTrendPoint.orders_count !== undefined"
-              class="inspector-orders tabular"
+              class="trend-readout__orders tabular"
             >
-              {{ $t('dashboard.ordersCount', { count: activeTrendPoint.orders_count }) }}
+              · {{ $t('dashboard.ordersCount', { count: activeTrendPoint.orders_count }) }}
             </span>
           </div>
-          <div class="d-flex align-items-baseline gap-2">
-            <strong class="inspector-usd tabular">
+          <div class="trend-readout__right">
+            <strong class="trend-readout__usd tabular">
               {{ formatUsd(activeTrendPoint.net_sales_usd) }}
             </strong>
-            <span class="inspector-khr tabular">
-              {{ formatKhr(usdToKhr(activeTrendPoint.net_sales_usd)) }}
+            <span class="trend-readout__khr tabular">
+              ({{ formatKhr(usdToKhr(activeTrendPoint.net_sales_usd)) }})
             </span>
           </div>
         </div>
@@ -226,42 +230,62 @@
         <div class="panel-body">
           <div v-if="visibleTrendPoints.length === 0" class="empty-state">
             <i class="bi bi-bar-chart-line empty-icon"></i>
-            <p class="empty-text mb-0">{{ $t('dashboard.noPaidSales') }}</p>
+            <p class="empty-text">{{ $t('dashboard.noPaidSales') }}</p>
           </div>
 
-          <div v-else class="chart-stage">
-            <div
-              v-for="pt in visibleTrendPoints"
-              :key="pt.period"
-              class="chart-col"
-              :class="{
-                'is-peak': pt.period === salesTrend.peak_period,
-                'is-focused': focusedPeriod === pt.period,
-              }"
-              @mouseenter="focusedPeriod = pt.period"
-              @focus="focusedPeriod = pt.period"
-              tabindex="0"
-            >
-              <div class="chart-col-val tabular">{{ formatUsdCompact(pt.net_sales_usd) }}</div>
-              <div class="chart-col-well">
-                <div
-                  class="chart-col-bar"
-                  :style="{ height: `${getTrendBarHeight(pt.net_sales_usd)}%` }"
-                ></div>
+          <div v-else class="chart-wrapper">
+            <!-- Y-Axis Reference Gridlines -->
+            <div class="chart-gridlines" aria-hidden="true">
+              <div class="chart-gridline">
+                <span class="chart-gridline__label tabular">{{ formatUsdCompact(maxTrendSales) }}</span>
+                <div class="chart-gridline__rule"></div>
               </div>
-              <div class="chart-col-label tabular" :title="pt.period">
-                {{ formatPeriodShort(pt.period) }}
+              <div class="chart-gridline">
+                <span class="chart-gridline__label tabular">{{ formatUsdCompact(maxTrendSales / 2) }}</span>
+                <div class="chart-gridline__rule"></div>
+              </div>
+              <div class="chart-gridline chart-gridline--zero">
+                <span class="chart-gridline__label tabular">$0</span>
+                <div class="chart-gridline__rule"></div>
+              </div>
+            </div>
+
+            <!-- Bars Stage -->
+            <div class="chart-stage">
+              <div
+                v-for="pt in visibleTrendPoints"
+                :key="pt.period"
+                class="chart-col"
+                :class="{
+                  'is-peak': pt.period === salesTrend.peak_period,
+                  'is-focused': focusedPeriod === pt.period,
+                }"
+                tabindex="0"
+                @mouseenter="focusedPeriod = pt.period"
+                @focus="focusedPeriod = pt.period"
+              >
+                <div class="chart-col__track">
+                  <div
+                    class="chart-col__bar"
+                    :style="{ height: `${getTrendBarHeight(pt.net_sales_usd)}%` }"
+                  >
+                    <span class="chart-col__val tabular">{{ formatUsdCompact(pt.net_sales_usd) }}</span>
+                  </div>
+                </div>
+                <div class="chart-col__label tabular" :title="pt.period">
+                  {{ formatPeriodShort(pt.period) }}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Payment Channels Settlement Panel -->
-      <section class="ledger-panel">
-        <div class="panel-head">
-          <h2 class="panel-title mb-0">{{ $t('dashboard.paymentChannels') }}</h2>
-          <span v-if="paymentsBreakdown.length > 0" class="panel-meta tabular">
+      <!-- Payment Channels Panel -->
+      <section class="clean-card panel-card">
+        <div class="panel-header">
+          <h2 class="panel-title">{{ $t('dashboard.paymentChannels') }}</h2>
+          <span v-if="paymentsBreakdown.length > 0" class="panel-total tabular">
             {{ formatUsd(totalPaymentsUsd) }}
           </span>
         </div>
@@ -269,39 +293,37 @@
         <div class="panel-body">
           <div v-if="paymentsBreakdown.length === 0" class="empty-state">
             <i class="bi bi-credit-card-2-front empty-icon"></i>
-            <p class="empty-text mb-0">{{ $t('dashboard.noCompletedPayments') }}</p>
+            <p class="empty-text">{{ $t('dashboard.noCompletedPayments') }}</p>
           </div>
 
-          <div v-else class="tender-list">
+          <div v-else class="payment-channel-list">
             <div
               v-for="(pm, idx) in enrichedPayments"
               :key="idx"
-              class="tender-item"
+              class="payment-channel-row"
             >
-              <div class="tender-item-top">
-                <div class="d-flex align-items-center gap-2">
-                  <span class="tender-badge" :class="getMethodClass(pm.method)">
-                    {{ formatMethodName(pm.method) }}
+              <div class="payment-channel-row__top">
+                <div class="payment-channel-row__info">
+                  <span class="payment-method-name" :class="getMethodClass(pm.method)">
+                    {{ formatMethodName(pm.method) }} ({{ pm.currency }})
                   </span>
-                  <span class="tender-currency tabular">{{ pm.currency }}</span>
-                  <span class="tender-txns tabular">
-                    {{ $t('dashboard.transactions', { count: pm.transaction_count }) }}
+                  <span class="payment-method-txns tabular">
+                    · {{ $t('dashboard.transactions', { count: pm.transaction_count }) }}
                   </span>
                 </div>
-                <div class="text-end">
-                  <div class="tender-amount tabular">{{ formatUsd(pm.net_amount_usd) }}</div>
+
+                <div class="payment-channel-row__figures tabular">
+                  <strong class="payment-method-usd">{{ formatUsd(pm.net_amount_usd) }}</strong>
+                  <span class="payment-method-share">{{ pm.sharePercent }}%</span>
                 </div>
               </div>
 
-              <div class="tender-bar-row">
-                <div class="tender-bar-track">
-                  <div
-                    class="tender-bar-fill"
-                    :class="getMethodClass(pm.method)"
-                    :style="{ width: `${pm.sharePercent}%` }"
-                  ></div>
-                </div>
-                <span class="tender-share tabular">{{ pm.sharePercent }}%</span>
+              <div class="payment-bar-track">
+                <div
+                  class="payment-bar-fill"
+                  :class="getMethodClass(pm.method)"
+                  :style="{ width: `${pm.sharePercent}%` }"
+                ></div>
               </div>
             </div>
           </div>
@@ -309,13 +331,13 @@
       </section>
     </div>
 
-    <!-- ================= BOTTOM WORKSPACE: TOP MENU ITEMS & PANTRY STOCK ================= -->
-    <div class="ledger-grid-bottom">
-      <!-- Top Selling Menu Variants -->
-      <section class="ledger-panel">
-        <div class="panel-head">
-          <h2 class="panel-title mb-0">{{ $t('dashboard.topSellingItems') }}</h2>
-          <router-link to="/reports" class="panel-action-link">
+    <!-- ================= BOTTOM ROW: TOP SELLING ITEMS & LOW STOCK ALERTS ================= -->
+    <div class="dashboard-bottom-grid">
+      <!-- Top Selling Menu Items -->
+      <section class="clean-card panel-card">
+        <div class="panel-header">
+          <h2 class="panel-title">{{ $t('dashboard.topSellingItems') }}</h2>
+          <router-link to="/reports" class="panel-link">
             <span>{{ $t('dashboard.fullReports') }}</span>
             <i class="bi bi-arrow-up-right"></i>
           </router-link>
@@ -323,11 +345,11 @@
 
         <div v-if="topProducts.length === 0" class="panel-body empty-state">
           <i class="bi bi-cup-hot empty-icon"></i>
-          <p class="empty-text mb-0">{{ $t('dashboard.noProductSales') }}</p>
+          <p class="empty-text">{{ $t('dashboard.noProductSales') }}</p>
         </div>
 
         <div v-else class="table-responsive">
-          <table class="ledger-table align-middle mb-0">
+          <table class="clean-table">
             <thead>
               <tr>
                 <th class="col-rank">#</th>
@@ -340,28 +362,23 @@
             <tbody>
               <tr v-for="item in topProducts" :key="item.variant_id">
                 <td class="col-rank">
-                  <span class="rank-index tabular" :class="{ 'rank-first': item.rank === 1 }">
-                    {{ item.rank }}
+                  <span class="rank-text tabular" :class="{ 'is-top': item.rank === 1 }">
+                    #{{ item.rank }}
                   </span>
                 </td>
                 <td>
-                  <div class="product-cell-name">{{ item.product_name }}</div>
-                  <div class="product-cell-variant">{{ item.variant_name }}</div>
+                  <div class="product-name">{{ item.product_name }}</div>
+                  <div class="product-variant">{{ item.variant_name }}</div>
                 </td>
                 <td>
-                  <span class="category-chip">{{ $tCategory(item.category_name) }}</span>
+                  <span class="category-text">{{ $tCategory(item.category_name) }}</span>
                 </td>
                 <td class="text-end">
                   <span class="sold-qty tabular">{{ item.total_quantity_sold }}</span>
                 </td>
                 <td class="text-end col-rev">
-                  <div class="rev-figure tabular">{{ formatUsd(item.total_revenue_usd) }}</div>
-                  <div class="rev-share-track" :title="`${getProductShare(item)}%`">
-                    <div
-                      class="rev-share-fill"
-                      :style="{ width: `${getProductShare(item)}%` }"
-                    ></div>
-                  </div>
+                  <div class="rev-usd tabular">{{ formatUsd(item.total_revenue_usd) }}</div>
+                  <div class="rev-share tabular">{{ getProductShare(item) }}%</div>
                 </td>
               </tr>
             </tbody>
@@ -369,62 +386,59 @@
         </div>
       </section>
 
-      <!-- Low-Stock Alerts & Pantry Watch -->
-      <section class="ledger-panel">
-        <div class="panel-head">
-          <div class="d-flex align-items-center gap-2">
-            <h2 class="panel-title mb-0">{{ $t('dashboard.lowStockAlerts') }}</h2>
-            <span v-if="lowStockItems.length > 0" class="alert-count-pill tabular">
-              {{ lowStockItems.length }}
+      <!-- Low-Stock Alerts -->
+      <section class="clean-card panel-card">
+        <div class="panel-header">
+          <div class="panel-header__left">
+            <h2 class="panel-title">{{ $t('dashboard.lowStockAlerts') }}</h2>
+            <span v-if="lowStockItems.length > 0" class="low-stock-count tabular">
+              ({{ lowStockItems.length }})
             </span>
           </div>
-          <router-link to="/inventory" class="panel-action-link">
+          <router-link to="/inventory" class="panel-link">
             <span>{{ $t('dashboard.restock') }}</span>
             <i class="bi bi-arrow-up-right"></i>
           </router-link>
         </div>
 
-        <div class="panel-body">
-          <div v-if="lowStockItems.length === 0" class="empty-state healthy-state">
-            <div class="healthy-check">
-              <i class="bi bi-check2"></i>
-            </div>
-            <div class="healthy-title">{{ $t('dashboard.allWellStocked') }}</div>
-            <p class="empty-text mb-0">{{ $t('dashboard.allWellStockedDesc') }}</p>
+        <div v-if="lowStockItems.length === 0" class="panel-body empty-state">
+          <div class="healthy-icon">
+            <i class="bi bi-check2"></i>
           </div>
+          <div class="healthy-title">{{ $t('dashboard.allWellStocked') }}</div>
+          <p class="empty-text">{{ $t('dashboard.allWellStockedDesc') }}</p>
+        </div>
 
-          <div v-else class="stock-watch-list">
-            <div
-              v-for="ing in lowStockItems.slice(0, 6)"
-              :key="ing.id"
-              class="stock-watch-item"
-              :class="{ 'is-depleted': Number(ing.current_stock) <= 0 }"
-            >
-              <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-                <div>
-                  <div class="stock-ing-name">{{ ing.name }}</div>
-                  <div class="stock-ing-min tabular">
-                    {{ $t('dashboard.minRequired', { qty: formatQty(ing.minimum_stock), unit: ing.unit }) }}
-                  </div>
-                </div>
-
-                <span
-                  class="stock-status-pill tabular"
-                  :class="Number(ing.current_stock) <= 0 ? 'status-out' : 'status-low'"
-                >
-                  {{ $t('dashboard.leftStock', { qty: formatQty(ing.current_stock), unit: ing.unit }) }}
-                </span>
-              </div>
-
-              <div class="stock-gauge-track">
-                <div
-                  class="stock-gauge-fill"
-                  :class="Number(ing.current_stock) <= 0 ? 'fill-out' : 'fill-low'"
-                  :style="{ width: `${getStockRatio(ing)}%` }"
-                ></div>
-              </div>
-            </div>
-          </div>
+        <div v-else class="table-responsive">
+          <table class="clean-table">
+            <thead>
+              <tr>
+                <th>{{ $t('inventory.colIngredient') }}</th>
+                <th class="text-end">{{ $t('inventory.colMinAlert') }}</th>
+                <th class="text-end">{{ $t('inventory.colCurrentStock') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="ing in lowStockItems.slice(0, 6)" :key="ing.id">
+                <td>
+                  <span class="ing-name">{{ ing.name }}</span>
+                </td>
+                <td class="text-end">
+                  <span class="ing-min tabular">
+                    {{ formatQty(ing.minimum_stock) }} {{ ing.unit }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <span
+                    class="ing-stock tabular"
+                    :class="Number(ing.current_stock) <= 0 ? 'text-crimson' : 'text-amber'"
+                  >
+                    {{ formatQty(ing.current_stock) }} {{ ing.unit }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
     </div>
@@ -434,6 +448,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import api from '@/api/api'
+import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useCurrency } from '@/composables/useCurrency'
 
@@ -464,6 +479,7 @@ const financials = reactive({
   total_refunded_usd: 0,
   net_sales_usd: 0,
   total_expenses_usd: 0,
+  cash_expenses_usd: 0,
   net_operating_profit_usd: 0,
   average_order_value_usd: 0,
 })
@@ -489,33 +505,24 @@ const topProducts = ref([])
 const lowStockItems = ref([])
 
 // ================= COMPUTED METRICS =================
-const profitMarginPercent = computed(() => {
+const profitMarginDisplay = computed(() => {
   const net = Number(financials.net_sales_usd) || 0
   const profit = Number(financials.net_operating_profit_usd) || 0
-  if (net <= 0) return profit < 0 ? -100 : 0
-  return Math.round((profit / net) * 100)
-})
-
-const flowWidths = computed(() => {
-  const profit = Math.max(0, Number(financials.net_operating_profit_usd) || 0)
-  const expenses = Math.max(0, Number(financials.total_expenses_usd) || 0)
-  const deductions =
-    Math.max(0, Number(financials.total_discounts_usd) || 0) +
-    Math.max(0, Number(financials.total_refunded_usd) || 0)
-
-  const total = profit + expenses + deductions
-  if (total <= 0) {
-    return { profit: 100, expenses: 0, deductions: 0 }
+  if (net <= 0) {
+    return profit < 0 ? `${formatUsd(profit)}` : '0%'
   }
-  return {
-    profit: Math.max(2, Math.round((profit / total) * 100)),
-    expenses: Math.round((expenses / total) * 100),
-    deductions: Math.round((deductions / total) * 100),
-  }
+  const pct = Math.round((profit / net) * 100)
+  if (pct < -100) return `${pct}%`
+  return `${pct >= 0 ? '+' : ''}${pct}%`
 })
 
 const visibleTrendPoints = computed(() => {
   return salesTrend.data.slice(-14)
+})
+
+const maxTrendSales = computed(() => {
+  if (!visibleTrendPoints.value.length) return 10
+  return Math.max(...visibleTrendPoints.value.map((d) => Number(d.net_sales_usd) || 0), 1)
 })
 
 const activeTrendPoint = computed(() => {
@@ -600,8 +607,8 @@ const changeTrendGroupBy = async (group) => {
 }
 
 const getTrendBarHeight = (val) => {
-  const maxVal = Math.max(...visibleTrendPoints.value.map((d) => Number(d.net_sales_usd) || 0), 1)
-  return Math.max(6, Math.round(((Number(val) || 0) / maxVal) * 100))
+  const maxVal = maxTrendSales.value
+  return Math.max(8, Math.round(((Number(val) || 0) / maxVal) * 100))
 }
 
 const formatPeriodShort = (period) => {
@@ -620,8 +627,9 @@ const formatUsdCompact = (val) => {
 }
 
 const formatMethodName = (method) => {
-  if (method === 'BANK_TRANSFER') return 'Bank'
-  if (method === 'CASH') return 'Cash'
+  if (method === 'BANK_TRANSFER') return t('common.bankTransfer')
+  if (method === 'CASH') return t('common.cash')
+  if (method === 'KHQR') return t('common.khqr')
   return method
 }
 
@@ -633,22 +641,16 @@ const getMethodClass = (method) => {
 
 const getProductShare = (item) => {
   if (item.revenue_share_percentage !== undefined) {
-    return Math.max(4, Math.min(100, Math.round(Number(item.revenue_share_percentage))))
+    return Math.max(1, Math.min(100, Math.round(Number(item.revenue_share_percentage))))
   }
   const rev = Number(item.total_revenue_usd) || 0
-  return Math.max(4, Math.round((rev / maxProductRevenue.value) * 100))
+  return Math.max(1, Math.round((rev / maxProductRevenue.value) * 100))
 }
 
 const formatQty = (qty) => {
   const n = Number(qty)
   if (Number.isNaN(n)) return qty
   return Number.isInteger(n) ? n : Number(n.toFixed(2))
-}
-
-const getStockRatio = (ing) => {
-  const current = Math.max(0, Number(ing.current_stock) || 0)
-  const min = Math.max(1, Number(ing.minimum_stock) || 1)
-  return Math.min(100, Math.max(4, Math.round((current / min) * 100)))
 }
 
 // ================= API FETCH =================
@@ -717,33 +719,44 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dashboard-ledger {
-  --roast-ink: #16211b;
-  --roast-muted: #526358;
-  --forest-roast: #2d5a43;
-  --forest-deep: #1e3f2f;
-  --forest-wash: #e8f2ec;
-  --ledger-surface: #ffffff;
-  --stone-surface: #f3f6f4;
-  --rule-border: #dce4df;
-  --rule-subtle: #eaf0ec;
-  --crema-amber: #b45309;
-  --crema-wash: #fef3c7;
+.dashboard-page {
+  --roast-ink: #14231a;
+  --sage-muted: #54665b;
+  --botanical-primary: #2d5a43;
+  --botanical-deep: #1e3f2f;
+  --botanical-tint: #eaf3ee;
+  --ledger-line: #dce6e0;
+  --ledger-hairline: #edf3ef;
+  --surface-tint: #f8fbf9;
+  --emerald-ok: #1e6b43;
+  --amber-warn: #b45309;
   --crimson-debit: #b91c1c;
-  --crimson-wash: #fee2e2;
 
   display: flex;
   flex-direction: column;
   gap: 1rem;
   color: var(--roast-ink);
+  padding-bottom: 1.5rem;
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
-/* ================= TOP TOOLBAR ================= */
-.ledger-toolbar {
+.text-emerald {
+  color: var(--emerald-ok) !important;
+}
+
+.text-amber {
+  color: var(--amber-warn) !important;
+}
+
+.text-crimson {
+  color: var(--crimson-debit) !important;
+}
+
+/* ================= TOP FILTER & PERIOD BAR ================= */
+.dashboard-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -751,339 +764,225 @@ onMounted(() => {
   gap: 0.75rem;
 }
 
-.period-segmented {
+.segmented-tabs {
   display: inline-flex;
-  background: var(--stone-surface);
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: #e9f0ec;
+  border: 1px solid var(--ledger-line);
+  border-radius: 10px;
+}
+
+.segmented-tabs--sm {
   padding: 3px;
-  border-radius: 9px;
-  border: 1px solid var(--rule-border);
+  border-radius: 8px;
 }
 
-.period-segmented-sm .segment-btn {
-  padding: 0.24rem 0.65rem;
-  font-size: 0.74rem;
-}
-
-.segment-btn {
+.seg-tab-btn {
   border: none;
   background: transparent;
-  color: var(--roast-muted);
-  font-size: 0.78rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: 7px;
+  font-size: 0.81rem;
   font-weight: 600;
-  padding: 0.34rem 0.85rem;
+  color: #4f6356;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.segmented-tabs--sm .seg-tab-btn {
+  padding: 0.28rem 0.68rem;
+  font-size: 0.76rem;
   border-radius: 6px;
-  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.segment-btn:hover:not(.active) {
+.seg-tab-btn:hover:not(.active) {
   color: var(--roast-ink);
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.segment-btn.active {
-  background: var(--forest-roast);
-  color: #ffffff;
+.seg-tab-btn.active {
+  background: #ffffff;
+  color: var(--botanical-deep);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(20, 35, 26, 0.08);
 }
 
-.toolbar-dates {
+.dashboard-top-bar__right {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   flex-wrap: wrap;
+  gap: 0.55rem;
 }
 
-.date-range-capsule {
+.date-range-group {
+  height: 36px;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  background: var(--ledger-surface);
-  border: 1px solid var(--rule-border);
-  border-radius: 9px;
-  padding: 0.24rem 0.65rem;
+  gap: 0.35rem;
+  padding: 0 0.65rem;
+  background: #ffffff;
+  border: 1.5px solid var(--ledger-line);
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.date-input-clean {
+.date-range-group:focus-within {
+  border-color: var(--botanical-primary);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.date-range-group__icon {
+  font-size: 0.78rem;
+  color: var(--sage-muted);
+  margin-right: 2px;
+}
+
+.date-range-group__input {
   border: none;
   background: transparent;
   color: var(--roast-ink);
   font-size: 0.78rem;
-  font-weight: 500;
+  font-weight: 600;
+  padding: 0;
+  width: 112px;
+  cursor: pointer;
   outline: none;
-  padding: 0.1rem 0;
 }
 
-.date-range-sep {
-  color: var(--roast-muted);
-  font-size: 0.75rem;
+.date-range-group__sep {
+  color: var(--sage-muted);
+  font-size: 0.76rem;
 }
 
-.btn-refresh-ledger {
+.toolbar-btn {
+  height: 36px;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: var(--ledger-surface);
-  color: var(--forest-roast);
-  border: 1px solid var(--rule-border);
-  border-radius: 9px;
-  padding: 0.34rem 0.75rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.btn-refresh-ledger:hover:not(:disabled) {
-  background: var(--forest-wash);
-  border-color: #bfd4c7;
-}
-
-.btn-refresh-ledger:disabled {
-  opacity: 0.6;
-}
-
-/* ================= HERO FINANCIAL STATEMENT SHEET ================= */
-.financial-statement-sheet {
-  display: grid;
-  grid-template-columns: 1.75fr 1fr;
-  background: var(--ledger-surface);
-  border: 1px solid var(--rule-border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.statement-hero {
-  padding: 1.25rem 1.4rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 1.15rem;
-  border-right: 1px solid var(--rule-border);
-}
-
-.statement-hero-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-}
-
-.hero-metric-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.hero-profit-block {
-  padding-left: 1.25rem;
-  border-left: 1px solid var(--rule-subtle);
-}
-
-.metric-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.metric-label {
+  padding: 0 0.8rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--ledger-line);
+  background: #ffffff;
+  color: var(--roast-ink);
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--roast-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.metric-pill-neutral {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--roast-muted);
-  background: var(--stone-surface);
-  padding: 0.12rem 0.5rem;
-  border-radius: 6px;
+.toolbar-btn:hover:not(:disabled) {
+  background: var(--surface-tint);
+  border-color: #c6d8ce;
 }
 
-.margin-pill {
-  font-size: 0.72rem;
+.toolbar-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ================= CARDS & 4-COLUMN KPI LEDGER ================= */
+.clean-card {
+  background: #ffffff;
+  border: 1px solid var(--ledger-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.kpi-col {
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi-col + .kpi-col {
+  border-left: 1px solid var(--ledger-line);
+}
+
+.kpi-col__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+
+.kpi-col__title {
+  font-size: 0.81rem;
   font-weight: 700;
-  padding: 0.12rem 0.5rem;
-  border-radius: 6px;
+  color: var(--sage-muted);
 }
 
-.margin-pill.positive {
-  background: var(--forest-wash);
-  color: var(--forest-roast);
-}
-
-.margin-pill.negative {
-  background: var(--crimson-wash);
-  color: var(--crimson-debit);
-}
-
-.hero-figure {
-  font-size: clamp(1.55rem, 2.2vw, 2rem);
-  font-weight: 700;
+.kpi-col__main {
+  font-size: 1.65rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.15;
   color: var(--roast-ink);
-  margin-top: 0.1rem;
 }
 
-.figure-positive {
-  color: var(--forest-roast);
+.kpi-col__sub {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+  margin-top: 0.18rem;
 }
 
-.figure-negative {
-  color: var(--crimson-debit);
+.kpi-breakdown {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ledger-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 0.36rem;
 }
 
-.hero-khr {
-  font-size: 0.82rem;
+.kpi-breakdown__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.77rem;
+}
+
+.kpi-breakdown__label {
+  color: var(--sage-muted);
   font-weight: 500;
-  color: var(--roast-muted);
 }
 
-/* Revenue Composition Strip */
-.revenue-flow-strip {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--rule-subtle);
-}
-
-.flow-bar-track {
-  height: 7px;
-  background: var(--stone-surface);
-  border-radius: 999px;
-  display: flex;
-  overflow: hidden;
-  gap: 2px;
-}
-
-.flow-segment {
-  height: 100%;
-  transition: width 0.3s ease;
-}
-
-.seg-profit {
-  background: var(--forest-roast);
-}
-
-.seg-expenses {
-  background: var(--crimson-debit);
-}
-
-.seg-deductions {
-  background: #d97706;
-}
-
-.flow-legend {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  font-size: 0.74rem;
-  color: var(--roast-muted);
-}
-
-.flow-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.flow-legend-item strong {
+.kpi-breakdown__val {
   color: var(--roast-ink);
-  font-weight: 600;
-}
-
-.legend-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  display: inline-block;
-}
-
-/* Right Operational Counters */
-.statement-side-metrics {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-}
-
-.side-metric-cell {
-  padding: 1rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.side-metric-cell + .side-metric-cell {
-  border-top: 1px solid var(--rule-border);
-}
-
-.side-meta {
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--roast-muted);
-}
-
-.side-figure {
-  font-size: 1.4rem;
   font-weight: 700;
-  line-height: 1.2;
-  color: var(--roast-ink);
 }
 
-.side-sub-pills {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.35rem;
-}
-
-.status-micro-pill {
-  font-size: 0.7rem;
-  font-weight: 600;
-  background: var(--stone-surface);
-  color: var(--roast-ink);
-  padding: 0.1rem 0.45rem;
-  border-radius: 5px;
-}
-
-.status-micro-pill.muted {
-  color: var(--roast-muted);
-}
-
-.side-sub-row {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  color: var(--roast-muted);
-  margin-top: 0.25rem;
-}
-
-/* ================= WORKSPACE GRIDS & PANELS ================= */
-.ledger-grid-mid {
+/* ================= MIDDLE & BOTTOM GRIDS ================= */
+.dashboard-mid-grid {
   display: grid;
-  grid-template-columns: 1.75fr 1fr;
+  grid-template-columns: 1.65fr 1fr;
   gap: 1rem;
 }
 
-.ledger-grid-bottom {
+.dashboard-bottom-grid {
   display: grid;
   grid-template-columns: 1.35fr 1fr;
   gap: 1rem;
 }
 
-.ledger-panel {
-  background: var(--ledger-surface);
-  border: 1px solid var(--rule-border);
-  border-radius: 12px;
+.panel-card {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
-.panel-head {
+.panel-header {
   padding: 0.85rem 1.15rem;
-  border-bottom: 1px solid var(--rule-subtle);
+  border-bottom: 1px solid var(--ledger-hairline);
+  background: var(--surface-tint);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1091,34 +990,46 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
+.panel-header__left {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
 .panel-title {
+  margin: 0;
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--roast-ink);
 }
 
-.panel-meta {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--forest-roast);
+.panel-subtitle {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--sage-muted);
 }
 
-.panel-action-link {
+.panel-total {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--botanical-primary);
+}
+
+.panel-link {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: var(--forest-roast);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--botanical-primary);
   text-decoration: none;
-  padding: 0.22rem 0.55rem;
-  border-radius: 6px;
-  background: var(--forest-wash);
-  transition: background-color 0.15s ease;
+  transition: color 0.15s ease;
 }
 
-.panel-action-link:hover {
-  background: #d5e8dc;
+.panel-link:hover {
+  color: var(--botanical-deep);
+  text-decoration: underline;
 }
 
 .panel-body {
@@ -1127,66 +1038,107 @@ onMounted(() => {
 }
 
 /* ================= SALES TREND CHART ================= */
-.peak-callout {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  background: var(--crema-wash);
-  color: var(--crema-amber);
-  padding: 0.14rem 0.5rem;
-  border-radius: 6px;
-}
-
-.trend-inspector-bar {
+.trend-readout-strip {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.5rem 1.15rem;
-  background: var(--stone-surface);
-  border-bottom: 1px solid var(--rule-subtle);
-  font-size: 0.78rem;
+  padding: 0.52rem 1.15rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  font-size: 0.8rem;
 }
 
-.inspector-period {
-  font-weight: 600;
+.trend-readout__left {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.trend-readout__period {
+  font-weight: 700;
   color: var(--roast-ink);
 }
 
-.inspector-orders {
-  font-size: 0.72rem;
-  color: var(--roast-muted);
-  background: #ffffff;
-  padding: 0.08rem 0.45rem;
-  border-radius: 4px;
-  border: 1px solid var(--rule-border);
+.trend-readout__orders {
+  font-weight: 600;
+  color: var(--sage-muted);
 }
 
-.inspector-usd {
-  color: var(--forest-roast);
-  font-size: 0.86rem;
+.trend-readout__right {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
 }
 
-.inspector-khr {
-  font-size: 0.74rem;
-  color: var(--roast-muted);
+.trend-readout__usd {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--botanical-primary);
+}
+
+.trend-readout__khr {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 195px;
+  padding-top: 18px;
+  padding-bottom: 24px;
+  padding-left: 52px;
+}
+
+.chart-gridlines {
+  position: absolute;
+  inset: 18px 0 24px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.chart-gridline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.chart-gridline__label {
+  width: 44px;
+  text-align: right;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+  flex-shrink: 0;
+}
+
+.chart-gridline__rule {
+  flex: 1;
+  border-bottom: 1px dashed #e1ebe5;
+}
+
+.chart-gridline--zero .chart-gridline__rule {
+  border-bottom: 1px solid var(--ledger-line);
 }
 
 .chart-stage {
+  position: relative;
+  z-index: 1;
+  height: 100%;
   display: flex;
   align-items: flex-end;
-  gap: 0.45rem;
-  height: 175px;
-  padding: 0.4rem 0.15rem 0;
-  border-bottom: 1px solid var(--rule-subtle);
+  justify-content: space-around;
+  gap: 0.5rem;
   overflow-x: auto;
 }
 
 .chart-col {
   flex: 1;
-  min-width: 40px;
+  max-width: 56px;
+  min-width: 36px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1195,179 +1147,169 @@ onMounted(() => {
   outline: none;
 }
 
-.chart-col-val {
-  font-size: 0.66rem;
-  font-weight: 600;
-  color: var(--roast-muted);
-  margin-bottom: 4px;
-  white-space: nowrap;
-}
-
-.chart-col.is-focused .chart-col-val,
-.chart-col.is-peak .chart-col-val {
-  color: var(--roast-ink);
-  font-weight: 700;
-}
-
-.chart-col-well {
+.chart-col__track {
   flex: 1;
   width: 100%;
-  max-width: 30px;
-  background: var(--stone-surface);
-  border-radius: 5px 5px 0 0;
   display: flex;
   align-items: flex-end;
-  overflow: hidden;
+  justify-content: center;
 }
 
-.chart-col-bar {
+.chart-col__bar {
+  position: relative;
   width: 100%;
-  background: #638c75;
+  max-width: 32px;
+  background: #739c85;
   border-radius: 5px 5px 0 0;
   transition: height 0.25s ease, background-color 0.15s ease;
 }
 
-.chart-col:hover .chart-col-bar,
-.chart-col.is-focused .chart-col-bar {
-  background: var(--forest-roast);
+.chart-col:hover .chart-col__bar,
+.chart-col.is-focused .chart-col__bar {
+  background: var(--botanical-primary);
 }
 
-.chart-col.is-peak .chart-col-bar {
-  background: var(--forest-deep);
+.chart-col.is-peak .chart-col__bar {
+  background: var(--botanical-deep);
 }
 
-.chart-col-label {
+.chart-col__val {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 0.68rem;
-  color: var(--roast-muted);
+  font-weight: 700;
+  color: var(--sage-muted);
+  white-space: nowrap;
+}
+
+.chart-col.is-focused .chart-col__val,
+.chart-col.is-peak .chart-col__val {
+  color: var(--roast-ink);
+}
+
+.chart-col__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--sage-muted);
   margin-top: 6px;
   white-space: nowrap;
 }
 
 /* ================= PAYMENT CHANNELS ================= */
-.tender-list {
+.payment-channel-list {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.95rem;
 }
 
-.tender-item {
+.payment-channel-row {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.38rem;
 }
 
-.tender-item-top {
+.payment-channel-row__top {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
 }
 
-.tender-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.14rem 0.5rem;
-  border-radius: 5px;
+.payment-channel-row__info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  flex-wrap: wrap;
 }
 
-.tender-badge.method-cash {
-  background: var(--forest-wash);
-  color: var(--forest-roast);
-}
-
-.tender-badge.method-khqr {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.tender-badge.method-bank {
-  background: #e0f2fe;
-  color: #075985;
-}
-
-.tender-currency {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--roast-muted);
-  border: 1px solid var(--rule-border);
-  padding: 0.08rem 0.38rem;
-  border-radius: 4px;
-}
-
-.tender-txns {
-  font-size: 0.72rem;
-  color: var(--roast-muted);
-}
-
-.tender-amount {
-  font-size: 0.86rem;
+.payment-method-name {
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--roast-ink);
 }
 
-.tender-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.payment-method-txns {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--sage-muted);
 }
 
-.tender-bar-track {
-  flex: 1;
+.payment-channel-row__figures {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.payment-method-usd {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+}
+
+.payment-method-share {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+  min-width: 32px;
+  text-align: right;
+}
+
+.payment-bar-track {
   height: 5px;
-  background: var(--stone-surface);
+  background: #edf3ef;
   border-radius: 999px;
   overflow: hidden;
 }
 
-.tender-bar-fill {
+.payment-bar-fill {
   height: 100%;
   border-radius: 999px;
   transition: width 0.3s ease;
 }
 
-.tender-bar-fill.method-cash {
-  background: var(--forest-roast);
+.payment-bar-fill.method-cash {
+  background: var(--botanical-primary);
 }
 
-.tender-bar-fill.method-khqr {
-  background: #dc2626;
+.payment-bar-fill.method-khqr {
+  background: var(--crimson-debit);
 }
 
-.tender-bar-fill.method-bank {
+.payment-bar-fill.method-bank {
   background: #0284c7;
 }
 
-.tender-share {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--roast-muted);
-  min-width: 32px;
-  text-align: right;
-}
-
-/* ================= TOP SELLING TABLE ================= */
-.ledger-table {
+/* ================= TABLES (TOP ITEMS & LOW STOCK) ================= */
+.clean-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.ledger-table th {
-  background: var(--stone-surface);
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--roast-muted);
-  padding: 0.55rem 1rem;
-  border-bottom: 1px solid var(--rule-border);
+.clean-table th {
+  background: var(--surface-tint);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--sage-muted);
+  padding: 0.62rem 1.1rem;
+  border-bottom: 1px solid var(--ledger-line);
+  white-space: nowrap;
 }
 
-.ledger-table td {
-  padding: 0.65rem 1rem;
-  border-bottom: 1px solid var(--rule-subtle);
+.clean-table td {
+  padding: 0.72rem 1.1rem;
+  border-bottom: 1px solid var(--ledger-hairline);
   font-size: 0.82rem;
+  vertical-align: middle;
 }
 
-.ledger-table tbody tr:last-child td {
+.clean-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.clean-table tbody tr:hover td {
+  background: #fafcfb;
 }
 
 .col-rank {
@@ -1375,148 +1317,76 @@ onMounted(() => {
 }
 
 .col-rev {
-  min-width: 115px;
+  min-width: 105px;
 }
 
-.rank-index {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: var(--stone-surface);
-  color: var(--roast-muted);
+.rank-text {
+  font-size: 0.8rem;
   font-weight: 700;
-  font-size: 0.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  color: var(--sage-muted);
 }
 
-.rank-index.rank-first {
-  background: var(--forest-roast);
-  color: #ffffff;
+.rank-text.is-top {
+  color: var(--botanical-primary);
+  font-weight: 800;
 }
 
-.product-cell-name {
-  font-weight: 600;
+.product-name {
+  font-weight: 700;
   color: var(--roast-ink);
   line-height: 1.25;
 }
 
-.product-cell-variant {
-  font-size: 0.73rem;
-  color: var(--roast-muted);
+.product-variant {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--sage-muted);
+  margin-top: 1px;
 }
 
-.category-chip {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--roast-muted);
-  background: var(--stone-surface);
-  padding: 0.14rem 0.5rem;
-  border-radius: 5px;
+.category-text {
+  font-size: 0.81rem;
+  font-weight: 600;
+  color: var(--roast-ink);
 }
 
 .sold-qty {
+  font-weight: 700;
+  color: var(--roast-ink);
+}
+
+.rev-usd {
+  font-weight: 800;
+  color: var(--roast-ink);
+}
+
+.rev-share {
+  font-size: 0.72rem;
   font-weight: 600;
-  color: var(--roast-ink);
+  color: var(--sage-muted);
 }
 
-.rev-figure {
+/* Low Stock Table Specifics */
+.low-stock-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--amber-warn);
+}
+
+.ing-name {
   font-weight: 700;
   color: var(--roast-ink);
 }
 
-.rev-share-track {
-  height: 4px;
-  background: var(--stone-surface);
-  border-radius: 999px;
-  margin-top: 4px;
-  overflow: hidden;
-}
-
-.rev-share-fill {
-  height: 100%;
-  background: var(--forest-roast);
-  border-radius: 999px;
-}
-
-/* ================= LOW STOCK WATCH LIST ================= */
-.alert-count-pill {
-  font-size: 0.72rem;
-  font-weight: 700;
-  background: var(--crema-wash);
-  color: var(--crema-amber);
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-}
-
-.stock-watch-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.stock-watch-item {
-  padding: 0.65rem 0.85rem;
-  border: 1px solid var(--rule-border);
-  border-radius: 9px;
-  background: #ffffff;
-}
-
-.stock-watch-item.is-depleted {
-  border-color: #fecaca;
-  background: #fffafa;
-}
-
-.stock-ing-name {
-  font-size: 0.82rem;
+.ing-min {
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--roast-ink);
+  color: var(--sage-muted);
 }
 
-.stock-ing-min {
-  font-size: 0.72rem;
-  color: var(--roast-muted);
-}
-
-.stock-status-pill {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  border-radius: 6px;
-  white-space: nowrap;
-}
-
-.stock-status-pill.status-low {
-  background: var(--crema-wash);
-  color: var(--crema-amber);
-}
-
-.stock-status-pill.status-out {
-  background: var(--crimson-wash);
-  color: var(--crimson-debit);
-}
-
-.stock-gauge-track {
-  height: 4px;
-  background: var(--stone-surface);
-  border-radius: 999px;
-  margin-top: 0.45rem;
-  overflow: hidden;
-}
-
-.stock-gauge-fill {
-  height: 100%;
-  border-radius: 999px;
-}
-
-.stock-gauge-fill.fill-low {
-  background: #d97706;
-}
-
-.stock-gauge-fill.fill-out {
-  background: var(--crimson-debit);
+.ing-stock {
+  font-size: 0.84rem;
+  font-weight: 800;
 }
 
 /* ================= EMPTY STATES ================= */
@@ -1526,8 +1396,8 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 2rem 1rem;
-  color: var(--roast-muted);
+  padding: 2.25rem 1rem;
+  color: var(--sage-muted);
 }
 
 .empty-icon {
@@ -1537,15 +1407,16 @@ onMounted(() => {
 }
 
 .empty-text {
+  margin: 0;
   font-size: 0.8rem;
 }
 
-.healthy-check {
+.healthy-icon {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--forest-wash);
-  color: var(--forest-roast);
+  background: var(--botanical-tint);
+  color: var(--botanical-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1555,7 +1426,7 @@ onMounted(() => {
 
 .healthy-title {
   font-size: 0.84rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--roast-ink);
   margin-bottom: 0.15rem;
 }
@@ -1572,45 +1443,36 @@ onMounted(() => {
 }
 
 /* ================= RESPONSIVE BREAKPOINTS ================= */
+@media (max-width: 1199.98px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .kpi-col:nth-child(3) {
+    border-left: none;
+  }
+
+  .kpi-col:nth-child(3),
+  .kpi-col:nth-child(4) {
+    border-top: 1px solid var(--ledger-line);
+  }
+}
+
 @media (max-width: 991.98px) {
-  .financial-statement-sheet,
-  .ledger-grid-mid,
-  .ledger-grid-bottom {
+  .dashboard-mid-grid,
+  .dashboard-bottom-grid {
     grid-template-columns: 1fr;
-  }
-
-  .statement-hero {
-    border-right: none;
-    border-bottom: 1px solid var(--rule-border);
-  }
-
-  .statement-side-metrics {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto;
-  }
-
-  .side-metric-cell + .side-metric-cell {
-    border-top: none;
-    border-left: 1px solid var(--rule-border);
   }
 }
 
 @media (max-width: 575.98px) {
-  .statement-hero-split,
-  .statement-side-metrics {
+  .kpi-grid {
     grid-template-columns: 1fr;
   }
 
-  .hero-profit-block {
-    padding-left: 0;
-    padding-top: 0.85rem;
+  .kpi-col + .kpi-col {
     border-left: none;
-    border-top: 1px solid var(--rule-subtle);
-  }
-
-  .side-metric-cell + .side-metric-cell {
-    border-left: none;
-    border-top: 1px solid var(--rule-border);
+    border-top: 1px solid var(--ledger-line);
   }
 }
 </style>

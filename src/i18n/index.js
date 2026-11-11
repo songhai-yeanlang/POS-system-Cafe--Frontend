@@ -122,7 +122,8 @@ const CATEGORY_KM_MAP = {
   'extra': 'បន្ថែមពិសេស',
   'extras': 'បន្ថែមពិសេស',
   'other': 'ផ្សេងៗ',
-  'others': 'ផ្សេងៗ'
+  'others': 'ផ្សេងៗ',
+  'uncategorized': 'មិនទាន់កំណត់ប្រភេទ'
 }
 
 export function tCategory(name) {

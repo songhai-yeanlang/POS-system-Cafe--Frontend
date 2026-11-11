@@ -8,6 +8,7 @@ export function useCurrency() {
 
   const formatUsd = (amount) => {
     const num = Number(amount) || 0
+    if (num < 0) return `-$${Math.abs(num).toFixed(2)}`
     return `$${num.toFixed(2)}`
   }
 

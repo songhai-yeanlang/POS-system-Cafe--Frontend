@@ -189,19 +189,16 @@
                 </div>
               </td>
               <td>
-                <span class="cat-badge">{{ getCategoryLabel(exp.category, true) }}</span>
+                <span class="cat-text">{{ getCategoryLabel(exp.category, true) }}</span>
               </td>
               <td>
                 <div class="desc-text">{{ exp.description }}</div>
-                <div v-if="exp.status === 'VOIDED' && exp.void_reason" class="void-reason-note">
-                  <i class="bi bi-info-circle me-1"></i>{{ $t('expenses.voided') }}: {{ exp.void_reason }}
+                <div v-if="exp.status === 'VOIDED' && exp.void_reason" class="void-reason-text">
+                  {{ $t('expenses.voided') }}: {{ exp.void_reason }}
                 </div>
               </td>
               <td>
-                <span
-                  class="method-pill"
-                  :class="exp.payment_method ? exp.payment_method.toLowerCase() : ''"
-                >
+                <span class="method-text">
                   <i
                     :class="
                       exp.payment_method === 'CASH'
@@ -232,11 +229,10 @@
               </td>
               <td>
                 <span
-                  class="status-badge"
+                  class="status-text"
                   :class="exp.status === 'ACTIVE' ? 'active' : 'voided'"
                 >
-                  <span class="status-badge__dot"></span>
-                  <span>{{ exp.status === 'ACTIVE' ? $t('expenses.active') : $t('expenses.voided') }}</span>
+                  {{ exp.status === 'ACTIVE' ? $t('expenses.active') : $t('expenses.voided') }}
                 </span>
               </td>
               <td class="text-end">
@@ -1177,16 +1173,10 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-.cat-badge {
-  display: inline-flex;
-  align-items: center;
-  background: #eef6f1;
-  border: 1px solid #d2e4d9;
-  color: var(--botanical-deep);
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.24rem 0.62rem;
-  border-radius: 6px;
+.cat-text {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--roast-ink);
   white-space: nowrap;
 }
 
@@ -1196,44 +1186,27 @@ onMounted(async () => {
   line-height: 1.4;
 }
 
-.void-reason-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.28rem;
+.void-reason-text {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #dc2626;
   margin-top: 0.25rem;
-  padding: 0.14rem 0.5rem;
-  border-radius: 5px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #b91c1c;
+  line-height: 1.35;
 }
 
-.method-pill {
+.method-text {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.74rem;
-  font-weight: 700;
-  padding: 0.22rem 0.6rem;
-  border-radius: 6px;
-  background: #eef5f1;
-  border: 1px solid #d8e6de;
-  color: var(--botanical-deep);
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--roast-ink);
   white-space: nowrap;
 }
 
-.method-pill.khqr {
-  background: #eff6ff;
-  border-color: #dbeafe;
-  color: #1d4ed8;
-}
-
-.method-pill.bank_transfer {
-  background: #f5f3ff;
-  border-color: #ede9fe;
-  color: #6d28d9;
+.method-text i {
+  color: var(--botanical-primary);
+  font-size: 0.95rem;
 }
 
 .amount-cell {
@@ -1267,36 +1240,19 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-/* Status Badges */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.36rem;
-  font-size: 0.73rem;
+/* Status Text */
+.status-text {
+  font-size: 0.82rem;
   font-weight: 700;
-  padding: 0.22rem 0.65rem;
-  border-radius: 999px;
   white-space: nowrap;
 }
 
-.status-badge__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-}
-
-.status-badge.active {
-  background: #e6f6ec;
+.status-text.active {
   color: #166534;
-  border: 1px solid #ccebd7;
 }
 
-.status-badge.voided {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+.status-text.voided {
+  color: #dc2626;
 }
 
 /* Table Actions */
