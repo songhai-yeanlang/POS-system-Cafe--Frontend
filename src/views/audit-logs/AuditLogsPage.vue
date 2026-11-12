@@ -1,372 +1,21 @@
-<template>
-  <div class="audit-logs-page">
-    <!-- Audit Logs Card -->
-    <div class="section-card">
-      <!-- Single-Row Compact Filter Bar -->
-      <div class="p-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <div class="d-flex align-items-center flex-wrap gap-2 flex-grow-1">
-          <div class="search-input-wrap" style="min-width: 210px; max-width: 280px">
-            <i class="bi bi-search search-icon"></i>
-            <input
-              v-model="searchQuery"
-              type="text"
-              class="form-control form-control-clean ps-5"
-              :placeholder="$t('auditLogs.filterPlaceholder')"
-            />
-          </div>
-
-          <select
-            v-model="filters.table_name"
-            class="form-select form-control-clean"
-            style="width: auto; min-width: 145px"
-            @change="fetchAuditLogs(1)"
-          >
-            <option value="">{{ $t('auditLogs.allModules') }}</option>
-            <option v-for="mod in moduleOptions" :key="mod.value" :value="mod.value">
-              {{ mod.label }}
-            </option>
-          </select>
-
-          <select
-            v-model="filters.action"
-            class="form-select form-control-clean"
-            style="width: auto; min-width: 165px"
-            @change="fetchAuditLogs(1)"
-          >
-            <option value="">{{ $t('auditLogs.allActions') }}</option>
-            <optgroup
-              v-for="group in actionGroups"
-              :key="group.label"
-              :label="group.label"
-            >
-              <option v-for="act in group.actions" :key="act" :value="act">
-                {{ act }}
-              </option>
-            </optgroup>
-          </select>
-
-          <select
-            v-model="filters.user_id"
-            class="form-select form-control-clean"
-            style="width: auto; min-width: 140px"
-            @change="fetchAuditLogs(1)"
-          >
-            <option value="">{{ $t('auditLogs.allUsers') }}</option>
-            <option v-for="u in usersList" :key="u.id" :value="u.id">
-              {{ u.name }}
-            </option>
-          </select>
-
-          <input
-            v-model="filters.start_date"
-            type="date"
-            class="form-control form-control-clean"
-            style="width: auto"
-            title="Start Date"
-            @change="fetchAuditLogs(1)"
-          />
-
-          <input
-            v-model="filters.end_date"
-            type="date"
-            class="form-control form-control-clean"
-            style="width: auto"
-            title="End Date"
-            @change="fetchAuditLogs(1)"
-          />
-
-          <button
-            v-if="activeFilterCount > 0 || searchQuery"
-            type="button"
-            class="btn btn-light-coffee btn-sm"
-            :title="$t('auditLogs.resetFilters')"
-            @click="resetFilters"
-          >
-            <i class="bi bi-arrow-counterclockwise"></i>
-          </button>
-        </div>
-
-        <button
-          type="button"
-          class="btn btn-coffee btn-sm"
-          :disabled="isLoading"
-          @click="fetchAuditLogs(1)"
-        >
-          <span v-if="isLoading" class="spinner-border spinner-border-sm me-1"></span>
-          <i v-else class="bi bi-arrow-clockwise me-1"></i>
-          {{ $t('common.refresh') }}
-        </button>
-      </div>
-
-      <div v-if="isLoading" class="text-center py-5">
-        <div class="spinner-border text-secondary" role="status"></div>
-        <p class="text-muted small mt-2 mb-0">{{ $t('auditLogs.loadingAuditLogs') }}</p>
-      </div>
-
-      <div v-else-if="filteredLogs.length === 0" class="empty-state py-5 text-center">
-        <i class="bi bi-shield-slash fs-2 text-muted d-block mb-2"></i>
-        <div class="fw-semibold text-dark">{{ $t('auditLogs.noAuditLogsFound') }}</div>
-        <p class="text-muted small mb-3">
-          {{ $t('auditLogs.noAuditLogsFoundDesc') }}
-        </p>
-        <button
-          v-if="activeFilterCount > 0 || searchQuery"
-          type="button"
-          class="btn btn-light-coffee btn-sm"
-          @click="resetFilters"
-        >
-          {{ $t('auditLogs.resetFilters') }}
-        </button>
-      </div>
-
-      <div v-else class="table-responsive">
-        <table class="table table-clean align-middle mb-0">
-          <thead>
-            <tr>
-              <th class="ps-3">{{ $t('auditLogs.colTime') }}</th>
-              <th>{{ $t('auditLogs.colUser') }}</th>
-              <th>{{ $t('auditLogs.colAction') }}</th>
-              <th>{{ $t('auditLogs.colModule') }}</th>
-              <th>{{ $t('auditLogs.colSummary') }}</th>
-              <th>{{ $t('auditLogs.colIp') }}</th>
-              <th class="text-end pe-3">{{ $t('auditLogs.colDetails') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="log in filteredLogs"
-              :key="log.id"
-              class="audit-row"
-              @click="openDetailModal(log)"
-            >
-              <td class="ps-3 small text-muted text-nowrap">
-                {{ formatDateTime(log.created_at) }}
-              </td>
-
-              <td>
-                <div v-if="log.user_name" class="d-flex align-items-center gap-2">
-                  <span class="fw-semibold text-dark">{{ log.user_name }}</span>
-                  <span
-                    v-if="log.user_role"
-                    class="role-micro-badge"
-                    :class="log.user_role === 'OWNER' ? 'role-owner' : 'role-staff'"
-                  >
-                    {{ log.user_role }}
-                  </span>
-                </div>
-                <span v-else class="text-muted small">{{ $t('common.system') }}</span>
-              </td>
-
-              <td>
-                <span class="action-badge" :class="getActionBadgeClass(log.action)">
-                  {{ log.action }}
-                </span>
-              </td>
-
-              <td>
-                <span class="module-pill">
-                  {{ formatTableName(log.table_name) }}
-                  <template v-if="log.record_id"> #{{ log.record_id }}</template>
-                </span>
-              </td>
-
-              <td>
-                <div class="detail-summary-cell" :title="formatSummaryText(log.details)">
-                  {{ formatSummaryText(log.details) }}
-                </div>
-              </td>
-
-              <td>
-                <span class="small text-muted font-monospace">
-                  {{ formatIpAddress(log.ip_address) }}
-                </span>
-              </td>
-
-              <td class="text-end pe-3" @click.stop>
-                <button
-                  type="button"
-                  class="btn btn-action-icon"
-                  :title="$t('auditLogs.colDetails')"
-                  @click="openDetailModal(log)"
-                >
-                  <i class="bi bi-eye"></i>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Pagination Footer -->
-      <div
-        v-if="pagination.totalPages > 1"
-        class="pagination-bar px-3 py-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2"
-      >
-        <div class="small text-muted">
-          {{ $t('auditLogs.showingPage', { page: pagination.page, total: pagination.totalPages, events: pagination.total.toLocaleString() }) }}
-        </div>
-
-        <div class="d-flex align-items-center gap-1">
-          <button
-            type="button"
-            class="btn btn-page"
-            :disabled="pagination.page <= 1 || isLoading"
-            @click="fetchAuditLogs(pagination.page - 1)"
-          >
-            <i class="bi bi-chevron-left"></i>
-          </button>
-
-          <button
-            v-for="p in visiblePages"
-            :key="p"
-            type="button"
-            class="btn btn-page"
-            :class="{ active: p === pagination.page }"
-            :disabled="isLoading"
-            @click="fetchAuditLogs(p)"
-          >
-            {{ p }}
-          </button>
-
-          <button
-            type="button"
-            class="btn btn-page"
-            :disabled="pagination.page >= pagination.totalPages || isLoading"
-            @click="fetchAuditLogs(pagination.page + 1)"
-          >
-            <i class="bi bi-chevron-right"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Audit Log Detail Inspector Modal -->
-    <div v-if="showDetailModal && selectedLog" class="modal-backdrop-custom" @click.self="closeDetailModal">
-      <div class="modal-card-custom modal-lg-custom">
-        <div class="modal-header-custom">
-          <div class="d-flex align-items-center gap-2">
-            <span class="action-badge" :class="getActionBadgeClass(selectedLog.action)">
-              <i class="bi me-1" :class="getActionIcon(selectedLog.action)"></i>
-              {{ selectedLog.action }}
-            </span>
-            <h5 class="modal-title-custom mb-0">{{ $t('auditLogs.auditLogTitle', { id: selectedLog.id }) }}</h5>
-          </div>
-          <button type="button" class="btn-close-custom" @click="closeDetailModal">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-
-        <div class="modal-body-custom">
-          <div v-if="isLoadingSingleLog" class="text-center py-4">
-            <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
-            <span class="ms-2 small text-muted">{{ $t('common.loading') }}</span>
-          </div>
-
-          <!-- Metadata Grid -->
-          <div class="meta-grid mb-4">
-            <div class="meta-item">
-              <div class="meta-label">{{ $t('auditLogs.timestamp') }}</div>
-              <div class="meta-value">{{ formatDateTime(selectedLog.created_at) }}</div>
-            </div>
-
-            <div class="meta-item">
-              <div class="meta-label">{{ $t('auditLogs.actorUser') }}</div>
-              <div class="meta-value">
-                <template v-if="selectedLog.user_name">
-                  {{ selectedLog.user_name }}
-                  <span class="text-muted small">({{ selectedLog.user_role || 'USER' }})</span>
-                </template>
-                <template v-else>
-                  {{ $t('common.system') }}
-                </template>
-              </div>
-            </div>
-
-            <div class="meta-item">
-              <div class="meta-label">{{ $t('auditLogs.userEmail') }}</div>
-              <div class="meta-value">{{ selectedLog.user_email || '—' }}</div>
-            </div>
-
-            <div class="meta-item">
-              <div class="meta-label">{{ $t('auditLogs.targetTable') }}</div>
-              <div class="meta-value">
-                <span class="module-pill">{{ formatTableName(selectedLog.table_name) }}</span>
-                <span class="text-muted small ms-1">({{ selectedLog.table_name }})</span>
-              </div>
-            </div>
-
-            <div class="meta-item">
-              <div class="meta-label">{{ $t('auditLogs.recordId') }}</div>
-              <div class="meta-value">
-                {{ selectedLog.record_id ? `#${selectedLog.record_id}` : '—' }}
-              </div>
-            </div>
-
-            <div class="meta-item">
-              <div class="meta-label">{{ $t('auditLogs.clientIp') }}</div>
-              <div class="meta-value font-monospace">{{ formatIpAddress(selectedLog.ip_address) }}</div>
-            </div>
-          </div>
-
-          <!-- Structured Key-Value Details -->
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <h6 class="fw-bold mb-0 small text-uppercase text-muted">{{ $t('auditLogs.eventDetailsPayload') }}</h6>
-            <button
-              v-if="selectedLog.details"
-              type="button"
-              class="btn btn-preset-sm"
-              @click="copyJsonPayload"
-            >
-              <i class="bi bi-clipboard me-1"></i>
-              {{ $t('auditLogs.copyJson') }}
-            </button>
-          </div>
-
-          <div v-if="parsedModalDetailsEntries.length > 0" class="kv-table-wrap mb-3">
-            <table class="table table-sm mb-0 kv-table">
-              <tbody>
-                <tr v-for="[key, val] in parsedModalDetailsEntries" :key="key">
-                  <td class="kv-key">{{ formatKeyLabel(key) }}</td>
-                  <td class="kv-val">
-                    <pre v-if="typeof val === 'object' && val !== null" class="kv-nested-pre mb-0">{{ JSON.stringify(val, null, 2) }}</pre>
-                    <span v-else>{{ String(val) }}</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Raw JSON View -->
-          <div class="json-code-box">
-            <pre class="mb-0">{{ formattedRawJson }}</pre>
-          </div>
-        </div>
-
-        <div class="modal-footer-custom">
-          <button type="button" class="btn btn-light-coffee" @click="closeDetailModal">
-            {{ $t('auditLogs.closeInspector') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/api/api'
+import { useI18n } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useFormatDate } from '@/composables/useFormatDate'
+import { useCurrency } from '@/composables/useCurrency'
 
+const { t, isKhmer } = useI18n()
 const toast = useToast()
 const { formatDateTime } = useFormatDate()
+const { formatUsd, formatKhr } = useCurrency()
 
 // ================= STATE =================
 const logs = ref([])
 const usersList = ref([])
 const isLoading = ref(false)
 const searchQuery = ref('')
-const activeDatePreset = ref('ALL')
 
 const pagination = reactive({
   page: 1,
@@ -388,28 +37,29 @@ const filters = reactive({
 const showDetailModal = ref(false)
 const selectedLog = ref(null)
 const isLoadingSingleLog = ref(false)
+const showRawJson = ref(false)
 
 // ================= OPTIONS =================
-const moduleOptions = [
-  { value: 'orders', label: 'Orders (POS)' },
-  { value: 'payments', label: 'Payments' },
-  { value: 'refunds', label: 'Refunds' },
-  { value: 'shifts', label: 'Shifts & Drawer' },
-  { value: 'products', label: 'Products' },
-  { value: 'categories', label: 'Categories' },
-  { value: 'ingredients', label: 'Ingredients' },
-  { value: 'stock_movements', label: 'Stock Movements' },
-  { value: 'recipes', label: 'Recipes (BOM)' },
-  { value: 'expenses', label: 'Expenses' },
-  { value: 'users', label: 'Users & Staff' },
-  { value: 'settings', label: 'Shop Settings' },
-  { value: 'refresh_tokens', label: 'Auth Sessions' },
-  { value: 'password_resets', label: 'Password Resets' },
+const moduleKeys = [
+  'orders',
+  'payments',
+  'refunds',
+  'shifts',
+  'products',
+  'categories',
+  'ingredients',
+  'stock_movements',
+  'recipes',
+  'expenses',
+  'users',
+  'settings',
+  'refresh_tokens',
+  'password_resets',
 ]
 
 const actionGroups = [
   {
-    label: 'POS Orders & Payments',
+    key: 'pos',
     actions: [
       'CREATE_ORDER',
       'UPDATE_ORDER',
@@ -419,11 +69,11 @@ const actionGroups = [
     ],
   },
   {
-    label: 'Shifts & Cash Drawer',
+    key: 'shifts',
     actions: ['OPEN_SHIFT', 'CLOSE_SHIFT'],
   },
   {
-    label: 'Inventory & Recipes',
+    key: 'inventory',
     actions: [
       'CREATE_INGREDIENT',
       'UPDATE_INGREDIENT',
@@ -436,7 +86,7 @@ const actionGroups = [
     ],
   },
   {
-    label: 'Products & Categories',
+    key: 'products',
     actions: [
       'CREATE_PRODUCT',
       'UPDATE_PRODUCT',
@@ -449,11 +99,11 @@ const actionGroups = [
     ],
   },
   {
-    label: 'Expenses',
+    key: 'expenses',
     actions: ['CREATE_EXPENSE', 'UPDATE_EXPENSE', 'VOID_EXPENSE'],
   },
   {
-    label: 'Authentication & Security',
+    key: 'security',
     actions: [
       'LOGIN',
       'LOGIN_FAILED',
@@ -468,7 +118,7 @@ const actionGroups = [
     ],
   },
   {
-    label: 'Users & Shop Settings',
+    key: 'admin',
     actions: [
       'CREATE_USER',
       'UPDATE_USER',
@@ -481,6 +131,205 @@ const actionGroups = [
   },
 ]
 
+// ================= HELPERS =================
+const getModuleLabel = (table) => {
+  if (!table) return t('common.system')
+  const key = `auditLogs.modules.${table}`
+  const translated = t(key)
+  if (translated !== key) return translated
+  return String(table).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+const getActionLabel = (action = '') => {
+  if (!action) return '—'
+  const key = `auditLogs.actions.${action}`
+  const translated = t(key)
+  if (translated !== key) return translated
+  return String(action).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+const getRoleLabel = (role) => {
+  if (!role) return ''
+  return role === 'OWNER' ? t('common.owner') : t('common.staff')
+}
+
+const formatIpAddress = (ip) => {
+  if (!ip) return '127.0.0.1'
+  if (ip === '::1' || ip === '::ffff:127.0.0.1') return '127.0.0.1'
+  return ip.replace('::ffff:', '')
+}
+
+const parseDetailsObject = (details) => {
+  if (!details) return null
+  if (typeof details === 'object') return details
+  try {
+    return JSON.parse(details)
+  } catch {
+    return null
+  }
+}
+
+const isCriticalAction = (action = '') => {
+  return (
+    action.includes('FAILED') ||
+    action.includes('ALERT') ||
+    action.includes('DELETE') ||
+    action.includes('CANCEL') ||
+    action.includes('VOID') ||
+    action.includes('REFUND') ||
+    action === 'STOCK_WASTE'
+  )
+}
+
+const getActionToneClass = (action = '') => {
+  if (isCriticalAction(action)) return 'tone-danger'
+  if (
+    action.startsWith('CREATE_') ||
+    action === 'OPEN_SHIFT' ||
+    action === 'PROCESS_PAYMENT' ||
+    action === 'LOGIN' ||
+    action === 'STOCK_IN' ||
+    action === 'VERIFY_OTP_SUCCESS'
+  ) {
+    return 'tone-success'
+  }
+  if (
+    action.startsWith('UPDATE_') ||
+    action.startsWith('UPLOAD_') ||
+    action === 'CLOSE_SHIFT' ||
+    action === 'CHANGE_PASSWORD' ||
+    action === 'RESET_PASSWORD' ||
+    action === 'STOCK_ADJUST'
+  ) {
+    return 'tone-warning'
+  }
+  return 'tone-neutral'
+}
+
+const DETAIL_KEY_LABELS_KM = {
+  name: 'ឈ្មោះ',
+  email: 'អ៊ីមែល',
+  role: 'តួនាទី',
+  receipt_no: 'លេខវិក្កយបត្រ',
+  receipt_number: 'លេខវិក្កយបត្រ',
+  order_number: 'លេខកម្មង់',
+  category: 'ប្រភេទ',
+  description: 'បរិយាយ',
+  reason: 'មូលហេតុ',
+  unit: 'ខ្នាត',
+  current_stock: 'ស្តុកបច្ចុប្បន្ន',
+  minimum_stock: 'ស្តុកអប្បបរមា',
+  quantity: 'បរិមាណ',
+  opening_cash_usd: 'ប្រាក់ដើមគ្រា (USD)',
+  opening_cash_khr: 'ប្រាក់ដើមគ្រា (KHR)',
+  expected_cash_usd: 'ប្រាក់រំពឹងទុក (USD)',
+  expected_cash_khr: 'ប្រាក់រំពឹងទុក (KHR)',
+  actual_cash_usd: 'ប្រាក់រាប់ជាក់ស្ដែង (USD)',
+  actual_cash_khr: 'ប្រាក់រាប់ជាក់ស្ដែង (KHR)',
+  amount_usd: 'ទឹកប្រាក់ (USD)',
+  amount_khr: 'ទឹកប្រាក់ (KHR)',
+  total_usd: 'សរុប (USD)',
+  changedFields: 'ចំណុចដែលបានកែប្រែ',
+  deactivated: 'ផ្អាកគណនី',
+  is_active: 'ដំណើរការគណនី',
+  passwordReset: 'កំណត់ពាក្យសម្ងាត់ថ្មី',
+  closed_by: 'អ្នកបិទវេន',
+  opened_by: 'អ្នកបើកវេន',
+  shop_name: 'ឈ្មោះហាង',
+  exchange_rate: 'អត្រាប្តូរប្រាក់',
+}
+
+const formatKeyLabel = (key) => {
+  if (isKhmer.value && DETAIL_KEY_LABELS_KM[key]) {
+    return DETAIL_KEY_LABELS_KM[key]
+  }
+  return String(key)
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+const formatDetailValue = (key, val) => {
+  if (val === null || val === undefined || val === '') return '—'
+  if (typeof val === 'boolean') {
+    return val ? (isKhmer.value ? 'បាទ/ចាស' : 'Yes') : (isKhmer.value ? 'ទេ' : 'No')
+  }
+  if (Array.isArray(val)) {
+    return val.map((item) => formatKeyLabel(String(item))).join(', ')
+  }
+  if (typeof val === 'number') {
+    if (key.endsWith('_usd')) return formatUsd(val)
+    if (key.endsWith('_khr')) return formatKhr(val)
+  }
+  return String(val)
+}
+
+const formatReadableSummary = (log) => {
+  const details = log?.details
+  if (!details) return '—'
+  const obj = parseDetailsObject(details)
+  if (!obj || typeof obj !== 'object') return String(details)
+
+  const parts = []
+
+  // Common human-first identifiers
+  const titleVal = obj.receipt_no || obj.receipt_number || obj.order_number || obj.name || obj.product_name || obj.category_name
+  if (titleVal) parts.push(String(titleVal))
+  if (obj.email && !parts.includes(obj.email)) parts.push(obj.email)
+
+  // Changed fields summary
+  if (Array.isArray(obj.changedFields) && obj.changedFields.length > 0) {
+    const label = isKhmer.value
+      ? `កែប្រែ ${obj.changedFields.length} ចំណុច`
+      : `Updated ${obj.changedFields.length} field${obj.changedFields.length > 1 ? 's' : ''}`
+    parts.push(label)
+  }
+
+  // Cash shift amounts
+  if (obj.opening_cash_usd !== undefined || obj.opening_cash_khr !== undefined) {
+    const usd = formatUsd(obj.opening_cash_usd || 0)
+    const khr = formatKhr(obj.opening_cash_khr || 0)
+    parts.push(`${isKhmer.value ? 'ដើមគ្រា' : 'Opening'} ${usd} / ${khr}`)
+  } else if (obj.expected_cash_usd !== undefined || obj.expected_cash_khr !== undefined) {
+    const usd = formatUsd(obj.expected_cash_usd || 0)
+    const khr = formatKhr(obj.expected_cash_khr || 0)
+    parts.push(`${isKhmer.value ? 'រំពឹងទុក' : 'Expected'} ${usd} / ${khr}`)
+  }
+
+  // Expense / payment amount + note
+  if (obj.amount_usd !== undefined && Number(obj.amount_usd) > 0) {
+    parts.push(formatUsd(obj.amount_usd))
+  } else if (obj.total_usd !== undefined) {
+    parts.push(formatUsd(obj.total_usd))
+  }
+
+  if (obj.description) parts.push(String(obj.description))
+  else if (obj.reason) parts.push(String(obj.reason))
+  else if (obj.category) parts.push(String(obj.category))
+
+  // Inventory stock levels
+  if (obj.current_stock !== undefined) {
+    const unitStr = obj.unit ? ` ${obj.unit}` : ''
+    parts.push(`${isKhmer.value ? 'ស្តុក' : 'Stock'}: ${obj.current_stock}${unitStr}`)
+  } else if (obj.quantity !== undefined) {
+    const unitStr = obj.unit ? ` ${obj.unit}` : ''
+    parts.push(`${isKhmer.value ? 'បរិមាណ' : 'Qty'}: ${obj.quantity}${unitStr}`)
+  }
+
+  if (parts.length > 0) {
+    return parts.join(' • ')
+  }
+
+  // Clean fallback for any remaining scalar fields
+  const fallback = []
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === null || v === undefined || v === '' || typeof v === 'object') continue
+    fallback.push(`${formatKeyLabel(k)}: ${formatDetailValue(k, v)}`)
+    if (fallback.length >= 2) break
+  }
+  return fallback.length > 0 ? fallback.join(' • ') : '—'
+}
+
 // ================= COMPUTED =================
 const activeFilterCount = computed(() => {
   let count = 0
@@ -489,6 +338,7 @@ const activeFilterCount = computed(() => {
   if (filters.user_id) count++
   if (filters.start_date) count++
   if (filters.end_date) count++
+  if (searchQuery.value.trim()) count++
   return count
 })
 
@@ -508,15 +358,13 @@ const filteredLogs = computed(() => {
       (log.user_name && log.user_name.toLowerCase().includes(q)) ||
       (log.user_email && log.user_email.toLowerCase().includes(q)) ||
       (log.action && log.action.toLowerCase().includes(q)) ||
+      getActionLabel(log.action).toLowerCase().includes(q) ||
       (log.table_name && log.table_name.toLowerCase().includes(q)) ||
+      getModuleLabel(log.table_name).toLowerCase().includes(q) ||
       (log.ip_address && log.ip_address.toLowerCase().includes(q)) ||
       detailsStr.includes(q)
     )
   })
-})
-
-const criticalCountOnPage = computed(() => {
-  return logs.value.filter((l) => isCriticalAction(l.action)).length
 })
 
 const visiblePages = computed(() => {
@@ -531,144 +379,21 @@ const visiblePages = computed(() => {
   return pages
 })
 
-const parsedModalDetails = computed(() => {
-  if (!selectedLog.value?.details) return null
-  return parseDetailsObject(selectedLog.value.details)
-})
-
 const parsedModalDetailsEntries = computed(() => {
-  const obj = parsedModalDetails.value
+  if (!selectedLog.value?.details) return []
+  const obj = parseDetailsObject(selectedLog.value.details)
   if (!obj || typeof obj !== 'object') return []
-  return Object.entries(obj)
+  return Object.entries(obj).filter(([, val]) => val !== null && val !== undefined && val !== '')
 })
 
 const formattedRawJson = computed(() => {
-  if (!selectedLog.value?.details) return 'No additional JSON payload recorded for this event.'
+  if (!selectedLog.value?.details) return ''
   const parsed = parseDetailsObject(selectedLog.value.details)
   if (parsed && typeof parsed === 'object') {
     return JSON.stringify(parsed, null, 2)
   }
   return String(selectedLog.value.details)
 })
-
-// ================= HELPERS =================
-const toLocalYmd = (dateObj) => {
-  const y = dateObj.getFullYear()
-  const m = String(dateObj.getMonth() + 1).padStart(2, '0')
-  const d = String(dateObj.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
-const getInitials = (name) => {
-  if (!name) return 'U'
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('')
-}
-
-const formatTableName = (table) => {
-  if (!table) return 'System'
-  const found = moduleOptions.find((m) => m.value === table)
-  if (found) return found.label
-  return table.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-const formatIpAddress = (ip) => {
-  if (!ip) return 'Local'
-  if (ip === '::1' || ip === '::ffff:127.0.0.1') return '127.0.0.1 (Local)'
-  return ip.replace('::ffff:', '')
-}
-
-const parseDetailsObject = (details) => {
-  if (!details) return null
-  if (typeof details === 'object') return details
-  try {
-    return JSON.parse(details)
-  } catch {
-    return null
-  }
-}
-
-const formatSummaryText = (details) => {
-  if (!details) return '—'
-  const obj = parseDetailsObject(details)
-  if (!obj || typeof obj !== 'object') return String(details)
-
-  const parts = []
-  for (const [key, val] of Object.entries(obj)) {
-    if (val === null || val === undefined || val === '') continue
-    if (typeof val === 'object') {
-      if (Array.isArray(val)) {
-        parts.push(`${key}: [${val.length} items]`)
-      } else {
-        parts.push(`${key}: {...}`)
-      }
-    } else {
-      parts.push(`${key}: ${val}`)
-    }
-  }
-  return parts.length > 0 ? parts.join(' • ') : '—'
-}
-
-const formatKeyLabel = (key) => {
-  return String(key)
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-const isCriticalAction = (action = '') => {
-  return (
-    action.includes('FAILED') ||
-    action.includes('ALERT') ||
-    action.includes('DELETE') ||
-    action.includes('CANCEL') ||
-    action.includes('VOID') ||
-    action.includes('REFUND') ||
-    action === 'STOCK_WASTE'
-  )
-}
-
-const getActionBadgeClass = (action = '') => {
-  if (isCriticalAction(action)) return 'badge-action-danger'
-  if (
-    action.startsWith('CREATE_') ||
-    action === 'OPEN_SHIFT' ||
-    action === 'PROCESS_PAYMENT' ||
-    action === 'LOGIN' ||
-    action === 'STOCK_IN'
-  ) {
-    return 'badge-action-success'
-  }
-  if (
-    action.startsWith('UPDATE_') ||
-    action.startsWith('UPLOAD_') ||
-    action === 'CLOSE_SHIFT' ||
-    action === 'CHANGE_PASSWORD' ||
-    action === 'RESET_PASSWORD' ||
-    action === 'STOCK_ADJUST'
-  ) {
-    return 'badge-action-warning'
-  }
-  return 'badge-action-neutral'
-}
-
-const getActionIcon = (action = '') => {
-  if (isCriticalAction(action)) return 'bi-exclamation-triangle-fill'
-  if (action === 'LOGIN' || action === 'LOGOUT' || action === 'LOGOUT_ALL') return 'bi-key-fill'
-  if (action.includes('ORDER')) return 'bi-receipt'
-  if (action.includes('PAYMENT') || action.includes('REFUND')) return 'bi-cash-stack'
-  if (action.includes('SHIFT')) return 'bi-safe2'
-  if (action.includes('STOCK') || action.includes('INGREDIENT')) return 'bi-boxes'
-  if (action.includes('RECIPE')) return 'bi-journal-text'
-  if (action.includes('PRODUCT') || action.includes('CATEGORY')) return 'bi-cup-hot'
-  if (action.includes('EXPENSE')) return 'bi-wallet2'
-  if (action.includes('USER') || action.includes('PROFILE')) return 'bi-person-badge'
-  if (action.includes('SETTINGS') || action.includes('LOGO')) return 'bi-gear'
-  return 'bi-shield-check'
-}
 
 // ================= API CALLS =================
 const fetchUsersList = async () => {
@@ -709,46 +434,19 @@ const fetchAuditLogs = async (targetPage = 1) => {
   }
 }
 
-const applyDatePreset = (preset) => {
-  activeDatePreset.value = preset
-  const now = new Date()
-
-  if (preset === 'ALL') {
-    filters.start_date = ''
-    filters.end_date = ''
-  } else if (preset === 'TODAY') {
-    const today = toLocalYmd(now)
-    filters.start_date = today
-    filters.end_date = today
-  } else if (preset === '7D') {
-    const past = new Date(now)
-    past.setDate(now.getDate() - 6)
-    filters.start_date = toLocalYmd(past)
-    filters.end_date = toLocalYmd(now)
-  } else if (preset === '30D') {
-    const past = new Date(now)
-    past.setDate(now.getDate() - 29)
-    filters.start_date = toLocalYmd(past)
-    filters.end_date = toLocalYmd(now)
-  }
-
-  fetchAuditLogs(1)
-}
-
 const resetFilters = () => {
   filters.table_name = ''
   filters.action = ''
   filters.user_id = ''
   filters.start_date = ''
   filters.end_date = ''
-  filters.limit = 20
   searchQuery.value = ''
-  activeDatePreset.value = 'ALL'
   fetchAuditLogs(1)
 }
 
 const openDetailModal = async (log) => {
   selectedLog.value = { ...log }
+  showRawJson.value = false
   showDetailModal.value = true
   isLoadingSingleLog.value = true
 
@@ -772,7 +470,7 @@ const closeDetailModal = () => {
 const copyJsonPayload = async () => {
   try {
     await navigator.clipboard.writeText(formattedRawJson.value)
-    toast.success('Audit JSON payload copied to clipboard')
+    toast.success(t('auditLogs.copiedJson'))
   } catch {
     toast.error('Unable to copy JSON payload')
   }
@@ -783,183 +481,565 @@ onMounted(async () => {
 })
 </script>
 
+<template>
+  <div class="audit-page">
+    <div class="clean-card">
+      <!-- Clean Filter Toolbar -->
+      <div class="filter-bar">
+        <div class="filter-bar__controls">
+          <div class="search-wrap">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="filter-input search-input"
+              :placeholder="$t('auditLogs.filterPlaceholder')"
+            />
+            <button
+              v-if="searchQuery"
+              type="button"
+              class="search-clear"
+              @click="searchQuery = ''"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <select
+            v-model="filters.table_name"
+            class="filter-input filter-select"
+            @change="fetchAuditLogs(1)"
+          >
+            <option value="">{{ $t('auditLogs.allModules') }}</option>
+            <option v-for="mod in moduleKeys" :key="mod" :value="mod">
+              {{ getModuleLabel(mod) }}
+            </option>
+          </select>
+
+          <select
+            v-model="filters.action"
+            class="filter-input filter-select filter-select--wide"
+            @change="fetchAuditLogs(1)"
+          >
+            <option value="">{{ $t('auditLogs.allActions') }}</option>
+            <optgroup
+              v-for="group in actionGroups"
+              :key="group.key"
+              :label="$t(`auditLogs.actionGroups.${group.key}`)"
+            >
+              <option v-for="act in group.actions" :key="act" :value="act">
+                {{ getActionLabel(act) }}
+              </option>
+            </optgroup>
+          </select>
+
+          <select
+            v-model="filters.user_id"
+            class="filter-input filter-select"
+            @change="fetchAuditLogs(1)"
+          >
+            <option value="">{{ $t('auditLogs.allUsers') }}</option>
+            <option v-for="u in usersList" :key="u.id" :value="u.id">
+              {{ u.name }}
+            </option>
+          </select>
+
+          <div class="date-range-group">
+            <input
+              v-model="filters.start_date"
+              type="date"
+              class="date-input"
+              aria-label="Start date"
+              @change="fetchAuditLogs(1)"
+            />
+            <span class="date-sep">—</span>
+            <input
+              v-model="filters.end_date"
+              type="date"
+              class="date-input"
+              aria-label="End date"
+              @change="fetchAuditLogs(1)"
+            />
+          </div>
+        </div>
+
+        <div class="filter-bar__actions">
+          <button
+            v-if="activeFilterCount > 0"
+            type="button"
+            class="toolbar-btn toolbar-btn--icon"
+            :title="$t('auditLogs.resetFilters')"
+            @click="resetFilters"
+          >
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </button>
+
+          <button
+            type="button"
+            class="toolbar-btn toolbar-btn--icon"
+            :title="$t('common.refresh')"
+            :disabled="isLoading"
+            @click="fetchAuditLogs(1)"
+          >
+            <span v-if="isLoading" class="spinner-border spinner-border-sm"></span>
+            <i v-else class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="isLoading" class="empty-box">
+        <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
+        <div class="small text-muted">{{ $t('auditLogs.loadingAuditLogs') }}</div>
+      </div>
+
+      <!-- Empty -->
+      <div v-else-if="filteredLogs.length === 0" class="empty-box">
+        <div class="empty-box__icon">
+          <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="empty-box__title">{{ $t('auditLogs.noAuditLogsFound') }}</div>
+        <div class="empty-box__desc">{{ $t('auditLogs.noAuditLogsFoundDesc') }}</div>
+        <button
+          v-if="activeFilterCount > 0"
+          type="button"
+          class="toolbar-btn mt-3"
+          @click="resetFilters"
+        >
+          {{ $t('auditLogs.resetFilters') }}
+        </button>
+      </div>
+
+      <!-- Clean 6-Column Ledger Table -->
+      <div v-else class="table-responsive">
+        <table class="table align-middle mb-0 clean-table">
+          <thead>
+            <tr>
+              <th>{{ $t('auditLogs.colTime') }}</th>
+              <th>{{ $t('auditLogs.colUser') }}</th>
+              <th>{{ $t('auditLogs.colAction') }}</th>
+              <th>{{ $t('auditLogs.colModule') }}</th>
+              <th>{{ $t('auditLogs.colSummary') }}</th>
+              <th class="text-end">{{ $t('auditLogs.colDetails') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="log in filteredLogs"
+              :key="log.id"
+              class="audit-row"
+              @click="openDetailModal(log)"
+            >
+              <td>
+                <span class="datetime-text tabular">
+                  {{ formatDateTime(log.created_at) }}
+                </span>
+              </td>
+
+              <td>
+                <div class="actor-cell">
+                  <span class="actor-name">
+                    {{ log.user_name || $t('common.system') }}
+                  </span>
+                  <span v-if="log.user_role" class="actor-role">
+                    {{ getRoleLabel(log.user_role) }}
+                  </span>
+                </div>
+              </td>
+
+              <td>
+                <span class="action-text" :class="getActionToneClass(log.action)">
+                  {{ getActionLabel(log.action) }}
+                </span>
+              </td>
+
+              <td>
+                <div class="module-cell">
+                  <span class="module-name">{{ getModuleLabel(log.table_name) }}</span>
+                  <span v-if="log.record_id" class="module-id tabular">#{{ log.record_id }}</span>
+                </div>
+              </td>
+
+              <td>
+                <div class="summary-text" :title="formatReadableSummary(log)">
+                  {{ formatReadableSummary(log) }}
+                </div>
+              </td>
+
+              <td class="text-end" @click.stop>
+                <button
+                  type="button"
+                  class="btn-action-icon"
+                  :title="$t('auditLogs.colDetails')"
+                  @click="openDetailModal(log)"
+                >
+                  <i class="bi bi-eye"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="pagination.totalPages > 1" class="pagination-bar">
+        <div class="pagination-info tabular">
+          {{ $t('auditLogs.showingPage', { page: pagination.page, total: pagination.totalPages, events: pagination.total.toLocaleString() }) }}
+        </div>
+
+        <div class="pagination-controls">
+          <button
+            type="button"
+            class="btn-page"
+            :disabled="pagination.page <= 1 || isLoading"
+            @click="fetchAuditLogs(pagination.page - 1)"
+          >
+            <i class="bi bi-chevron-left"></i>
+          </button>
+
+          <button
+            v-for="p in visiblePages"
+            :key="p"
+            type="button"
+            class="btn-page tabular"
+            :class="{ active: p === pagination.page }"
+            :disabled="isLoading"
+            @click="fetchAuditLogs(p)"
+          >
+            {{ p }}
+          </button>
+
+          <button
+            type="button"
+            class="btn-page"
+            :disabled="pagination.page >= pagination.totalPages || isLoading"
+            @click="fetchAuditLogs(pagination.page + 1)"
+          >
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clean Activity Detail Modal -->
+    <Teleport to="body">
+      <div
+        v-if="showDetailModal && selectedLog"
+        class="modal-backdrop-custom"
+        @click.self="closeDetailModal"
+      >
+        <div class="modal-sheet">
+          <div class="modal-head">
+            <div>
+              <h6 class="modal-heading">
+                {{ $t('auditLogs.auditLogTitle', { id: selectedLog.id }) }}
+              </h6>
+              <div class="modal-sub">
+                <span class="action-text" :class="getActionToneClass(selectedLog.action)">
+                  {{ getActionLabel(selectedLog.action) }}
+                </span>
+                <span class="meta-dot">·</span>
+                <span>{{ getModuleLabel(selectedLog.table_name) }}</span>
+                <span v-if="selectedLog.record_id" class="tabular"> #{{ selectedLog.record_id }}</span>
+              </div>
+            </div>
+            <button type="button" class="btn-close-quiet" @click="closeDetailModal">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <div class="modal-body-scroll">
+            <div v-if="isLoadingSingleLog" class="py-2 small text-muted">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              {{ $t('common.loading') }}
+            </div>
+
+            <!-- Clean Borderless Info List -->
+            <div class="info-list">
+              <div class="info-row">
+                <span class="info-label">{{ $t('auditLogs.actorUser') }}</span>
+                <span class="info-value">
+                  {{ selectedLog.user_name || $t('common.system') }}
+                  <span v-if="selectedLog.user_role" class="text-muted-inline">
+                    ({{ getRoleLabel(selectedLog.user_role) }})
+                  </span>
+                </span>
+              </div>
+
+              <div class="info-row">
+                <span class="info-label">{{ $t('auditLogs.timestamp') }}</span>
+                <span class="info-value tabular">{{ formatDateTime(selectedLog.created_at) }}</span>
+              </div>
+
+              <div v-if="selectedLog.user_email" class="info-row">
+                <span class="info-label">{{ $t('auditLogs.userEmail') }}</span>
+                <span class="info-value">{{ selectedLog.user_email }}</span>
+              </div>
+
+              <div class="info-row">
+                <span class="info-label">{{ $t('auditLogs.clientIp') }}</span>
+                <span class="info-value tabular">{{ formatIpAddress(selectedLog.ip_address) }}</span>
+              </div>
+            </div>
+
+            <!-- Readable Details Table -->
+            <div v-if="parsedModalDetailsEntries.length > 0" class="details-section">
+              <div class="details-section__title">{{ $t('auditLogs.eventDetailsPayload') }}</div>
+              <div class="kv-list">
+                <div v-for="[key, val] in parsedModalDetailsEntries" :key="key" class="kv-row">
+                  <span class="kv-key">{{ formatKeyLabel(key) }}</span>
+                  <span class="kv-val">
+                    <pre v-if="typeof val === 'object' && val !== null && !Array.isArray(val)" class="kv-nested-pre">{{ JSON.stringify(val, null, 2) }}</pre>
+                    <template v-else>{{ formatDetailValue(key, val) }}</template>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="no-details-note">
+              {{ $t('auditLogs.noExtraDetails') }}
+            </div>
+
+            <!-- Collapsible Technical JSON -->
+            <div v-if="formattedRawJson" class="raw-json-wrap">
+              <div class="raw-json-bar">
+                <button
+                  type="button"
+                  class="btn-link-quiet"
+                  @click="showRawJson = !showRawJson"
+                >
+                  <i class="bi" :class="showRawJson ? 'bi-chevron-up' : 'bi-code-slash'"></i>
+                  <span>{{ showRawJson ? $t('auditLogs.hideRawJson') : $t('auditLogs.showRawJson') }}</span>
+                </button>
+
+                <button
+                  v-if="showRawJson"
+                  type="button"
+                  class="btn-link-quiet"
+                  @click="copyJsonPayload"
+                >
+                  <i class="bi bi-clipboard"></i>
+                  <span>{{ $t('auditLogs.copyJson') }}</span>
+                </button>
+              </div>
+
+              <pre v-if="showRawJson" class="json-code-box">{{ formattedRawJson }}</pre>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-modal-close" @click="closeDetailModal">
+              {{ $t('auditLogs.closeInspector') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </div>
+</template>
+
 <style scoped>
-.page-header-bar {
+.audit-page {
+  --roast-ink: #14231a;
+  --sage-muted: #54665b;
+  --botanical-primary: #2d5a43;
+  --botanical-deep: #1e3f2f;
+  --ledger-line: #e4ebe6;
+  --ledger-hairline: #eff4f1;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.clean-card {
+  background: #ffffff;
+  border: 1px solid var(--ledger-line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(20, 35, 26, 0.03);
+}
+
+/* Filter Toolbar */
+.filter-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.eyebrow-tag {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--secondary, #7c5800);
-  margin-bottom: 0.2rem;
-}
-
-.page-title {
-  font-family: var(--font-headline, 'Plus Jakarta Sans', sans-serif);
-  font-size: 1.55rem;
-  font-weight: 800;
-  color: var(--primary, #2d5a43);
-  letter-spacing: -0.02em;
-}
-
-.page-subtitle {
-  font-size: 0.85rem;
-  color: var(--outline, #827470);
-}
-
-/* KPI Strip */
-.kpi-card {
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--ledger-line);
   background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 16px;
-  padding: 1rem 1.15rem;
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  height: 100%;
 }
 
-.kpi-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.filter-bar__controls {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   flex-shrink: 0;
 }
 
-.kpi-coffee {
-  background: #f5ebe6;
-  color: #2d5a43;
-}
-
-.kpi-blue {
-  background: #e8f0fe;
-  color: #1a73e8;
-}
-
-.kpi-red {
-  background: #fce8e6;
-  color: #c5221f;
-}
-
-.kpi-amber {
-  background: #fef3d6;
-  color: #b06000;
-}
-
-.kpi-label {
-  font-size: 0.74rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--outline, #827470);
-}
-
-.kpi-value {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--primary, #2d5a43);
-  line-height: 1.2;
-}
-
-.kpi-meta {
-  font-size: 0.74rem;
-  color: var(--outline, #827470);
-}
-
-/* Section Card */
-.section-card {
-  background: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.form-label-xs {
-  display: block;
-  font-size: 0.73rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--outline, #827470);
-  margin-bottom: 0.35rem;
-}
-
-.form-control-clean {
-  border-radius: 10px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  font-size: 0.85rem;
-  padding: 0.48rem 0.75rem;
-  background-color: #faf9f7;
-}
-
-.form-control-clean:focus {
-  border-color: var(--primary, #2d5a43);
-  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
-  background-color: #ffffff;
-}
-
-.search-input-wrap {
+.search-wrap {
   position: relative;
-  flex: 1;
-  min-width: 240px;
-  max-width: 480px;
+  flex: 1 1 200px;
+  min-width: 180px;
+  max-width: 260px;
 }
 
 .search-icon {
   position: absolute;
-  left: 14px;
+  left: 0.72rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--outline, #827470);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  color: #7d8f84;
+  pointer-events: none;
 }
 
-.btn-preset-sm {
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  background: #faf9f7;
-  color: var(--on-surface, #1c1b1b);
-  font-size: 0.76rem;
-  font-weight: 600;
+.search-clear {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: #7d8f84;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.search-clear:hover {
+  background: #eef3ef;
+  color: var(--roast-ink);
+}
+
+.filter-input {
+  height: 36px;
+  border: 1px solid #dce6e0;
   border-radius: 8px;
-  padding: 0.32rem 0.65rem;
-  transition: all 0.15s ease;
+  background-color: #ffffff;
+  font-size: 0.8rem;
+  color: var(--roast-ink);
+  transition: border-color 0.14s ease;
 }
 
-.btn-preset-sm:hover,
-.btn-preset-sm.active {
-  background: var(--primary, #2d5a43);
-  color: #ffffff;
-  border-color: var(--primary, #2d5a43);
+.filter-input:focus {
+  outline: none;
+  border-color: var(--botanical-primary);
+}
+
+.search-input {
+  width: 100%;
+  padding: 0 1.9rem 0 2rem;
+}
+
+.filter-select {
+  padding: 0 2rem 0 0.72rem;
+  cursor: pointer;
+  max-width: 175px;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2354665b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 11px 11px;
+  appearance: none;
+}
+
+.filter-select--wide {
+  max-width: 195px;
+}
+
+.date-range-group {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 0.55rem;
+  border: 1px solid #dce6e0;
+  border-radius: 8px;
+  background: #ffffff;
+  gap: 0.3rem;
+}
+
+.date-input {
+  border: none;
+  background: transparent;
+  font-size: 0.78rem;
+  color: var(--roast-ink);
+  width: 118px;
+  outline: none;
+}
+
+.date-sep {
+  font-size: 0.75rem;
+  color: #8a9b90;
+}
+
+.toolbar-btn {
+  height: 36px;
+  padding: 0 0.75rem;
+  border: 1px solid #dce6e0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--sage-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.toolbar-btn--icon {
+  width: 36px;
+  padding: 0;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background: #f5f9f6;
+  border-color: #b8ccc0;
+  color: var(--botanical-primary);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Table */
-.table-clean thead th {
-  background: #faf9f7;
-  font-size: 0.72rem;
+.clean-table th {
+  background: #fafcfb;
+  font-size: 0.74rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--outline, #827470);
-  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
-  padding: 0.75rem 0.75rem;
+  color: var(--sage-muted);
+  padding: 0.72rem 1rem;
+  border-bottom: 1px solid var(--ledger-line);
+  white-space: nowrap;
 }
 
-.table-clean tbody td {
-  padding: 0.8rem 0.75rem;
-  border-bottom: 1px solid #f2f0ec;
-  font-size: 0.84rem;
+.clean-table td {
+  padding: 0.78rem 1rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  font-size: 0.83rem;
+  color: var(--roast-ink);
+}
+
+.clean-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .audit-row {
@@ -967,317 +1047,446 @@ onMounted(async () => {
   transition: background-color 0.12s ease;
 }
 
-.audit-row:hover {
-  background-color: #fcfbfa;
+.audit-row:hover td {
+  background-color: #fafcfb;
 }
 
-.actor-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: #f5ebe6;
-  color: #2d5a43;
-  font-size: 0.76rem;
-  font-weight: 800;
+.datetime-text {
+  font-size: 0.8rem;
+  color: #485c50;
+  white-space: nowrap;
+}
+
+.actor-cell {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  flex-direction: column;
+  line-height: 1.3;
 }
 
-.actor-system {
-  background: #eef0f2;
-  color: #5f6368;
-}
-
-.role-micro-badge {
-  font-size: 0.64rem;
+.actor-name {
   font-weight: 700;
-  padding: 0.1rem 0.4rem;
-  border-radius: 5px;
-  text-transform: uppercase;
+  font-size: 0.84rem;
+  color: var(--roast-ink);
+  white-space: nowrap;
 }
 
-.role-owner {
-  background: #d6ede0;
-  color: #2d5a43;
-}
-
-.role-staff {
-  background: #eef0f2;
-  color: #495057;
-}
-
-/* Action Badges */
-.action-badge {
-  display: inline-flex;
-  align-items: center;
+.actor-role {
   font-size: 0.73rem;
+  color: var(--sage-muted);
+}
+
+/* Unboxed Action Text */
+.action-text {
+  font-size: 0.82rem;
   font-weight: 700;
-  padding: 0.26rem 0.6rem;
-  border-radius: 8px;
-  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-.badge-action-success {
-  background: #e6f4ea;
-  color: #137333;
+.action-text.tone-success {
+  color: #1e6b43;
 }
 
-.badge-action-warning {
-  background: #fef3d6;
-  color: #b06000;
+.action-text.tone-warning {
+  color: #9a5b13;
 }
 
-.badge-action-danger {
-  background: #fce8e6;
+.action-text.tone-danger {
   color: #c5221f;
 }
 
-.badge-action-neutral {
-  background: #f1f3f4;
-  color: #3c4043;
+.action-text.tone-neutral {
+  color: #475569;
 }
 
-.module-pill {
-  display: inline-block;
-  background: #faf9f7;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  color: var(--primary, #2d5a43);
-  font-size: 0.75rem;
+.module-cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.module-name {
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 0.18rem 0.52rem;
-  border-radius: 6px;
+  color: #2f4538;
 }
 
-.record-id-pill {
-  display: inline-block;
-  background: #f5ebe6;
-  color: #2d5a43;
-  font-family: monospace;
-  font-size: 0.74rem;
-  font-weight: 700;
-  padding: 0.15rem 0.42rem;
-  border-radius: 6px;
+.module-id {
+  font-size: 0.76rem;
+  color: var(--sage-muted);
 }
 
-.detail-summary-cell {
-  max-width: 310px;
+.summary-text {
+  max-width: 280px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #4a4644;
+  color: #4d5f54;
   font-size: 0.8rem;
-}
-
-.ip-badge {
-  display: inline-flex;
-  align-items: center;
-  font-family: monospace;
-  font-size: 0.75rem;
-  color: var(--outline, #827470);
-  background: #faf9f7;
-  border: 1px solid #eceae6;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
 }
 
 .btn-action-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid #dce6e0;
   background: #ffffff;
-  color: var(--primary, #2d5a43);
+  color: #54665b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
 }
 
 .btn-action-icon:hover {
-  background: #f5ebe6;
+  background: #f0f6f2;
+  border-color: #b8ccc0;
+  color: var(--botanical-primary);
+}
+
+/* Empty State */
+.empty-box {
+  padding: 3.5rem 1rem;
+  text-align: center;
+}
+
+.empty-box__icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 0.75rem;
+  border-radius: 12px;
+  background: #f2f7f4;
+  border: 1px solid #dce6e0;
+  color: var(--botanical-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+.empty-box__title {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+  margin-bottom: 0.25rem;
+}
+
+.empty-box__desc {
+  font-size: 0.8rem;
+  color: var(--sage-muted);
 }
 
 /* Pagination */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0.72rem 1rem;
+  border-top: 1px solid var(--ledger-hairline);
+  background: #fafcfb;
+}
+
+.pagination-info {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .btn-page {
-  min-width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
+  min-width: 32px;
+  height: 32px;
+  padding: 0 0.5rem;
+  border-radius: 7px;
+  border: 1px solid #dce6e0;
   background: #ffffff;
-  color: var(--on-surface, #1c1b1b);
-  font-size: 0.8rem;
+  color: var(--roast-ink);
+  font-size: 0.78rem;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+}
+
+.btn-page:hover:not(:disabled):not(.active) {
+  background: #f2f7f4;
 }
 
 .btn-page.active {
-  background: var(--primary, #2d5a43);
-  color: #ffffff;
-  border-color: var(--primary, #2d5a43);
-}
-
-/* Buttons */
-.btn-coffee {
-  background: var(--primary, #2d5a43);
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.84rem;
-  font-weight: 600;
-  padding: 0.5rem 0.95rem;
-}
-
-.btn-coffee:hover {
-  background: #3f2419;
+  background: var(--botanical-primary);
+  border-color: var(--botanical-primary);
   color: #ffffff;
 }
 
-.btn-light-coffee {
-  background: #f5ebe6;
-  color: var(--primary, #2d5a43);
-  border: 1px solid #e6d7ce;
-  border-radius: 10px;
-  font-size: 0.84rem;
-  font-weight: 600;
-  padding: 0.5rem 0.95rem;
+.btn-page:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-/* Modal */
+/* Clean Unified Detail Modal */
 .modal-backdrop-custom {
+  --roast-ink: #14231a;
+  --sage-muted: #54665b;
+  --botanical-primary: #2d5a43;
   position: fixed;
   inset: 0;
-  background: rgba(28, 27, 27, 0.45);
+  background-color: rgba(20, 35, 26, 0.42);
   backdrop-filter: blur(2px);
-  z-index: 1055;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  z-index: 1060;
 }
 
-.modal-card-custom {
+.modal-sheet {
   background: #ffffff;
-  border-radius: 18px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
+  border-radius: 12px;
   width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
+  max-width: 500px;
+  max-height: 88vh;
+  padding: 1.3rem 1.4rem;
+  border: 1px solid #e2e8e4;
+  box-shadow: 0 20px 44px rgba(15, 28, 20, 0.14);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.16);
-  overflow: hidden;
 }
 
-.modal-lg-custom {
-  max-width: 720px;
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid #edf2ef;
 }
 
-.modal-header-custom {
-  padding: 1.1rem 1.35rem;
-  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
+.modal-heading {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+}
+
+.modal-sub {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--sage-muted);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
-.modal-title-custom {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--primary, #2d5a43);
+.meta-dot {
+  color: #b8c4bc;
 }
 
-.btn-close-custom {
+.btn-close-quiet {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   border: none;
-  background: #faf9f7;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  color: var(--outline, #827470);
+  background: transparent;
+  color: #7a8a80;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  cursor: pointer;
 }
 
-.modal-body-custom {
-  padding: 1.25rem 1.35rem;
+.btn-close-quiet:hover {
+  background: #f1f5f3;
+  color: var(--roast-ink);
+}
+
+.modal-body-scroll {
   overflow-y: auto;
+  padding: 0.9rem 0;
 }
 
-.modal-footer-custom {
-  padding: 0.95rem 1.35rem;
-  border-top: 1px solid var(--border-hairline, #e6e4e0);
+.info-list {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.6rem;
+  flex-direction: column;
 }
 
-.meta-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.75rem;
+.info-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #f2f6f3;
 }
 
-.meta-item {
-  background: #faf9f7;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 10px;
-  padding: 0.65rem 0.85rem;
+.info-row:last-child {
+  border-bottom: none;
 }
 
-.meta-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--outline, #827470);
-  margin-bottom: 0.15rem;
+.info-label {
+  font-size: 0.79rem;
+  color: var(--sage-muted);
+  flex-shrink: 0;
 }
 
-.meta-value {
-  font-size: 0.85rem;
+.info-value {
+  font-size: 0.82rem;
   font-weight: 600;
-  color: var(--on-surface, #1c1b1b);
+  color: var(--roast-ink);
+  text-align: right;
 }
 
-.kv-table-wrap {
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  border-radius: 10px;
+.text-muted-inline {
+  font-weight: 500;
+  color: var(--sage-muted);
+}
+
+.details-section {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #edf2ef;
+}
+
+.details-section__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+  margin-bottom: 0.5rem;
+}
+
+.kv-list {
+  border: 1px solid #e6ede8;
+  border-radius: 8px;
   overflow: hidden;
 }
 
-.kv-table td {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.82rem;
-  border-bottom: 1px solid #f2f0ec;
+.kv-row {
+  display: grid;
+  grid-template-columns: 38% 1fr;
+  gap: 0.75rem;
+  padding: 0.48rem 0.75rem;
+  border-bottom: 1px solid #f0f5f2;
+  font-size: 0.8rem;
+}
+
+.kv-row:last-child {
+  border-bottom: none;
 }
 
 .kv-key {
-  width: 34%;
-  background: #faf9f7;
+  color: var(--sage-muted);
   font-weight: 600;
-  color: var(--primary, #2d5a43);
 }
 
 .kv-val {
-  color: #3c4043;
+  color: var(--roast-ink);
   word-break: break-word;
 }
 
 .kv-nested-pre {
-  font-size: 0.76rem;
-  background: #faf9f7;
-  padding: 0.4rem;
+  margin: 0;
+  font-size: 0.75rem;
+  color: #34473c;
+  background: #f6f9f7;
+  padding: 0.4rem 0.5rem;
   border-radius: 6px;
 }
 
+.no-details-note {
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #edf2ef;
+  font-size: 0.8rem;
+  color: var(--sage-muted);
+}
+
+.raw-json-wrap {
+  margin-top: 0.85rem;
+}
+
+.raw-json-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.btn-link-quiet {
+  border: none;
+  background: transparent;
+  padding: 0.2rem 0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.btn-link-quiet:hover {
+  color: var(--botanical-primary);
+}
+
 .json-code-box {
-  background: #1e1b18;
-  color: #f5ebe6;
-  border-radius: 12px;
-  padding: 0.95rem 1.1rem;
-  font-family: monospace;
-  font-size: 0.79rem;
-  max-height: 240px;
+  margin: 0.5rem 0 0;
+  padding: 0.75rem 0.85rem;
+  background: #f6f9f7;
+  border: 1px solid #e2eae5;
+  border-radius: 8px;
+  color: #1f3328;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  max-height: 190px;
   overflow-y: auto;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.85rem;
+  border-top: 1px solid #edf2ef;
+}
+
+.btn-modal-close {
+  height: 36px;
+  padding: 0 1.05rem;
+  border-radius: 8px;
+  border: 1px solid #dce6e0;
+  background: #ffffff;
+  color: var(--roast-ink);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-modal-close:hover {
+  background: #f5f8f6;
+}
+
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-bar__actions {
+    justify-content: flex-end;
+  }
+
+  .search-wrap {
+    max-width: none;
+  }
 }
 </style>

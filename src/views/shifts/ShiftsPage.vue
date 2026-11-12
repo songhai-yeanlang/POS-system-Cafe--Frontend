@@ -266,10 +266,7 @@ const openShiftDetails = async (shiftId) => {
         <div class="drawer-card__head">
           <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-              <span class="status-badge closed">
-                <span class="status-badge__dot"></span>
-                <span>{{ $t('shifts.shiftClosed') }}</span>
-              </span>
+              <span class="status-text closed">{{ $t('shifts.shiftClosed') }}</span>
             </div>
             <h5 class="drawer-card__title mb-1">{{ $t('shifts.openCashierShift') }}</h5>
             <p class="drawer-card__subtitle mb-0">
@@ -341,9 +338,8 @@ const openShiftDetails = async (shiftId) => {
         <div class="drawer-card__head">
           <div>
             <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
-              <span class="status-badge open">
-                <span class="status-badge__dot"></span>
-                <span>{{ $t('shifts.shiftActiveBadge', { id: activeShift.id }) }}</span>
+              <span class="status-text open">
+                {{ $t('shifts.shiftActiveBadge', { id: activeShift.id }) }}
               </span>
               <span class="drawer-card__time tabular">
                 <i class="bi bi-clock me-1"></i>
@@ -539,7 +535,7 @@ const openShiftDetails = async (shiftId) => {
               @click="openShiftDetails(s.id)"
             >
               <td>
-                <span class="shift-id-badge tabular">#{{ s.id }}</span>
+                <span class="shift-id-text tabular">#{{ s.id }}</span>
               </td>
 
               <td>
@@ -580,11 +576,10 @@ const openShiftDetails = async (shiftId) => {
 
               <td>
                 <span
-                  class="status-badge"
+                  class="status-text"
                   :class="s.status === 'OPEN' ? 'open' : 'closed'"
                 >
-                  <span class="status-badge__dot"></span>
-                  <span>{{ s.status === 'OPEN' ? $t('nav.openBadge') : $t('shifts.shiftClosed') }}</span>
+                  {{ s.status === 'OPEN' ? $t('nav.openBadge') : $t('shifts.shiftClosed') }}
                 </span>
               </td>
 
@@ -775,11 +770,10 @@ const openShiftDetails = async (shiftId) => {
               </h6>
               <span
                 v-if="detailModal.data"
-                class="status-badge"
+                class="status-text"
                 :class="detailModal.data.status === 'OPEN' ? 'open' : 'closed'"
               >
-                <span class="status-badge__dot"></span>
-                <span>{{ detailModal.data.status === 'OPEN' ? $t('nav.openBadge') : $t('shifts.shiftClosed') }}</span>
+                {{ detailModal.data.status === 'OPEN' ? $t('nav.openBadge') : $t('shifts.shiftClosed') }}
               </span>
             </div>
             <button type="button" class="btn-close-custom" @click="detailModal.show = false">
@@ -1245,15 +1239,10 @@ const openShiftDetails = async (shiftId) => {
   background-color: #f8fbf9;
 }
 
-.shift-id-badge {
-  display: inline-block;
-  font-size: 0.82rem;
+.shift-id-text {
+  font-size: 0.84rem;
   font-weight: 800;
   color: #193e2b;
-  background: #eff5f1;
-  border: 1px solid #d9e7df;
-  padding: 0.18rem 0.55rem;
-  border-radius: 6px;
 }
 
 .cashier-cell {
@@ -1314,35 +1303,19 @@ const openShiftDetails = async (shiftId) => {
   color: var(--sage-muted);
 }
 
-/* Status Badges */
-.status-badge {
-  font-size: 0.73rem;
+/* Status Text */
+.status-text {
+  font-size: 0.82rem;
   font-weight: 700;
-  padding: 0.22rem 0.62rem;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.36rem;
   white-space: nowrap;
 }
 
-.status-badge__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
+.status-text.open {
+  color: #1e6b43;
 }
 
-.status-badge.open {
-  background: #e6f6ec;
-  color: #166534;
-  border: 1px solid #ccebd7;
-}
-
-.status-badge.closed {
-  background: #f1f5f3;
+.status-text.closed {
   color: #526358;
-  border: 1px solid #dce5df;
 }
 
 /* Action Buttons */

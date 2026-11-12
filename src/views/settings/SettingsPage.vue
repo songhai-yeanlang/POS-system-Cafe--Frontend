@@ -2,19 +2,17 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/api/api'
+import { t } from '@/i18n'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useToast } from '@/composables/useToast'
-import { useFormatDate } from '@/composables/useFormatDate'
 import BaseInput from '@/components/base/BaseInput.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 const toast = useToast()
-const { formatDateTime } = useFormatDate()
 
 // Active Tab ('shop' | 'profile')
 const activeTab = ref(route.query.tab === 'profile' ? 'profile' : 'shop')
@@ -96,7 +94,7 @@ const validateShopForm = () => {
 
   const cleanName = shopForm.shop_name.trim()
   if (!cleanName) {
-    shopErrors.shop_name = 'Shop name is required'
+    shopErrors.shop_name = t('settings.valShopNameRequired')
     valid = false
   } else if (cleanName.length > 150) {
     shopErrors.shop_name = 'Shop name cannot exceed 150 characters'
@@ -115,7 +113,7 @@ const validateShopForm = () => {
 
   const rate = Number(shopForm.exchange_rate)
   if (!rate || isNaN(rate) || rate <= 0) {
-    shopErrors.exchange_rate = 'Exchange rate must be greater than 0'
+    shopErrors.exchange_rate = t('settings.valExchangeRateInvalid')
     valid = false
   }
 
@@ -230,6 +228,7 @@ const userInitials = computed(() => {
   const n = profileName.value || authStore.user?.name || 'U'
   return n
     .split(' ')
+    .filter(Boolean)
     .map((p) => p[0])
     .slice(0, 2)
     .join('')
@@ -245,11 +244,11 @@ const handleUpdateProfile = async () => {
   const cleanName = profileName.value.trim()
 
   if (!cleanName) {
-    profileNameError.value = 'Name is required'
+    profileNameError.value = t('settings.valProfileNameRequired')
     return
   }
   if (cleanName.length < 2) {
-    profileNameError.value = 'Name must be at least 2 characters'
+    profileNameError.value = t('users.validationNameMin')
     return
   }
 
@@ -283,26 +282,26 @@ const handleChangePassword = async () => {
   let valid = true
 
   if (!passwordForm.currentPassword) {
-    passwordErrors.currentPassword = 'Current password is required'
+    passwordErrors.currentPassword = t('settings.valCurrentPasswordRequired')
     valid = false
   }
 
   if (!passwordForm.newPassword) {
-    passwordErrors.newPassword = 'New password is required'
+    passwordErrors.newPassword = t('settings.valNewPasswordRequired')
     valid = false
   } else if (passwordForm.newPassword.length < 6) {
-    passwordErrors.newPassword = 'New password must be at least 6 characters'
+    passwordErrors.newPassword = t('settings.valNewPasswordMin')
     valid = false
   } else if (passwordForm.newPassword === passwordForm.currentPassword) {
-    passwordErrors.newPassword = 'New password must be different from current password'
+    passwordErrors.newPassword = t('settings.valNewPasswordDiff')
     valid = false
   }
 
   if (!passwordForm.confirmPassword) {
-    passwordErrors.confirmPassword = 'Confirm password is required'
+    passwordErrors.confirmPassword = t('settings.valConfirmPasswordRequired')
     valid = false
   } else if (passwordForm.confirmPassword !== passwordForm.newPassword) {
-    passwordErrors.confirmPassword = 'Passwords do not match'
+    passwordErrors.confirmPassword = t('settings.valPasswordMismatch')
     valid = false
   }
 
@@ -384,26 +383,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="settings-page-container">
-    <!-- Top Header with Title & Modern Segmented Nav -->
-    <div class="settings-header-bar d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-      <div>
-        <h4 class="page-title mb-1 fw-bold text-dark">
-          {{ activeTab === 'shop' ? $t('settings.shopSettingsTitle') : $t('settings.ownerAccountTitle') }}
-        </h4>
-        <p class="page-subtitle text-muted mb-0 small">
-          {{ activeTab === 'shop'
-              ? $t('settings.shopSettingsSubtitle')
-              : $t('settings.ownerAccountSubtitle')
-          }}
-        </p>
-      </div>
-
-      <!-- Modern Segmented Switcher -->
-      <div class="modern-segmented-control d-inline-flex p-1">
+  <div class="settings-page">
+    <!-- Top Segmented Switcher & Action Controls -->
+    <div class="settings-top-bar">
+      <div class="segmented-nav" role="tablist">
         <button
           type="button"
-          class="segment-btn"
+          class="seg-btn"
           :class="{ active: activeTab === 'shop' }"
           @click="setTab('shop')"
         >
@@ -412,7 +398,7 @@ onMounted(async () => {
         </button>
         <button
           type="button"
-          class="segment-btn"
+          class="seg-btn"
           :class="{ active: activeTab === 'profile' }"
           @click="setTab('profile')"
         >
@@ -420,49 +406,62 @@ onMounted(async () => {
           <span>{{ $t('settings.ownerAccountTab') }}</span>
         </button>
       </div>
+
+      <div v-if="activeTab === 'shop'" class="top-actions">
+        <span class="save-state-label" :class="{ 'is-dirty': isShopDirty }">
+          <i class="bi" :class="isShopDirty ? 'bi-circle-fill' : 'bi-check2'"></i>
+          <span>{{ isShopDirty ? $t('settings.unsavedChanges') : $t('settings.allUpToDate') }}</span>
+        </span>
+
+        <button
+          type="button"
+          class="btn-action-secondary"
+          :disabled="!isShopDirty || isSavingShop"
+          @click="handleResetShopForm"
+        >
+          {{ $t('common.reset') }}
+        </button>
+
+        <button
+          type="button"
+          class="btn-action-primary"
+          :disabled="!isShopDirty || isSavingShop"
+          @click="handleSaveSettings"
+        >
+          <span v-if="isSavingShop" class="spinner-border spinner-border-sm"></span>
+          <span>{{ $t('common.saveChanges') }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- ========================================== -->
-    <!-- TAB 1: SHOP SETTINGS 2-COLUMN LAYOUT       -->
+    <!-- TAB 1: SHOP SETTINGS (UNIFIED SHEET + PREVIEW) -->
     <!-- ========================================== -->
-    <form
-      v-if="activeTab === 'shop'"
-      @submit.prevent="handleSaveSettings"
-    >
-      <div class="row g-4 align-items-start">
-        <!-- LEFT COLUMN: Settings Cards (col-lg-7) -->
-        <div class="col-12 col-lg-7 d-flex flex-column gap-4">
-          <!-- Card 1: Store Branding & Information -->
-          <div class="settings-card bg-white p-4">
-            <div class="card-section-header d-flex align-items-center gap-2 mb-3 pb-3 border-bottom">
-              <div class="section-icon-badge">
-                <i class="bi bi-shop-window"></i>
-              </div>
-              <div>
-                <h6 class="section-title mb-0">{{ $t('settings.storeProfileBranding') }}</h6>
-                <div class="section-desc small text-muted">{{ $t('settings.storeProfileBrandingDesc') }}</div>
-              </div>
-            </div>
+    <form v-if="activeTab === 'shop'" @submit.prevent="handleSaveSettings">
+      <div class="settings-grid">
+        <!-- LEFT COLUMN: Single Unified White Sheet -->
+        <div class="ledger-panel">
+          <!-- Section 1: Store Branding -->
+          <section class="panel-section">
+            <h6 class="panel-heading">{{ $t('settings.storeProfileBranding') }}</h6>
 
-            <!-- Logo Row -->
-            <div class="d-flex align-items-center justify-content-between gap-3 p-3 rounded-3 mb-4 logo-upload-card">
-              <div class="d-flex align-items-center gap-3">
-                <div class="logo-box d-flex align-items-center justify-content-center overflow-hidden">
-                  <img
-                    v-if="appStore.shopLogoUrl"
-                    :src="appStore.shopLogoUrl"
-                    alt="Shop Logo"
-                    class="w-100 h-100 object-fit-cover"
-                  />
-                  <i v-else class="bi bi-cup-hot fs-3 text-muted"></i>
-                </div>
-                <div>
-                  <div class="fw-semibold text-dark small mb-1">{{ $t('settings.shopLogo') }}</div>
-                  <div class="text-muted smaller">{{ $t('settings.logoFormatHint') }}</div>
-                </div>
+            <div class="logo-row">
+              <div class="logo-thumb">
+                <img
+                  v-if="appStore.shopLogoUrl"
+                  :src="appStore.shopLogoUrl"
+                  alt="Shop Logo"
+                  class="w-100 h-100 object-fit-cover"
+                />
+                <i v-else class="bi bi-cup-hot"></i>
               </div>
 
-              <div class="d-flex align-items-center gap-2">
+              <div class="logo-info">
+                <div class="logo-title">{{ $t('settings.shopLogo') }}</div>
+                <div class="logo-hint">{{ $t('settings.logoFormatHint') }}</div>
+              </div>
+
+              <div class="logo-actions">
                 <input
                   ref="fileInputRef"
                   type="file"
@@ -470,318 +469,231 @@ onMounted(async () => {
                   class="d-none"
                   @change="handleLogoChange"
                 />
-                <BaseButton
+                <button
                   type="button"
-                  variant="secondary"
-                  size="sm"
-                  :loading="isUploadingLogo"
+                  class="btn-mini-secondary"
+                  :disabled="isUploadingLogo"
                   @click="triggerLogoSelect"
                 >
-                  <i class="bi bi-cloud-arrow-up me-1"></i>
-                  {{ appStore.settings?.logo ? $t('common.change') : $t('common.upload') }}
-                </BaseButton>
-                <BaseButton
+                  <span v-if="isUploadingLogo" class="spinner-border spinner-border-sm"></span>
+                  <span>{{ appStore.settings?.logo ? $t('common.change') : $t('common.upload') }}</span>
+                </button>
+                <button
                   v-if="appStore.settings?.logo"
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  class="text-danger"
-                  :loading="isDeletingLogo"
+                  class="btn-mini-danger"
+                  :disabled="isDeletingLogo"
                   @click="handleDeleteLogo"
                 >
-                  <i class="bi bi-trash3 me-1"></i>
                   {{ $t('common.remove') }}
-                </BaseButton>
+                </button>
               </div>
             </div>
 
-            <!-- Shop Info Inputs -->
-            <div class="row g-3">
-              <div class="col-12 col-md-7">
+            <div class="fields-grid mt-3">
+              <div class="col-span-7">
                 <BaseInput
                   v-model="shopForm.shop_name"
+                  size="sm"
+                  no-margin
                   :label="$t('settings.shopNameLabel')"
-                  placeholder="e.g. BrewPOS Coffee"
+                  :placeholder="$t('settings.shopNamePlaceholder')"
                   :error="shopErrors.shop_name"
                   required
                 />
               </div>
 
-              <div class="col-12 col-md-5">
+              <div class="col-span-5">
                 <BaseInput
                   v-model="shopForm.phone"
+                  size="sm"
+                  no-margin
                   :label="$t('settings.phoneNumberLabel')"
-                  placeholder="e.g. 012 345 678"
+                  :placeholder="$t('settings.phonePlaceholder')"
                   :error="shopErrors.phone"
                 />
               </div>
 
-              <div class="col-12">
+              <div class="col-span-12">
                 <BaseInput
                   v-model="shopForm.address"
+                  size="sm"
+                  no-margin
                   :label="$t('settings.shopAddressLabel')"
-                  placeholder="e.g. #123, Street 2004, Phnom Penh"
+                  :placeholder="$t('settings.addressPlaceholder')"
                   :error="shopErrors.address"
                 />
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- Card 2: Currency & Exchange Rate -->
-          <div class="settings-card bg-white p-4">
-            <div class="card-section-header d-flex align-items-center gap-2 mb-3 pb-3 border-bottom">
-              <div class="section-icon-badge">
-                <i class="bi bi-currency-exchange"></i>
-              </div>
-              <div>
-                <h6 class="section-title mb-0">{{ $t('settings.currencyExchangeRate') }}</h6>
-                <div class="section-desc small text-muted">{{ $t('settings.currencyExchangeRateDesc') }}</div>
-              </div>
-            </div>
+          <!-- Section 2: Exchange Rate -->
+          <section class="panel-section">
+            <h6 class="panel-heading">{{ $t('settings.currencyExchangeRate') }}</h6>
 
-            <div class="mb-3">
-              <BaseInput
-                v-model="shopForm.exchange_rate"
-                type="number"
-                :label="$t('settings.exchangeRateInputLabel')"
-                placeholder="4100"
-                :error="shopErrors.exchange_rate"
-                required
-              >
-                <template #suffix>
-                  <span class="small fw-semibold text-dark">៛ / USD</span>
-                </template>
-              </BaseInput>
-            </div>
-
-            <!-- Quick Conversion Calculator Pill bar -->
-            <div class="rate-preview-box p-3 rounded-3">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="smaller text-muted fw-medium text-uppercase">{{ $t('settings.liveConversionRef') }}</span>
-                <span class="badge bg-white text-dark border small fw-semibold">
-                  {{ $t('pos.rateLabel', { rate: Number(shopForm.exchange_rate || 4100).toLocaleString() }) }}
-                </span>
+            <div class="rate-row">
+              <div class="rate-input-box">
+                <BaseInput
+                  v-model="shopForm.exchange_rate"
+                  type="number"
+                  size="sm"
+                  no-margin
+                  :label="$t('settings.exchangeRateInputLabel')"
+                  placeholder="4100"
+                  :error="shopErrors.exchange_rate"
+                  required
+                >
+                  <template #suffix>
+                    <span class="suffix-label">៛ / USD</span>
+                  </template>
+                </BaseInput>
               </div>
-              <div class="d-flex flex-wrap gap-2">
-                <span class="calc-chip">$1 = {{ getRateConversion(1) }} ៛</span>
-                <span class="calc-chip">$5 = {{ getRateConversion(5) }} ៛</span>
-                <span class="calc-chip">$10 = {{ getRateConversion(10) }} ៛</span>
-                <span class="calc-chip">$20 = {{ getRateConversion(20) }} ៛</span>
-                <span class="calc-chip">$50 = {{ getRateConversion(50) }} ៛</span>
+
+              <div class="rate-inline-ref tabular">
+                $5 = {{ getRateConversion(5) }} ៛
+                <span class="ref-dot">·</span>
+                $10 = {{ getRateConversion(10) }} ៛
+                <span class="ref-dot">·</span>
+                $20 = {{ getRateConversion(20) }} ៛
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- Card 3: Receipt & Printing -->
-          <div class="settings-card bg-white p-4">
-            <div class="card-section-header d-flex align-items-center gap-2 mb-3 pb-3 border-bottom">
-              <div class="section-icon-badge">
-                <i class="bi bi-printer"></i>
-              </div>
-              <div>
-                <h6 class="section-title mb-0">{{ $t('settings.receiptPrintingPrefs') }}</h6>
-                <div class="section-desc small text-muted">{{ $t('settings.receiptPrintingPrefsDesc') }}</div>
-              </div>
-            </div>
+          <!-- Section 3: Thermal Receipt -->
+          <section class="panel-section">
+            <h6 class="panel-heading">{{ $t('settings.receiptPrintingPrefs') }}</h6>
 
-            <!-- Paper Size Selector -->
-            <div class="mb-4">
-              <label class="form-label mb-2 fw-medium small text-dark">{{ $t('settings.thermalPaperSize') }}</label>
-              <div class="row g-3">
-                <div class="col-12 col-sm-6">
-                  <div
-                    class="paper-size-card p-3 rounded-3 cursor-pointer d-flex align-items-start gap-3"
-                    :class="{ active: shopForm.receipt_width === '80' }"
-                    @click="shopForm.receipt_width = '80'"
-                  >
-                    <div class="paper-icon-box">
-                      <i class="bi bi-receipt fs-4"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                      <div class="d-flex align-items-center justify-content-between mb-1">
-                        <span class="fw-semibold text-dark small">{{ $t('settings.paper80mm') }}</span>
-                        <span v-if="shopForm.receipt_width === '80'" class="badge bg-primary text-white rounded-pill px-2 smaller">{{ $t('settings.selected') }}</span>
-                      </div>
-                      <div class="text-muted smaller">{{ $t('settings.paper80mmDesc') }}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-12 col-sm-6">
-                  <div
-                    class="paper-size-card p-3 rounded-3 cursor-pointer d-flex align-items-start gap-3"
-                    :class="{ active: shopForm.receipt_width === '58' }"
-                    @click="shopForm.receipt_width = '58'"
-                  >
-                    <div class="paper-icon-box">
-                      <i class="bi bi-phone fs-4"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                      <div class="d-flex align-items-center justify-content-between mb-1">
-                        <span class="fw-semibold text-dark small">{{ $t('settings.paper58mm') }}</span>
-                        <span v-if="shopForm.receipt_width === '58'" class="badge bg-primary text-white rounded-pill px-2 smaller">{{ $t('settings.selected') }}</span>
-                      </div>
-                      <div class="text-muted smaller">{{ $t('settings.paper58mmDesc') }}</div>
-                    </div>
-                  </div>
-                </div>
+            <div class="paper-row mb-3">
+              <label class="field-label">{{ $t('settings.thermalPaperSize') }}</label>
+              <div class="paper-segmented">
+                <button
+                  type="button"
+                  class="paper-seg-btn"
+                  :class="{ active: shopForm.receipt_width === '80' }"
+                  @click="shopForm.receipt_width = '80'"
+                >
+                  {{ $t('settings.paper80mmShort') }}
+                </button>
+                <button
+                  type="button"
+                  class="paper-seg-btn"
+                  :class="{ active: shopForm.receipt_width === '58' }"
+                  @click="shopForm.receipt_width = '58'"
+                >
+                  {{ $t('settings.paper58mmShort') }}
+                </button>
               </div>
             </div>
 
-            <!-- Receipt Footer Note -->
-            <div>
-              <BaseInput
-                v-model="shopForm.receipt_footer"
-                :label="$t('settings.receiptFooterNote')"
-                placeholder="e.g. Thank you for visiting! Wi-Fi: Coffee123"
-                :error="shopErrors.receipt_footer"
-              />
-              <div class="text-muted smaller mt-1">{{ $t('settings.receiptFooterHint') }}</div>
-            </div>
-          </div>
-
-          <!-- Action Bar Card -->
-          <div class="settings-card bg-white p-3 px-4 d-flex align-items-center justify-content-between gap-3">
-            <div class="d-flex align-items-center gap-2">
-              <span v-if="isShopDirty" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-1 rounded-pill small fw-medium">
-                <i class="bi bi-exclamation-circle me-1"></i> {{ $t('settings.unsavedChanges') }}
-              </span>
-              <span v-else class="text-muted smaller">
-                <i class="bi bi-check2-circle text-success me-1"></i> {{ $t('settings.allUpToDate') }}
-              </span>
-            </div>
-
-            <div class="d-flex align-items-center gap-2">
-              <BaseButton
-                type="button"
-                variant="secondary"
-                :disabled="!isShopDirty || isSavingShop"
-                @click="handleResetShopForm"
-              >
-                {{ $t('common.reset') }}
-              </BaseButton>
-              <BaseButton
-                type="submit"
-                variant="primary"
-                :loading="isSavingShop"
-                :disabled="!isShopDirty"
-              >
-                {{ $t('common.saveChanges') }}
-              </BaseButton>
-            </div>
-          </div>
+            <BaseInput
+              v-model="shopForm.receipt_footer"
+              size="sm"
+              no-margin
+              :label="$t('settings.receiptFooterNote')"
+              :placeholder="$t('settings.footerPlaceholder')"
+              :error="shopErrors.receipt_footer"
+              :hint="$t('settings.receiptFooterHint')"
+            />
+          </section>
         </div>
 
-        <!-- RIGHT COLUMN: Sticky Real-Time Receipt Preview (col-lg-5) -->
-        <div class="col-12 col-lg-5">
+        <!-- RIGHT COLUMN: Sticky Real-Time Receipt Preview -->
+        <div class="preview-column">
           <div class="receipt-sticky-wrapper">
-            <div class="d-flex align-items-center justify-content-between mb-2 px-1">
-              <div class="d-flex align-items-center gap-2">
-                <span class="live-pulse-dot"></span>
-                <span class="fw-bold smaller text-uppercase text-dark tracking-wider">{{ $t('receipt.livePreview') }}</span>
-              </div>
-              <span class="badge bg-white text-dark border smaller fw-medium">
-                {{ $t('receipt.widthMm', { width: shopForm.receipt_width }) }}
-              </span>
+            <div class="preview-header">
+              <span class="preview-title">{{ $t('receipt.livePreview') }}</span>
+              <span class="preview-width tabular">{{ shopForm.receipt_width }}mm</span>
             </div>
 
-            <!-- Thermal Receipt Mockup Card -->
             <div class="thermal-receipt-container" :class="`receipt-width-${shopForm.receipt_width}`">
-              <!-- Top Cut Edge -->
               <div class="receipt-sawtooth-cut"></div>
 
-              <div class="receipt-body p-4 bg-white">
-                <!-- Shop Header -->
+              <div class="receipt-body">
                 <div class="text-center mb-3">
                   <div v-if="appStore.shopLogoUrl" class="receipt-preview-logo mx-auto mb-2">
                     <img :src="appStore.shopLogoUrl" alt="Shop Logo" class="w-100 h-100 object-fit-contain" />
                   </div>
                   <div v-else class="receipt-preview-icon text-muted mb-1">
-                    <i class="bi bi-cup-hot fs-3"></i>
+                    <i class="bi bi-cup-hot fs-4"></i>
                   </div>
 
-                  <div class="receipt-font-title fw-bold text-dark text-uppercase mb-1">
+                  <div class="receipt-font-title">
                     {{ shopForm.shop_name || 'YOUR SHOP NAME' }}
                   </div>
-                  <div v-if="shopForm.address" class="receipt-font-meta text-muted">
+                  <div v-if="shopForm.address" class="receipt-font-meta">
                     {{ shopForm.address }}
                   </div>
-                  <div v-if="shopForm.phone" class="receipt-font-meta text-muted">
+                  <div v-if="shopForm.phone" class="receipt-font-meta">
                     {{ $t('receipt.tel') }}: {{ shopForm.phone }}
                   </div>
                 </div>
 
-                <!-- Receipt Meta -->
                 <div class="receipt-dashed-line my-2"></div>
-                <div class="receipt-meta-grid text-muted">
-                  <div class="d-flex justify-content-between">
-                    <span>{{ $t('receipt.receipt') }}: #RCP-20261106-0042</span>
+
+                <div class="receipt-meta-grid">
+                  <div class="meta-split">
+                    <span>{{ $t('receipt.receipt') }}: #RCP-0042</span>
                     <span>{{ $t('receipt.queue') }}: #04</span>
                   </div>
-                  <div class="d-flex justify-content-between">
-                    <span>{{ $t('receipt.date') }}: {{ receiptDate }}</span>
-                    <span>{{ $t('receipt.type') }}: {{ $t('common.takeaway') }}</span>
+                  <div class="meta-split">
+                    <span>{{ receiptDate }}</span>
+                    <span>{{ $t('common.takeaway') }}</span>
                   </div>
-                  <div class="d-flex justify-content-between">
-                    <span>{{ $t('receipt.cashier') }}: {{ authStore.user?.name || 'Owner' }}</span>
-                    <span>{{ $t('receipt.shift') }}: #2</span>
+                  <div class="meta-split">
+                    <span>{{ authStore.user?.name || 'Owner' }}</span>
+                    <span>{{ $t('receipt.shift') }} #2</span>
                   </div>
                 </div>
+
                 <div class="receipt-dashed-line my-2"></div>
 
-                <!-- Sample Order Items -->
                 <div class="receipt-items-list mb-2">
-                  <div class="d-flex justify-content-between py-1">
+                  <div class="receipt-item-row">
                     <span>1x Iced Latte (Large)</span>
-                    <span class="fw-semibold">$3.50</span>
+                    <span class="fw-semibold tabular">$3.50</span>
                   </div>
-                  <div class="d-flex justify-content-between py-1">
+                  <div class="receipt-item-row">
                     <span>1x Caramel Macchiato</span>
-                    <span class="fw-semibold">$3.50</span>
+                    <span class="fw-semibold tabular">$3.50</span>
                   </div>
-                  <div class="d-flex justify-content-between py-1">
+                  <div class="receipt-item-row">
                     <span>1x Butter Croissant</span>
-                    <span class="fw-semibold">$2.00</span>
+                    <span class="fw-semibold tabular">$2.00</span>
                   </div>
                 </div>
 
                 <div class="receipt-dashed-line my-2"></div>
 
-                <!-- Totals Section -->
                 <div class="receipt-totals-box">
-                  <div class="d-flex justify-content-between py-1 text-muted small">
-                    <span>{{ $t('receipt.subtotal') }}:</span>
-                    <span>$9.00</span>
+                  <div class="receipt-item-row muted-row">
+                    <span>{{ $t('receipt.subtotal') }}</span>
+                    <span class="tabular">$9.00</span>
                   </div>
-                  <div class="d-flex justify-content-between py-1 fw-bold fs-6 text-dark border-top border-bottom my-1">
-                    <span>{{ $t('receipt.totalUsd') }}:</span>
-                    <span>$9.00</span>
+                  <div class="receipt-total-usd">
+                    <span>{{ $t('receipt.totalUsd') }}</span>
+                    <span class="tabular">$9.00</span>
                   </div>
-                  <div class="d-flex justify-content-between py-1 fw-bold text-dark">
-                    <span>{{ $t('receipt.totalKhr') }}:</span>
-                    <span>{{ sampleKhrTotal }} ៛</span>
+                  <div class="receipt-item-row fw-bold">
+                    <span>{{ $t('receipt.totalKhr') }}</span>
+                    <span class="tabular">{{ sampleKhrTotal }} ៛</span>
                   </div>
-                  <div class="d-flex justify-content-between py-1 text-muted smaller">
-                    <span>{{ $t('receipt.exchangeRate') }}:</span>
-                    <span>$1 = {{ Number(shopForm.exchange_rate || 4100).toLocaleString() }} ៛</span>
+                  <div class="receipt-item-row muted-row smaller-row">
+                    <span>{{ $t('receipt.exchangeRate') }}</span>
+                    <span class="tabular">$1 = {{ Number(shopForm.exchange_rate || 4100).toLocaleString() }} ៛</span>
                   </div>
                 </div>
 
                 <div class="receipt-dashed-line my-3"></div>
 
-                <!-- Footer Note -->
-                <div class="receipt-footer-text text-center text-muted small px-2">
+                <div class="receipt-footer-text text-center">
                   {{ shopForm.receipt_footer || $t('receipt.thankYouDefault') }}
                 </div>
 
-                <!-- Barcode mockup -->
-                <div class="receipt-barcode-box text-center pt-3">
+                <div class="text-center pt-3">
                   <div class="barcode-graphic mx-auto"></div>
-                  <div class="smaller text-muted mt-1 font-monospace">*** {{ $t('receipt.thankYouDefault') }} ***</div>
                 </div>
               </div>
 
-              <!-- Bottom Cut Edge -->
               <div class="receipt-sawtooth-cut bottom"></div>
             </div>
           </div>
@@ -790,363 +702,565 @@ onMounted(async () => {
     </form>
 
     <!-- ========================================== -->
-    <!-- TAB 2: OWNER ACCOUNT & SECURITY (2-COL)   -->
+    <!-- TAB 2: OWNER ACCOUNT & SECURITY (50/50)    -->
     <!-- ========================================== -->
-    <div v-else class="row g-4 align-items-start">
-      <!-- LEFT COLUMN: Profile & Password Forms (col-lg-7) -->
-      <div class="col-12 col-lg-7 d-flex flex-column gap-4">
-        <!-- Personal Details -->
-        <form class="settings-card bg-white p-4" @submit.prevent="handleUpdateProfile">
-          <div class="card-section-header d-flex align-items-center gap-2 mb-3 pb-3 border-bottom">
-            <div class="section-icon-badge">
-              <i class="bi bi-person-circle"></i>
-            </div>
-            <div>
-              <h6 class="section-title mb-0">{{ $t('settings.personalDetails') }}</h6>
-              <div class="section-desc small text-muted">{{ $t('settings.personalDetailsDesc') }}</div>
-            </div>
-          </div>
-
-          <div class="row g-3 mb-3">
-            <div class="col-12 col-md-6">
-              <BaseInput
-                v-model="profileName"
-                :label="$t('users.fullNameLabel')"
-                placeholder="Your full name"
-                :error="profileNameError"
-                required
-              />
-            </div>
-            <div class="col-12 col-md-6">
-              <BaseInput
-                :model-value="authStore.user?.email || ''"
-                :label="$t('auth.emailLabel')"
-                disabled
-              />
+    <div v-else class="account-grid">
+      <!-- LEFT CARD: Personal Info & Sessions -->
+      <div class="ledger-panel account-card">
+        <div class="identity-bar">
+          <div class="avatar-square">{{ userInitials }}</div>
+          <div class="account-meta">
+            <div class="account-name">{{ authStore.user?.name || 'Owner' }}</div>
+            <div class="account-subline">
+              <span>{{ authStore.user?.email }}</span>
+              <span class="meta-dot">·</span>
+              <span class="account-role">{{ $t('settings.shopOwnerBadge') }}</span>
             </div>
           </div>
+        </div>
 
-          <div class="d-flex justify-content-end">
-            <BaseButton
-              type="submit"
-              variant="primary"
+        <form class="panel-section account-form-body" @submit.prevent="handleUpdateProfile">
+          <h6 class="panel-heading">{{ $t('settings.personalDetails') }}</h6>
+
+          <div class="stack-fields">
+            <BaseInput
+              v-model="profileName"
               size="sm"
+              no-margin
+              :label="$t('users.fullNameLabel')"
+              :placeholder="$t('settings.yourFullNamePlaceholder')"
+              :error="profileNameError"
+              required
+            />
+
+            <BaseInput
+              :model-value="authStore.user?.email || ''"
+              size="sm"
+              no-margin
+              :label="$t('auth.emailLabel')"
+              disabled
+            />
+          </div>
+
+          <div class="section-footer">
+            <button
+              type="submit"
+              class="btn-action-primary"
               :disabled="!isProfileDirty || isSavingProfile"
-              :loading="isSavingProfile"
             >
-              {{ $t('settings.saveProfile') }}
-            </BaseButton>
+              <span v-if="isSavingProfile" class="spinner-border spinner-border-sm"></span>
+              <span>{{ $t('settings.saveProfile') }}</span>
+            </button>
           </div>
         </form>
 
-        <!-- Password Change -->
-        <form class="settings-card bg-white p-4" @submit.prevent="handleChangePassword">
-          <div class="card-section-header d-flex align-items-center gap-2 mb-3 pb-3 border-bottom">
-            <div class="section-icon-badge">
-              <i class="bi bi-shield-lock"></i>
-            </div>
-            <div>
-              <h6 class="section-title mb-0">{{ $t('settings.passwordSecurity') }}</h6>
-              <div class="section-desc small text-muted">{{ $t('settings.passwordSecurityDesc') }}</div>
-            </div>
+        <div class="session-bar">
+          <div class="session-copy">
+            <div class="session-title">{{ $t('settings.activeSessions') }}</div>
+            <div class="session-sub">{{ $t('settings.activeSessionsDesc') }}</div>
           </div>
 
-          <div class="mb-3">
+          <button
+            type="button"
+            class="btn-danger-outline"
+            :disabled="isLoggingOutAll"
+            @click="handleLogoutAllDevices"
+          >
+            <span v-if="isLoggingOutAll" class="spinner-border spinner-border-sm"></span>
+            <i v-else class="bi bi-box-arrow-right"></i>
+            <span>{{ $t('settings.signOutAllSessions') }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT CARD: Password & Security -->
+      <form class="ledger-panel account-card" @submit.prevent="handleChangePassword">
+        <div class="panel-section account-form-body">
+          <h6 class="panel-heading">{{ $t('settings.passwordSecurity') }}</h6>
+
+          <div class="stack-fields">
             <BaseInput
               v-model="passwordForm.currentPassword"
               type="password"
+              size="sm"
+              no-margin
               :label="$t('settings.currentPassword')"
-              placeholder="••••••••"
+              :placeholder="$t('settings.currentPasswordPlaceholder')"
               :error="passwordErrors.currentPassword"
+              required
+            />
+
+            <BaseInput
+              v-model="passwordForm.newPassword"
+              type="password"
+              size="sm"
+              no-margin
+              :label="$t('settings.newPassword')"
+              :placeholder="$t('users.min6Characters')"
+              :error="passwordErrors.newPassword"
+              required
+            />
+
+            <BaseInput
+              v-model="passwordForm.confirmPassword"
+              type="password"
+              size="sm"
+              no-margin
+              :label="$t('settings.confirmNewPassword')"
+              :placeholder="$t('settings.confirmPasswordPlaceholder')"
+              :error="passwordErrors.confirmPassword"
               required
             />
           </div>
 
-          <div class="row g-3 mb-3">
-            <div class="col-12 col-md-6">
-              <BaseInput
-                v-model="passwordForm.newPassword"
-                type="password"
-                :label="$t('settings.newPassword')"
-                placeholder="••••••••"
-                :error="passwordErrors.newPassword"
-                required
-              />
-            </div>
-            <div class="col-12 col-md-6">
-              <BaseInput
-                v-model="passwordForm.confirmPassword"
-                type="password"
-                :label="$t('settings.confirmNewPassword')"
-                placeholder="••••••••"
-                :error="passwordErrors.confirmPassword"
-                required
-              />
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-end">
-            <BaseButton
+          <div class="section-footer">
+            <button
               type="submit"
-              variant="secondary"
-              size="sm"
-              :loading="isChangingPassword"
+              class="btn-action-primary"
+              :disabled="isChangingPassword || (!passwordForm.currentPassword && !passwordForm.newPassword && !passwordForm.confirmPassword)"
             >
-              {{ $t('settings.updatePassword') }}
-            </BaseButton>
-          </div>
-        </form>
-      </div>
-
-      <!-- RIGHT COLUMN: Account Status & Danger Zone (col-lg-5) -->
-      <div class="col-12 col-lg-5 d-flex flex-column gap-4">
-        <!-- Account Overview Card -->
-        <div class="settings-card bg-white p-4">
-          <div class="d-flex align-items-center gap-3 pb-3 mb-3 border-bottom">
-            <div class="avatar-box d-flex align-items-center justify-content-center">
-              {{ userInitials }}
-            </div>
-            <div>
-              <h6 class="fw-bold text-dark mb-1">{{ authStore.user?.name || 'Owner' }}</h6>
-              <div class="text-muted smaller mb-1">{{ authStore.user?.email }}</div>
-              <span class="badge bg-success-subtle text-success border border-success-subtle smaller px-2 py-1 rounded-pill">
-                <i class="bi bi-shield-check me-1"></i> {{ $t('settings.shopOwnerBadge') }}
-              </span>
-            </div>
-          </div>
-
-          <div class="role-permissions-list small">
-            <div class="fw-semibold text-dark smaller text-uppercase mb-2">{{ $t('settings.accountPrivileges') }}</div>
-            <div class="d-flex align-items-center gap-2 py-1 text-muted">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>{{ $t('settings.priv1') }}</span>
-            </div>
-            <div class="d-flex align-items-center gap-2 py-1 text-muted">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>{{ $t('settings.priv2') }}</span>
-            </div>
-            <div class="d-flex align-items-center gap-2 py-1 text-muted">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>{{ $t('settings.priv3') }}</span>
-            </div>
-            <div class="d-flex align-items-center gap-2 py-1 text-muted">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>{{ $t('settings.priv4') }}</span>
-            </div>
+              <span v-if="isChangingPassword" class="spinner-border spinner-border-sm"></span>
+              <span>{{ $t('settings.updatePassword') }}</span>
+            </button>
           </div>
         </div>
-
-        <!-- Active Sessions & Logout -->
-        <div class="settings-card bg-white p-4 border-danger-subtle">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <i class="bi bi-shield-exclamation text-danger fs-5"></i>
-            <h6 class="section-title mb-0 text-danger">{{ $t('settings.activeSessions') }}</h6>
-          </div>
-          <p class="text-muted smaller mb-3">
-            {{ $t('settings.activeSessionsDesc') }}
-          </p>
-
-          <BaseButton
-            type="button"
-            variant="ghost"
-            size="sm"
-            class="btn-outline-danger w-100"
-            :loading="isLoggingOutAll"
-            @click="handleLogoutAllDevices"
-          >
-            <i class="bi bi-box-arrow-right me-1"></i>
-            {{ $t('settings.signOutAllSessions') }}
-          </BaseButton>
-        </div>
-      </div>
+      </form>
     </div>
   </div>
 </template>
 
 <style scoped>
-.settings-page-container {
-  max-width: 1240px;
-  margin: 0 auto;
+.settings-page {
+  --roast-ink: #14231a;
+  --sage-muted: #54665b;
+  --botanical-primary: #2d5a43;
+  --botanical-deep: #1e3f2f;
+  --ledger-line: #e4ebe6;
+  --ledger-hairline: #eff4f1;
 }
 
-.settings-card {
-  border-radius: 16px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  box-shadow: 0 1px 3px rgba(45, 90, 67, 0.04), 0 6px 18px rgba(45, 90, 67, 0.02);
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-.section-icon-badge {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background-color: var(--surface-container-low, #f6f3f2);
-  color: var(--primary, #2d5a43);
+/* Top Bar */
+.settings-top-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
-.section-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--on-surface, #1c1b1b);
+.segmented-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #edf2ef;
+  border: 1px solid #e1e9e4;
 }
 
-.section-desc {
-  font-size: 12.5px;
-  color: var(--on-surface-variant, #716762);
-}
-
-.logo-upload-card {
-  background-color: var(--surface-container-low, #f8f6f4);
-  border: 1px dashed var(--border-hairline, #ded9d3);
-}
-
-.logo-box {
-  width: 60px;
-  height: 60px;
-  border-radius: 14px;
-  background-color: #ffffff;
-  border: 1px solid var(--border-hairline, #ded9d3);
-  flex-shrink: 0;
-}
-
-.modern-segmented-control {
-  background-color: var(--surface-container-low, #f4f0eb);
-  border: 1px solid var(--border-hairline, #e6e2dc);
-  border-radius: 14px;
-  gap: 4px;
-  padding: 4px;
-  box-shadow: inset 0 1px 2px rgba(45, 90, 67, 0.03);
-}
-
-.segment-btn {
+.seg-btn {
   border: none;
   background: transparent;
-  padding: 0.55rem 1.4rem;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--on-surface-variant, #716762);
-  border-radius: 10px;
+  padding: 0.44rem 0.95rem;
+  border-radius: 7px;
+  font-size: 0.81rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.14s ease;
+}
+
+.seg-btn:hover:not(.active) {
+  color: var(--roast-ink);
+}
+
+.seg-btn.active {
+  background: #ffffff;
+  color: var(--botanical-deep);
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(20, 35, 26, 0.08);
+}
+
+.top-actions {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  outline: none !important;
-  user-select: none;
-  white-space: nowrap;
 }
 
-.segment-btn:focus,
-.segment-btn:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-.segment-btn:hover:not(.active) {
-  color: var(--on-surface, #1c1b1b);
-  background-color: rgba(255, 255, 255, 0.6);
-}
-
-.segment-btn.active {
-  background-color: #ffffff;
-  color: var(--primary, #2d5a43);
+.save-state-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  font-size: 0.76rem;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(45, 90, 67, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  color: #6b7d72;
+  margin-right: 0.25rem;
 }
 
-.segment-btn i {
-  font-size: 15px;
-  transition: color 0.15s ease;
+.save-state-label.is-dirty {
+  color: #b45309;
 }
 
-.segment-btn.active i {
-  color: var(--primary, #2d5a43);
+.save-state-label.is-dirty i {
+  font-size: 0.45rem;
 }
 
-/* Paper Size Selector */
-.paper-size-card {
-  border: 2px solid var(--border-hairline, #e6e2dc);
-  background-color: #ffffff;
-  transition: all 0.18s ease;
+.btn-action-primary,
+.btn-action-secondary {
+  height: 36px;
+  padding: 0 1rem;
+  border-radius: 8px;
+  font-size: 0.81rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
 }
 
-.paper-size-card:hover {
-  border-color: #cfc6be;
-  background-color: #faf8f6;
+.btn-action-primary {
+  border: 1px solid var(--botanical-primary);
+  background: var(--botanical-primary);
+  color: #ffffff;
 }
 
-.paper-size-card.active {
-  border-color: var(--primary, #2d5a43);
-  background-color: #faf8f6;
-  box-shadow: 0 2px 8px rgba(45, 90, 67, 0.06);
+.btn-action-primary:hover:not(:disabled) {
+  background: var(--botanical-deep);
+  border-color: var(--botanical-deep);
 }
 
-.paper-icon-box {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background-color: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e2dc);
+.btn-action-secondary {
+  border: 1px solid #dce6e0;
+  background: #ffffff;
+  color: var(--roast-ink);
+}
+
+.btn-action-secondary:hover:not(:disabled) {
+  background: #f4f8f5;
+  border-color: #b8ccc0;
+}
+
+.btn-action-primary:disabled {
+  border-color: #e2e8e4;
+  background: #f2f5f3;
+  color: #8b9a90;
+  cursor: not-allowed;
+}
+
+.btn-action-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Main 2-Column Grid */
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(300px, 5fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* Unified White Ledger Panel */
+.ledger-panel {
+  background: #ffffff;
+  border: 1px solid var(--ledger-line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(20, 35, 26, 0.03);
+}
+
+.panel-section {
+  padding: 1.25rem 1.35rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+}
+
+.panel-section:last-child {
+  border-bottom: none;
+}
+
+.panel-heading {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+}
+
+.panel-heading.is-danger {
+  color: #b91c1c;
+  margin-bottom: 0.4rem;
+}
+
+/* Compact Inputs Inside Panel */
+.ledger-panel :deep(.text-label) {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--roast-ink);
+  margin-bottom: 0.35rem;
+}
+
+.ledger-panel :deep(.form-control-sm) {
+  height: 40px;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  border-color: #dce6e0;
+  border-radius: 8px;
+}
+
+.ledger-panel :deep(.form-control-sm:disabled) {
+  background-color: #f6f9f7;
+  border-color: #e6ede9;
+  color: var(--sage-muted);
+}
+
+.ledger-panel :deep(.input-group-text) {
+  border-color: #dce6e0;
+}
+
+/* Logo Row */
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding-bottom: 0.25rem;
+}
+
+.logo-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 11px;
+  border: 1px solid #dce6e0;
+  background: #f6f9f7;
+  color: var(--botanical-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary, #2d5a43);
+  font-size: 1.25rem;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
-.cursor-pointer {
+.logo-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.logo-title {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+}
+
+.logo-hint {
+  font-size: 0.74rem;
+  color: var(--sage-muted);
+  margin-top: 2px;
+}
+
+.logo-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.btn-mini-secondary,
+.btn-mini-danger {
+  height: 32px;
+  padding: 0 0.75rem;
+  border-radius: 7px;
+  font-size: 0.77rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   cursor: pointer;
 }
 
-/* Rate preview pills */
-.rate-preview-box {
-  background-color: var(--surface-container-low, #f8f6f4);
-  border: 1px solid var(--border-hairline, #e6e2dc);
+.btn-mini-secondary {
+  border: 1px solid #dce6e0;
+  background: #ffffff;
+  color: var(--roast-ink);
 }
 
-.calc-chip {
-  display: inline-block;
-  padding: 0.25rem 0.65rem;
-  font-size: 12px;
+.btn-mini-secondary:hover:not(:disabled) {
+  background: #f4f8f5;
+}
+
+.btn-mini-danger {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #dc2626;
+}
+
+.btn-mini-danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+/* 12-Col Fields Grid */
+.fields-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.col-span-5 {
+  grid-column: span 5;
+}
+
+.col-span-6 {
+  grid-column: span 6;
+}
+
+.col-span-7 {
+  grid-column: span 7;
+}
+
+.col-span-12 {
+  grid-column: span 12;
+}
+
+/* Exchange Rate Row */
+.rate-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rate-input-box {
+  max-width: 280px;
+}
+
+.suffix-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--sage-muted);
+}
+
+.rate-inline-ref {
+  font-size: 0.76rem;
+  color: var(--sage-muted);
   font-weight: 500;
-  color: var(--on-surface, #1c1b1b);
-  background-color: #ffffff;
-  border: 1px solid var(--border-hairline, #e6e2dc);
-  border-radius: 6px;
 }
 
-/* Thermal Receipt Preview */
+.ref-dot {
+  margin: 0 0.35rem;
+  color: #b8c4bc;
+}
+
+/* Thermal Paper Segmented Selector */
+.paper-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--roast-ink);
+  margin-bottom: 0.38rem;
+}
+
+.paper-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #f1f5f3;
+  border: 1px solid #e4ece7;
+  max-width: 340px;
+}
+
+.paper-seg-btn {
+  height: 33px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--sage-muted);
+  font-size: 0.79rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.paper-seg-btn.active {
+  background: #ffffff;
+  color: var(--botanical-deep);
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(20, 35, 26, 0.08);
+}
+
+.section-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+/* Right Column: Live Receipt Preview */
 .receipt-sticky-wrapper {
   position: sticky;
-  top: 1.5rem;
+  top: 1.25rem;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto 0.6rem;
+  max-width: 356px;
+}
+
+.preview-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--sage-muted);
+}
+
+.preview-width {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--botanical-primary);
 }
 
 .thermal-receipt-container {
   background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(45, 90, 67, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
-  border: 1px dashed #d6ceca;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(20, 35, 26, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8e4;
   margin: 0 auto;
-  transition: max-width 0.25s ease;
-  font-family: 'Kantumruy Pro', 'Courier New', Courier, monospace;
+  transition: max-width 0.22s ease;
+  font-family: 'Kantumruy Pro', ui-monospace, monospace;
 }
 
 .receipt-width-80 {
-  max-width: 380px;
+  max-width: 356px;
 }
 
 .receipt-width-58 {
-  max-width: 300px;
+  max-width: 292px;
+}
+
+.receipt-body {
+  padding: 1.15rem 1.25rem;
 }
 
 .receipt-sawtooth-cut {
-  height: 12px;
+  height: 10px;
   background: radial-gradient(circle, transparent, transparent 50%, #ffffff 50%, #ffffff 100%);
-  background-size: 14px 14px;
+  background-size: 12px 12px;
 }
 
 .receipt-sawtooth-cut.bottom {
@@ -1154,97 +1268,247 @@ onMounted(async () => {
 }
 
 .receipt-dashed-line {
-  border-top: 1px dashed #bbb3af;
+  border-top: 1px dashed #c8d1cb;
 }
 
 .receipt-preview-logo {
-  width: 56px;
-  height: 56px;
+  width: 50px;
+  height: 50px;
 }
 
 .receipt-font-title {
-  font-size: 14px;
-  letter-spacing: 0.5px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #14231a;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
 }
 
 .receipt-font-meta {
-  font-size: 11px;
-  line-height: 1.3;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: #54665b;
 }
 
 .receipt-meta-grid {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: #54665b;
+}
+
+.meta-split {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.receipt-items-list,
+.receipt-totals-box {
+  font-size: 11.5px;
+  color: #14231a;
+}
+
+.receipt-item-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 2px 0;
+}
+
+.muted-row {
+  color: #54665b;
   font-size: 11px;
+}
+
+.smaller-row {
+  font-size: 10.5px;
+}
+
+.receipt-total-usd {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  margin: 3px 0;
+  font-weight: 800;
+  font-size: 13px;
+  border-top: 1px dashed #c8d1cb;
+  border-bottom: 1px dashed #c8d1cb;
+}
+
+.receipt-footer-text {
+  font-size: 11px;
+  color: #54665b;
   line-height: 1.4;
 }
 
-.receipt-items-list {
-  font-size: 12px;
-}
-
-.receipt-totals-box {
-  font-size: 12px;
-}
-
 .barcode-graphic {
-  width: 140px;
-  height: 32px;
+  width: 130px;
+  height: 26px;
   background: repeating-linear-gradient(
     to right,
-    #1c1b1b,
-    #1c1b1b 2px,
+    #14231a,
+    #14231a 2px,
     #ffffff 2px,
     #ffffff 4px,
-    #1c1b1b 4px,
-    #1c1b1b 5px,
+    #14231a 4px,
+    #14231a 5px,
     #ffffff 5px,
     #ffffff 8px,
-    #1c1b1b 8px,
-    #1c1b1b 11px
+    #14231a 8px,
+    #14231a 11px
   );
 }
 
-.live-pulse-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #22c55e;
-  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-  animation: pulse 1.8s infinite;
-  display: inline-block;
+/* Tab 2 Balanced 50/50 Account & Security Grid */
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  align-items: stretch;
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-  }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-  }
+.account-card {
+  display: flex;
+  flex-direction: column;
 }
 
-.avatar-box {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background-color: var(--surface-container-low, #f6f3f2);
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  color: var(--primary, #2d5a43);
-  font-size: 16px;
-  font-weight: 700;
+.account-form-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.stack-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+}
+
+.account-card .section-footer {
+  margin-top: auto;
+  padding-top: 1.15rem;
+}
+
+.identity-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.1rem 1.35rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  background: #fafcfb;
+}
+
+.avatar-square {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #e6f2eb;
+  border: 1px solid #cce0d4;
+  color: var(--botanical-deep);
+  font-size: 0.84rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.smaller {
-  font-size: 11.5px;
+.account-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+  line-height: 1.25;
 }
 
-.tracking-wider {
-  letter-spacing: 0.5px;
+.account-subline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  color: var(--sage-muted);
+  margin-top: 2px;
+}
+
+.meta-dot {
+  color: #b8c4bc;
+}
+
+.account-role {
+  font-weight: 600;
+  color: var(--botanical-primary);
+}
+
+.session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem 1.35rem;
+  border-top: 1px solid var(--ledger-hairline);
+  background: #fafcfb;
+}
+
+.session-copy {
+  flex: 1;
+  min-width: 180px;
+}
+
+.session-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+}
+
+.session-sub {
+  font-size: 0.74rem;
+  color: var(--sage-muted);
+  margin-top: 2px;
+}
+
+.btn-danger-outline {
+  height: 36px;
+  padding: 0 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #f5c2c2;
+  background: #ffffff;
+  color: #c5221f;
+  font-size: 0.79rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.14s ease;
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #f0a3a3;
+}
+
+.btn-danger-outline:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 992px) {
+  .settings-grid,
+  .account-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .col-span-5,
+  .col-span-6,
+  .col-span-7 {
+    grid-column: span 12;
+  }
 }
 </style>
