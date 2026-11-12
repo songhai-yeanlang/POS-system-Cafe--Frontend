@@ -185,7 +185,7 @@
                 <span class="cashier-name">{{ ord.cashier?.name || '—' }}</span>
               </td>
               <td>
-                <span class="items-pill tabular">
+                <span class="items-text tabular">
                   {{ $t('orders.itemsCount', { count: ord.total_items }) }}
                 </span>
               </td>
@@ -196,9 +196,8 @@
                 </div>
               </td>
               <td>
-                <span class="status-badge" :class="ord.status.toLowerCase()">
-                  <span class="status-badge__dot"></span>
-                  <span>{{ getOrderStatusLabel(ord.status) }}</span>
+                <span class="status-text" :class="ord.status.toLowerCase()">
+                  {{ getOrderStatusLabel(ord.status) }}
                 </span>
               </td>
               <td>
@@ -414,9 +413,8 @@
               </td>
               <td class="text-end" @click.stop>
                 <div class="action-group">
-                  <span v-if="pay.is_refunded" class="status-badge refunded me-1">
-                    <span class="status-badge__dot"></span>
-                    <span>{{ $t('orders.statusRefunded') }}</span>
+                  <span v-if="pay.is_refunded" class="status-text refunded me-1">
+                    {{ $t('orders.statusRefunded') }}
                   </span>
                   <button
                     type="button"
@@ -593,9 +591,8 @@
         <div class="modal-header-custom no-print">
           <div class="d-flex align-items-center gap-2">
             <h6 class="mb-0 fw-bold">{{ $t('orders.orderTitle', { no: selectedOrder.receipt_no }) }}</h6>
-            <span class="status-badge" :class="selectedOrder.status.toLowerCase()">
-              <span class="status-badge__dot"></span>
-              <span>{{ getOrderStatusLabel(selectedOrder.status) }}</span>
+            <span class="status-text" :class="selectedOrder.status.toLowerCase()">
+              {{ getOrderStatusLabel(selectedOrder.status) }}
             </span>
           </div>
           <button type="button" class="btn-close-custom" @click="showDetailModal = false">
@@ -1625,15 +1622,11 @@ onMounted(async () => {
   color: #2f4236;
 }
 
-.items-pill {
-  display: inline-block;
-  padding: 0.16rem 0.52rem;
-  border-radius: 6px;
-  background: #f3f7f4;
-  border: 1px solid #e2ece6;
-  color: #485e50;
-  font-size: 0.76rem;
+.items-text {
+  color: #3d5245;
+  font-size: 0.82rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .amount-cell {
@@ -1687,46 +1680,26 @@ onMounted(async () => {
   border: 1px solid #d8e6de;
 }
 
-.status-badge {
-  font-size: 0.73rem;
+.status-text {
+  font-size: 0.82rem;
   font-weight: 700;
-  padding: 0.22rem 0.62rem;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.36rem;
   white-space: nowrap;
 }
 
-.status-badge__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.status-badge.open {
-  background: #fef3c7;
+.status-text.open {
   color: #b45309;
-  border: 1px solid #fde68a;
 }
 
-.status-badge.paid {
-  background: #e6f6ec;
-  color: #166534;
-  border: 1px solid #ccebd7;
+.status-text.paid {
+  color: #1e6b43;
 }
 
-.status-badge.cancelled {
-  background: #f1f5f3;
+.status-text.cancelled {
   color: #526358;
-  border: 1px solid #dce5df;
 }
 
-.status-badge.refunded {
-  background: #fee2e2;
+.status-text.refunded {
   color: #b91c1c;
-  border: 1px solid #fecaca;
 }
 
 .method-pill {

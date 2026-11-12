@@ -1,12 +1,12 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from 'vue'
 import api from '@/api/api'
+import { t } from '@/i18n'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useDebounce } from '@/composables/useDebounce'
 import { useFormatDate } from '@/composables/useFormatDate'
 import BaseInput from '@/components/base/BaseInput.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
 
 const authStore = useAuthStore()
 const toast = useToast()
@@ -48,6 +48,16 @@ const fetchUsers = async (page = 1) => {
   }
 }
 
+const setRoleFilter = (role) => {
+  selectedRole.value = role
+}
+
+const resetFilters = () => {
+  searchQuery.value = ''
+  selectedRole.value = ''
+  selectedStatus.value = ''
+}
+
 watch([debouncedSearch, selectedRole, selectedStatus], () => {
   fetchUsers(1)
 })
@@ -60,6 +70,7 @@ const getInitials = (name) => {
   if (!name) return 'U'
   return name
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .slice(0, 2)
     .join('')
@@ -127,32 +138,32 @@ const validateForm = () => {
 
   const cleanName = form.name.trim()
   if (!cleanName) {
-    errors.name = 'Name is required'
+    errors.name = t('users.validationNameRequired')
     valid = false
   } else if (cleanName.length < 2) {
-    errors.name = 'Name must be at least 2 characters'
+    errors.name = t('users.validationNameMin')
     valid = false
   }
 
   const cleanEmail = form.email.trim()
   if (!cleanEmail) {
-    errors.email = 'Email is required'
+    errors.email = t('users.validationEmailRequired')
     valid = false
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-    errors.email = 'Invalid email format'
+    errors.email = t('users.validationEmailInvalid')
     valid = false
   }
 
   if (!editingUserId.value) {
     if (!form.password) {
-      errors.password = 'Password is required'
+      errors.password = t('users.validationPasswordRequired')
       valid = false
     } else if (form.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters'
+      errors.password = t('users.validationPasswordMin')
       valid = false
     }
   } else if (form.password && form.password.length < 6) {
-    errors.password = 'New password must be at least 6 characters'
+    errors.password = t('users.validationPasswordMin')
     valid = false
   }
 
@@ -238,120 +249,168 @@ const handleConfirmDelete = async () => {
 </script>
 
 <template>
-  <div class="users-page mx-auto">
-    <!-- Single Compact Filter & Action Bar -->
-    <div class="clean-card bg-white p-3 mb-3">
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <div class="d-flex align-items-center flex-wrap gap-2 flex-grow-1">
-          <div style="min-width: 240px; max-width: 340px" class="flex-grow-1">
-            <BaseInput
+  <div class="users-page">
+    <!-- Top Segmented Role Tabs & Primary Add CTA -->
+    <div class="users-top-bar">
+      <div class="users-segmented-tabs" role="tablist">
+        <button
+          type="button"
+          class="seg-tab-btn"
+          :class="{ active: selectedRole === '' }"
+          @click="setRoleFilter('')"
+        >
+          <i class="bi bi-people"></i>
+          <span>{{ $t('users.allRoles') }}</span>
+          <span v-if="selectedRole === '' && pagination.total > 0" class="seg-tab-count tabular">
+            {{ pagination.total }}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          class="seg-tab-btn"
+          :class="{ active: selectedRole === 'OWNER' }"
+          @click="setRoleFilter('OWNER')"
+        >
+          <i class="bi bi-shield-check"></i>
+          <span>{{ $t('common.owner') }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="seg-tab-btn"
+          :class="{ active: selectedRole === 'STAFF' }"
+          @click="setRoleFilter('STAFF')"
+        >
+          <i class="bi bi-person-badge"></i>
+          <span>{{ $t('common.staff') }}</span>
+        </button>
+      </div>
+
+      <button type="button" class="btn-add-staff" @click="openCreateUser">
+        <i class="bi bi-plus-lg"></i>
+        <span>{{ $t('users.addStaff') }}</span>
+      </button>
+    </div>
+
+    <!-- Main Users Card -->
+    <div class="clean-card">
+      <!-- Filter Toolbar -->
+      <div class="filter-bar">
+        <div class="filter-bar__left">
+          <div class="search-wrap">
+            <i class="bi bi-search search-icon"></i>
+            <input
               v-model="searchQuery"
-              type="search"
+              type="text"
+              class="filter-input search-input"
               :placeholder="$t('users.searchPlaceholder')"
-              size="sm"
-              clearable
-              class="mb-0"
             />
+            <button
+              v-if="searchQuery"
+              type="button"
+              class="search-clear"
+              @click="searchQuery = ''"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
 
-          <select
-            v-model="selectedRole"
-            class="form-select form-select-sm clean-select"
-            style="width: auto; min-width: 140px"
-          >
-            <option value="">{{ $t('users.allRoles') }}</option>
-            <option value="OWNER">{{ $t('common.owner') }}</option>
-            <option value="STAFF">{{ $t('common.staff') }}</option>
-          </select>
-
-          <select
-            v-model="selectedStatus"
-            class="form-select form-select-sm clean-select"
-            style="width: auto; min-width: 130px"
-          >
+          <select v-model="selectedStatus" class="filter-input filter-select">
             <option value="">{{ $t('common.allStatus') }}</option>
             <option value="true">{{ $t('common.active') }}</option>
             <option value="false">{{ $t('common.inactive') }}</option>
           </select>
         </div>
 
-        <BaseButton variant="primary" size="sm" @click="openCreateUser">
-          <template #prefix><i class="bi bi-plus-lg"></i></template>
-          {{ $t('users.addStaff') }}
-        </BaseButton>
-      </div>
-    </div>
-
-    <!-- Users Table Card -->
-    <div class="clean-card bg-white overflow-hidden">
-      <div v-if="isLoading" class="text-center py-5 text-muted small">
-        <span class="spinner-border spinner-border-sm me-2"></span>
-        {{ $t('users.loadingUsers') }}
+        <div class="filter-bar__right">
+          <button
+            type="button"
+            class="toolbar-btn toolbar-btn--icon"
+            :title="$t('common.reset')"
+            @click="resetFilters"
+          >
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </button>
+        </div>
       </div>
 
-      <div v-else-if="users.length === 0" class="text-center py-5 px-3">
-        <i class="bi bi-people fs-2 text-muted d-block mb-2"></i>
-        <div class="fw-semibold mb-1">{{ $t('users.noUsersFound') }}</div>
-        <p class="text-muted small mb-0">{{ $t('users.noUsersFoundDesc') }}</p>
+      <!-- Loading -->
+      <div v-if="isLoading" class="empty-box">
+        <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
+        <div class="small text-muted">{{ $t('users.loadingUsers') }}</div>
       </div>
 
+      <!-- Empty -->
+      <div v-else-if="users.length === 0" class="empty-box">
+        <div class="empty-box__icon">
+          <i class="bi bi-people"></i>
+        </div>
+        <div class="empty-box__title">{{ $t('users.noUsersFound') }}</div>
+        <div class="empty-box__desc">{{ $t('users.noUsersFoundDesc') }}</div>
+      </div>
+
+      <!-- Users Table -->
       <div v-else class="table-responsive">
         <table class="table align-middle mb-0 clean-table">
           <thead>
             <tr>
-              <th class="ps-4">{{ $t('users.colUser') }}</th>
+              <th>{{ $t('users.colUser') }}</th>
               <th>{{ $t('users.colRole') }}</th>
               <th>{{ $t('users.colLastLogin') }}</th>
               <th>{{ $t('common.status') }}</th>
-              <th class="text-end pe-4">{{ $t('common.actions') }}</th>
+              <th class="text-end">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="u in users" :key="u.id">
-              <td class="ps-4">
-                <div class="d-flex align-items-center gap-3">
+              <td>
+                <div class="user-cell">
                   <div
-                    class="user-avatar d-flex align-items-center justify-content-center flex-shrink-0"
+                    class="user-avatar"
+                    :class="u.role === 'OWNER' ? 'is-owner' : 'is-staff'"
                   >
                     {{ getInitials(u.name) }}
                   </div>
-                  <div>
-                    <div class="fw-semibold text-dark d-flex align-items-center gap-2">
+                  <div class="user-cell__meta">
+                    <div class="user-cell__name">
                       <span>{{ u.name }}</span>
-                      <span v-if="isSelf(u.id)" class="you-badge">{{ $t('common.you') }}</span>
+                      <span v-if="isSelf(u.id)" class="self-tag">({{ $t('common.you') }})</span>
                     </div>
-                    <div class="text-muted small">{{ u.email }}</div>
+                    <div class="user-cell__email">{{ u.email }}</div>
                   </div>
                 </div>
               </td>
 
               <td>
                 <span
-                  class="role-pill"
-                  :class="u.role === 'OWNER' ? 'role-pill--owner' : 'role-pill--staff'"
+                  class="role-text"
+                  :class="u.role === 'OWNER' ? 'is-owner' : 'is-staff'"
                 >
                   {{ u.role === 'OWNER' ? $t('common.owner') : $t('common.staff') }}
                 </span>
               </td>
 
-              <td class="text-muted small">
-                {{ formatDateTime(u.last_login_at) }}
+              <td>
+                <span class="datetime-text tabular">
+                  {{ formatDateTime(u.last_login_at) }}
+                </span>
               </td>
 
               <td>
                 <span
-                  class="status-dot-badge"
-                  :class="u.is_active ? 'status-active' : 'status-inactive'"
+                  class="status-text"
+                  :class="u.is_active ? 'active' : 'inactive'"
                 >
                   {{ u.is_active ? $t('common.active') : $t('common.inactive') }}
                 </span>
               </td>
 
-              <td class="text-end pe-4">
-                <div class="d-inline-flex gap-1">
+              <td class="text-end">
+                <div class="action-group">
                   <button
                     type="button"
-                    class="btn-action"
+                    class="btn-action-icon"
                     :title="$t('common.edit')"
                     @click="openEditUser(u)"
                   >
@@ -359,7 +418,7 @@ const handleConfirmDelete = async () => {
                   </button>
                   <button
                     type="button"
-                    class="btn-action btn-action--danger"
+                    class="btn-action-icon is-danger"
                     :disabled="isSelf(u.id)"
                     :title="isSelf(u.id) ? 'Cannot delete your own account' : $t('common.delete')"
                     @click="confirmDeleteUser(u)"
@@ -374,28 +433,29 @@ const handleConfirmDelete = async () => {
       </div>
 
       <!-- Pagination -->
-      <div
-        v-if="pagination.totalPages > 1"
-        class="d-flex align-items-center justify-content-between px-4 py-3 border-top small text-muted"
-      >
-        <span>{{ $t('common.pageOf', { page: pagination.page, total: pagination.totalPages }) }}</span>
+      <div v-if="pagination.totalPages > 1" class="pagination-bar">
+        <div class="pagination-info tabular">
+          {{ $t('common.pageOf', { page: pagination.page, total: pagination.totalPages }) }}
+        </div>
         <div class="d-flex gap-2">
-          <BaseButton
-            variant="secondary"
-            size="sm"
+          <button
+            type="button"
+            class="toolbar-btn"
             :disabled="pagination.page <= 1"
             @click="fetchUsers(pagination.page - 1)"
           >
-            {{ $t('common.previous') }}
-          </BaseButton>
-          <BaseButton
-            variant="secondary"
-            size="sm"
+            <i class="bi bi-chevron-left"></i>
+            <span>{{ $t('common.prev') }}</span>
+          </button>
+          <button
+            type="button"
+            class="toolbar-btn"
             :disabled="pagination.page >= pagination.totalPages"
             @click="fetchUsers(pagination.page + 1)"
           >
-            {{ $t('common.next') }}
-          </BaseButton>
+            <span>{{ $t('common.next') }}</span>
+            <i class="bi bi-chevron-right"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -406,88 +466,105 @@ const handleConfirmDelete = async () => {
     <Teleport to="body">
       <div
         v-if="showUserModal"
-        class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3"
+        class="modal-backdrop-custom"
+        @click.self="closeUserModal"
       >
-        <div class="modal-card bg-white p-4" style="max-width: 440px">
-          <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-            <h5 class="fw-semibold mb-0">
+        <div class="modal-sheet" style="max-width: 420px">
+          <div class="modal-head">
+            <h6 class="modal-heading">
               {{ editingUserId ? $t('users.editAccount') : $t('users.newStaffAccount') }}
-            </h5>
-            <button type="button" class="btn-close btn-sm" @click="closeUserModal"></button>
+            </h6>
+            <button type="button" class="btn-close-quiet" @click="closeUserModal">
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
 
-          <form @submit.prevent="handleSaveUser">
-            <BaseInput
-              v-model="form.name"
-              :label="$t('users.fullNameLabel')"
-              placeholder="e.g. Sokha Chan"
-              :error="errors.name"
-              required
-              autofocus
-            />
-
-            <BaseInput
-              v-model="form.email"
-              type="email"
-              :label="$t('users.workEmailLabel')"
-              placeholder="e.g. sokha@brewpos.com"
-              :error="errors.email"
-              required
-            />
-
-            <BaseInput
-              v-model="form.password"
-              type="password"
-              :label="editingUserId ? $t('users.newPasswordKeepCurrent') : $t('auth.password')"
-              :placeholder="$t('auth.min6Characters')"
-              :error="errors.password"
-              :required="!editingUserId"
-            />
-
-            <div class="mb-3">
-              <label class="form-label mb-1 fw-medium small text-dark">{{ $t('users.colRole') }}</label>
-              <div class="d-flex gap-2">
-                <button
-                  type="button"
-                  class="role-btn flex-grow-1"
-                  :class="{ active: form.role === 'STAFF' }"
-                  :disabled="isSelf(editingUserId)"
-                  @click="form.role = 'STAFF'"
-                >
-                  {{ $t('users.staffCashier') }}
-                </button>
-                <button
-                  type="button"
-                  class="role-btn flex-grow-1"
-                  :class="{ active: form.role === 'OWNER' }"
-                  :disabled="isSelf(editingUserId)"
-                  @click="form.role = 'OWNER'"
-                >
-                  {{ $t('users.ownerAdmin') }}
-                </button>
-              </div>
-            </div>
-
-            <div class="form-check mb-4">
-              <input
-                id="userActive"
-                v-model="form.is_active"
-                type="checkbox"
-                class="form-check-input custom-check"
-                :disabled="isSelf(editingUserId)"
+          <form class="modal-form" @submit.prevent="handleSaveUser">
+            <div class="form-stack">
+              <BaseInput
+                v-model="form.name"
+                size="sm"
+                no-margin
+                :label="$t('users.fullNameLabel')"
+                :placeholder="$t('users.fullNamePlaceholder')"
+                :error="errors.name"
+                required
+                autofocus
               />
-              <label for="userActive" class="form-check-label small fw-medium">
-                {{ $t('users.accountActiveCheck') }}
+
+              <BaseInput
+                v-model="form.email"
+                type="email"
+                size="sm"
+                no-margin
+                :label="$t('users.workEmailLabel')"
+                :placeholder="$t('users.workEmailPlaceholder')"
+                :error="errors.email"
+                required
+              />
+
+              <BaseInput
+                v-model="form.password"
+                type="password"
+                size="sm"
+                no-margin
+                :label="editingUserId ? $t('users.newPasswordKeepCurrent') : $t('auth.passwordLabel')"
+                :placeholder="$t('users.min6Characters')"
+                :error="errors.password"
+                :required="!editingUserId"
+              />
+
+              <div class="role-field">
+                <label class="field-label-clean">{{ $t('users.colRole') }}</label>
+                <div class="role-segmented">
+                  <button
+                    type="button"
+                    class="role-seg-btn"
+                    :class="{ active: form.role === 'STAFF' }"
+                    :disabled="isSelf(editingUserId)"
+                    @click="form.role = 'STAFF'"
+                  >
+                    {{ $t('users.staffCashier') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="role-seg-btn"
+                    :class="{ active: form.role === 'OWNER' }"
+                    :disabled="isSelf(editingUserId)"
+                    @click="form.role = 'OWNER'"
+                  >
+                    {{ $t('users.ownerAdmin') }}
+                  </button>
+                </div>
+              </div>
+
+              <label
+                for="userActive"
+                class="status-inline-row"
+                :class="{ 'is-disabled': isSelf(editingUserId) }"
+              >
+                <span class="status-inline-label">{{ $t('users.accountActiveTitle') }}</span>
+                <span class="switch-control">
+                  <input
+                    id="userActive"
+                    v-model="form.is_active"
+                    type="checkbox"
+                    class="switch-control__input"
+                    :disabled="isSelf(editingUserId)"
+                  />
+                  <span class="switch-control__track"></span>
+                </span>
               </label>
             </div>
 
-            <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-              <BaseButton type="button" variant="secondary" @click="closeUserModal">
+            <div class="modal-actions">
+              <button type="button" class="btn-modal-cancel" @click="closeUserModal">
                 {{ $t('common.cancel') }}
-              </BaseButton>
-              <BaseButton type="submit" variant="primary" :loading="isSaving">
-                {{ editingUserId ? $t('common.saveChanges') : $t('users.createAccount') }}
-              </BaseButton>
+              </button>
+              <button type="submit" class="btn-modal-submit" :disabled="isSaving">
+                <span v-if="isSaving" class="spinner-border spinner-border-sm"></span>
+                <span>{{ editingUserId ? $t('common.saveChanges') : $t('users.createAccount') }}</span>
+              </button>
             </div>
           </form>
         </div>
@@ -500,30 +577,37 @@ const handleConfirmDelete = async () => {
     <Teleport to="body">
       <div
         v-if="deleteModal.show"
-        class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3"
+        class="modal-backdrop-custom"
+        @click.self="deleteModal.show = false"
       >
-        <div class="modal-card bg-white p-4" style="max-width: 400px">
-          <h5 class="fw-semibold mb-2">{{ $t('users.deleteUserTitle') }}</h5>
-          <p class="text-muted small mb-4">
+        <div class="modal-sheet" style="max-width: 380px">
+          <div class="modal-head">
+            <h6 class="modal-heading is-danger">{{ $t('users.deleteUserTitle') }}</h6>
+            <button type="button" class="btn-close-quiet" @click="deleteModal.show = false">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <p class="delete-modal-desc">
             {{ $t('users.deleteUserDesc', { name: deleteModal.name }) }}
           </p>
-          <div class="d-flex justify-content-end gap-2">
-            <BaseButton
+          <div class="modal-actions">
+            <button
               type="button"
-              variant="secondary"
+              class="btn-modal-cancel"
               :disabled="deleteModal.isDeleting"
               @click="deleteModal.show = false"
             >
               {{ $t('common.cancel') }}
-            </BaseButton>
-            <BaseButton
+            </button>
+            <button
               type="button"
-              variant="danger"
-              :loading="deleteModal.isDeleting"
+              class="btn-modal-danger"
+              :disabled="deleteModal.isDeleting"
               @click="handleConfirmDelete"
             >
-              {{ $t('common.delete') }}
-            </BaseButton>
+              <span v-if="deleteModal.isDeleting" class="spinner-border spinner-border-sm"></span>
+              <span>{{ $t('common.delete') }}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -533,196 +617,736 @@ const handleConfirmDelete = async () => {
 
 <style scoped>
 .users-page {
-  max-width: 1000px;
+  --roast-ink: #14231a;
+  --sage-muted: #54665b;
+  --botanical-primary: #2d5a43;
+  --botanical-deep: #1e3f2f;
+  --botanical-tint: #eaf3ee;
+  --botanical-border: #3b7054;
+  --ledger-line: #dce6e0;
+  --ledger-hairline: #edf3ef;
+
+  padding-bottom: 1.5rem;
 }
 
-.title-text {
-  font-size: 20px;
-  color: var(--on-surface, #1c1b1b);
-  letter-spacing: -0.02em;
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-.subtitle-text {
-  font-size: 13px;
-  color: var(--on-surface-variant, #504440);
+/* ── Top Bar: Segmented Role Tabs & Primary Action ── */
+.users-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
 }
 
+.users-segmented-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: #e9f0ec;
+  border: 1px solid var(--ledger-line);
+  border-radius: 10px;
+}
+
+.seg-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.44rem 0.95rem;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #4f6356;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.seg-tab-btn i {
+  font-size: 0.9rem;
+}
+
+.seg-tab-btn:hover:not(.active) {
+  color: var(--roast-ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.seg-tab-btn.active {
+  background: #ffffff;
+  color: var(--botanical-deep);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(20, 35, 26, 0.08);
+}
+
+.seg-tab-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  background: var(--botanical-tint);
+  color: var(--botanical-primary);
+}
+
+.btn-add-staff {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  height: 38px;
+  padding: 0 1.05rem;
+  border-radius: 9px;
+  background: var(--botanical-primary);
+  border: 1px solid var(--botanical-primary);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.16);
+}
+
+.btn-add-staff:hover {
+  background: var(--botanical-deep);
+  border-color: var(--botanical-deep);
+}
+
+/* ── Main Ledger Card & Filter Toolbar ── */
 .clean-card {
-  border-radius: 16px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
+  background: #ffffff;
+  border: 1px solid var(--ledger-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
 }
 
-.clean-select {
+.filter-bar {
+  padding: 0.78rem 1.05rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  background: #f8fbf9;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.filter-bar__left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+}
+
+.filter-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.search-wrap {
+  position: relative;
+  min-width: 245px;
+  flex: 0 1 300px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sage-muted);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.search-clear {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--sage-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.search-clear:hover {
+  background: #e8f0eb;
+  color: var(--roast-ink);
+}
+
+.filter-input {
   height: 36px;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle, #e5e7eb);
-  font-size: 13px;
-  box-shadow: none !important;
+  border: 1.5px solid #dce6e0;
+  background: #ffffff;
+  color: var(--roast-ink);
+  font-size: 0.81rem;
+  font-weight: 500;
+  padding: 0 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
 }
 
-.clean-select:focus {
-  border-color: var(--primary, #2d5a43);
+.filter-input:focus {
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
-.clean-table th {
-  font-size: 12px;
+.search-input {
+  width: 100%;
+  padding-left: 32px;
+  padding-right: 28px;
+}
+
+.filter-select {
+  padding-right: 1.85rem;
+  cursor: pointer;
+}
+
+.toolbar-btn {
+  height: 36px;
+  padding: 0 0.8rem;
+  border: 1.5px solid #dce6e0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #3d5245;
+  font-size: 0.8rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--outline, #827470);
-  background-color: var(--surface-container-low, #f6f3f2);
-  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
-  padding-top: 12px;
-  padding-bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+}
+
+.toolbar-btn--icon {
+  width: 36px;
+  padding: 0;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  border-color: #b8ccc0;
+  background: #f2f7f4;
+  color: var(--roast-ink);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Clean Table ── */
+.clean-table th {
+  background: #f4f8f5;
+  font-size: 0.75rem;
+  color: #4f6356;
+  font-weight: 700;
+  padding: 0.72rem 1.05rem;
+  border-bottom: 1px solid var(--ledger-line);
+  white-space: nowrap;
 }
 
 .clean-table td {
-  padding-top: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border-hairline, #e6e4e0);
-  font-size: 14px;
+  padding: 0.8rem 1.05rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  font-size: 0.84rem;
+  color: var(--roast-ink);
 }
 
 .clean-table tbody tr:last-child td {
   border-bottom: none;
 }
 
+.clean-table tbody tr:hover td {
+  background-color: #fafcfb;
+}
+
+/* User Cell */
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
-  background-color: var(--surface-container-low, #f6f3f2);
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  color: var(--primary, #2d5a43);
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.user-avatar.is-owner {
+  background-color: #e6f2eb;
+  color: var(--botanical-deep);
+  border: 1px solid #cce0d4;
+}
+
+.user-avatar.is-staff {
+  background-color: #f3f7f4;
+  color: #485e50;
+  border: 1px solid #e1ebe4;
+}
+
+.user-cell__meta {
+  min-width: 0;
+}
+
+.user-cell__name {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
   font-weight: 700;
+  color: var(--roast-ink);
+  font-size: 0.86rem;
+  line-height: 1.25;
 }
 
-.you-badge {
-  font-size: 10px;
+.self-tag {
+  font-size: 0.76rem;
   font-weight: 600;
-  padding: 0.1rem 0.45rem;
-  border-radius: 9999px;
-  background-color: var(--surface-container, #f0eded);
-  color: var(--on-surface-variant, #504440);
+  color: var(--botanical-primary);
 }
 
-.role-pill {
-  display: inline-block;
-  padding: 0.18rem 0.6rem;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
+.user-cell__email {
+  font-size: 0.76rem;
+  color: var(--sage-muted);
+  margin-top: 2px;
 }
 
-.role-pill--owner {
-  background-color: var(--secondary-fixed, #d6ede0);
-  color: var(--on-secondary-fixed, #2b1707);
+/* Role & Status Text (Clean, Unboxed, No Dots) */
+.role-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.role-pill--staff {
-  background-color: var(--surface-container-low, #f6f3f2);
-  border: 1px solid var(--border-hairline, #e6e4e0);
-  color: var(--on-surface-variant, #504440);
+.role-text.is-owner {
+  color: var(--botanical-primary);
 }
 
-.status-dot-badge {
+.role-text.is-staff {
+  color: #3d5245;
+}
+
+.datetime-text {
+  font-size: 0.8rem;
+  color: #485c50;
+  white-space: nowrap;
+}
+
+.status-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-text.active {
+  color: #1e6b43;
+}
+
+.status-text.inactive {
+  color: #64748b;
+}
+
+/* Action Buttons */
+.action-group {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
+  gap: 0.35rem;
 }
 
-.status-dot-badge::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-
-.status-active {
-  color: #166534;
-}
-.status-active::before {
-  background-color: #16a34a;
-}
-
-.status-inactive {
-  color: var(--outline, #827470);
-}
-.status-inactive::before {
-  background-color: #9ca3af;
-}
-
-.btn-action {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #64748b;
+.btn-action-icon {
+  width: 31px;
+  height: 31px;
+  border-radius: 7px;
+  border: 1px solid #dce6e0;
+  background: #ffffff;
+  color: #54665b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  transition: all 0.15s ease;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
 }
 
-.btn-action:hover:not(:disabled) {
-  background-color: #f1f5f9;
-  color: #1e293b;
+.btn-action-icon:hover:not(:disabled) {
+  background: #f0f6f2;
+  color: var(--botanical-primary);
+  border-color: #b8ccc0;
 }
 
-.btn-action:disabled {
+.btn-action-icon:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
-.btn-action--danger:hover:not(:disabled) {
-  background-color: #fef2f2;
+.btn-action-icon.is-danger:hover:not(:disabled) {
+  background: #fef2f2;
   color: #dc2626;
+  border-color: #fecaca;
 }
 
-/* Modal */
+/* Pagination & Empty States */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.72rem 1.05rem;
+  border-top: 1px solid var(--ledger-hairline);
+  background: #fafcfb;
+}
+
+.pagination-info {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sage-muted);
+}
+
+.empty-box {
+  padding: 3.5rem 1rem;
+  text-align: center;
+}
+
+.empty-box__icon {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 0.75rem;
+  border-radius: 12px;
+  background: #f2f7f4;
+  border: 1px solid #dce6e0;
+  color: var(--botanical-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+
+.empty-box__title {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+  margin-bottom: 0.25rem;
+}
+
+.empty-box__desc {
+  font-size: 0.8rem;
+  color: var(--sage-muted);
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+/* ── Modals (rendered inside Teleport body, so declare tokens directly) ── */
 .modal-backdrop-custom {
+  --roast-ink: #14231a;
+  --sage-muted: #5f7065;
+  --botanical-primary: #2d5a43;
+  --botanical-deep: #1e3f2f;
   position: fixed;
   inset: 0;
-  background-color: rgba(28, 27, 27, 0.45);
+  background-color: rgba(20, 35, 26, 0.42);
   backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
   z-index: 1060;
 }
 
-.modal-card {
+.modal-sheet {
+  background: #ffffff;
+  border-radius: 12px;
   width: 100%;
-  border-radius: 16px;
-  border: 1px solid var(--border-hairline, #e6e4e0);
+  padding: 1.35rem 1.45rem;
+  border: 1px solid #e2e8e4;
+  box-shadow: 0 20px 44px rgba(15, 28, 20, 0.14);
 }
 
-.role-btn {
-  height: 40px;
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.15rem;
+}
+
+.modal-heading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+  letter-spacing: -0.01em;
+}
+
+.modal-heading.is-danger {
+  color: #b91c1c;
+}
+
+.btn-close-quiet {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #7a8a80;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.btn-close-quiet:hover {
+  background: #f1f5f3;
+  color: var(--roast-ink);
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.modal-form :deep(.text-label) {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--roast-ink);
+  margin-bottom: 0.35rem;
+}
+
+.modal-form :deep(.form-control-sm) {
+  height: 38px;
+  font-size: 0.84rem;
+  border-color: #dce6e0;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle, #e5e7eb);
-  background-color: #ffffff;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--on-surface, #1c1b1b);
-  transition: all 0.15s ease;
 }
 
-.role-btn.active {
-  background-color: var(--primary, #2d5a43);
-  border-color: var(--primary, #2d5a43);
-  color: #ffffff;
+.modal-form :deep(.input-group-text) {
+  border-color: #dce6e0;
 }
 
-.role-btn:disabled {
+/* Segmented Role Control */
+.role-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-label-clean {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--roast-ink);
+  margin-bottom: 0.35rem;
+}
+
+.role-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #f1f5f3;
+  border: 1px solid #e4ece7;
+}
+
+.role-seg-btn {
+  height: 33px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #54665b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  padding: 0 0.6rem;
+  white-space: nowrap;
+}
+
+.role-seg-btn:hover:not(:disabled):not(.active) {
+  color: var(--roast-ink);
+}
+
+.role-seg-btn.active {
+  background: #ffffff;
+  color: #1e3f2f;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(20, 35, 26, 0.08);
+}
+
+.role-seg-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Borderless Active Switch Row */
+.status-inline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0 0.05rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.status-inline-row.is-disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.custom-check:checked {
-  background-color: var(--primary, #2d5a43);
-  border-color: var(--primary, #2d5a43);
+.status-inline-label {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--roast-ink);
+}
+
+.switch-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.switch-control__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-control__track {
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: #cbd5cf;
+  position: relative;
+  transition: background-color 0.16s ease;
+}
+
+.switch-control__track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+  transition: transform 0.16s ease;
+}
+
+.switch-control__input:checked + .switch-control__track {
+  background: #2d5a43;
+}
+
+.switch-control__input:checked + .switch-control__track::after {
+  transform: translateX(16px);
+}
+
+.switch-control__input:focus-visible + .switch-control__track {
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.2);
+}
+
+/* Footer Actions */
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #edf2ef;
+}
+
+.btn-modal-cancel,
+.btn-modal-submit,
+.btn-modal-danger {
+  height: 36px;
+  padding: 0 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.btn-modal-cancel {
+  border: 1px solid #dce6e0;
+  background: #ffffff;
+  color: #54665b;
+}
+
+.btn-modal-cancel:hover:not(:disabled) {
+  background: #f5f8f6;
+  color: var(--roast-ink);
+}
+
+.btn-modal-submit {
+  border: 1px solid #2d5a43;
+  background: #2d5a43;
+  color: #ffffff;
+}
+
+.btn-modal-submit:hover:not(:disabled) {
+  background: #234936;
+  border-color: #234936;
+}
+
+.btn-modal-danger {
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.btn-modal-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.btn-modal-cancel:disabled,
+.btn-modal-submit:disabled,
+.btn-modal-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.delete-modal-desc {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--sage-muted);
+}
+
+@media (max-width: 440px) {
+  .role-segmented {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
