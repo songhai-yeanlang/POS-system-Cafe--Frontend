@@ -632,7 +632,7 @@
               </div>
             </section>
 
-            <section class="field-group">
+            <section v-if="showIceCustomization" class="field-group">
               <label class="field-group__label">{{ $t('pos.iceLevelTitle') }}</label>
               <div class="calibration-strip calibration-strip--ice">
                 <button
@@ -1788,6 +1788,32 @@ const cartGrandTotal = computed(() =>
 )
 
 // ================= COMPUTED: CUSTOMIZATION MODAL =================
+const HOT_NAME_PATTERN = /\bhot\b|ក្ដៅ|ក្តៅ|\bwarm\b/i
+const ICED_NAME_PATTERN = /\biced?\b|\bcold\b|\bfrappe\b|\bsmoothie\b|\bblended\b|ទឹកកក|ត្រជាក់/i
+
+const supportsIceOption = (product, variant) => {
+  if (!product || product.product_type !== 'DRINK') return false
+  const temp = String(variant?.temperature || '').toUpperCase()
+  if (temp === 'HOT' || temp === 'NONE') return false
+
+  const variantName = String(variant?.name || '').trim()
+  const productName = String(product?.name || '').trim()
+  if (HOT_NAME_PATTERN.test(variantName)) return false
+  if (HOT_NAME_PATTERN.test(productName) && !ICED_NAME_PATTERN.test(variantName)) return false
+
+  return true
+}
+
+const selectedVariantObj = computed(() => {
+  if (!customizingProduct.value) return null
+  const activeVars = getActiveVariants(customizingProduct.value)
+  return activeVars.find((v) => v.id === customForm.variant_id) || null
+})
+
+const showIceCustomization = computed(() =>
+  supportsIceOption(customizingProduct.value, selectedVariantObj.value)
+)
+
 const customizedPreviewTotal = computed(() => {
   const base = Number(customForm.quantity || 1) * Number(customForm.unit_price || 0)
   const addonsSum = customForm.addons.reduce(
@@ -1907,7 +1933,7 @@ const handleProductClick = (product) => {
   customForm.unit_price = Number(defaultVar.price) || 0
   customForm.quantity = 1
   customForm.sugar_level = product.product_type === 'DRINK' ? 100 : null
-  customForm.ice_level = product.product_type === 'DRINK' ? 'NORMAL' : null
+  customForm.ice_level = supportsIceOption(product, defaultVar) ? 'NORMAL' : null
   customForm.note = ''
   customForm.addons = []
 
@@ -1949,6 +1975,11 @@ const selectVariantInModal = (v) => {
   customForm.variant_id = v.id
   customForm.variant_name = v.name
   customForm.unit_price = Number(v.price) || 0
+  if (!supportsIceOption(customizingProduct.value, v)) {
+    customForm.ice_level = null
+  } else if (!customForm.ice_level) {
+    customForm.ice_level = 'NORMAL'
+  }
 }
 
 const getAddonQty = (addonVariantId) => {
@@ -1994,6 +2025,7 @@ const confirmCustomizedItem = () => {
   if (!customizingProduct.value || !customForm.variant_id) return
 
   const isDrink = customizingProduct.value.product_type === 'DRINK'
+  const canHaveIce = supportsIceOption(customizingProduct.value, selectedVariantObj.value)
   const newItem = {
     cartKey: `${Date.now()}-${Math.random()}`,
     product_id: customizingProduct.value.id,
@@ -2004,7 +2036,7 @@ const confirmCustomizedItem = () => {
     unit_price: Number(customForm.unit_price),
     quantity: Number(customForm.quantity),
     sugar_level: isDrink ? customForm.sugar_level : null,
-    ice_level: isDrink ? customForm.ice_level : null,
+    ice_level: canHaveIce ? customForm.ice_level : null,
     note: customForm.note ? customForm.note.trim() : '',
     addons: customForm.addons.map((a) => ({ ...a })),
   }
