@@ -983,28 +983,13 @@ const clearFilters = () => {
               </div>
             </div>
 
-            <div class="row g-3 align-items-center mb-3">
-              <div class="col-12 col-md-9">
-                <BaseInput
-                  v-model="productForm.description"
-                  :label="$t('products.descriptionOptional')"
-                  :placeholder="$t('products.descriptionPlaceholder')"
-                  class="mb-0"
-                />
-              </div>
-              <div class="col-12 col-md-3 pt-md-3">
-                <div class="form-check">
-                  <input
-                    id="prodActive"
-                    v-model="productForm.is_active"
-                    type="checkbox"
-                    class="form-check-input custom-check"
-                  />
-                  <label for="prodActive" class="form-check-label small fw-medium">
-                    {{ $t('products.productActiveCheck') }}
-                  </label>
-                </div>
-              </div>
+            <div class="mb-3">
+              <BaseInput
+                v-model="productForm.description"
+                :label="$t('products.descriptionOptional')"
+                :placeholder="$t('products.descriptionPlaceholder')"
+                class="mb-0"
+              />
             </div>
 
             <!-- Variants Section -->
@@ -1075,14 +1060,7 @@ const clearFilters = () => {
                     </div>
                   </div>
 
-                  <div class="col-12 col-sm-2 d-flex align-items-center justify-content-end gap-2">
-                    <div class="form-check mb-0" title="Variant active">
-                      <input
-                        v-model="v.is_active"
-                        type="checkbox"
-                        class="form-check-input custom-check"
-                      />
-                    </div>
+                  <div class="col-12 col-sm-2 d-flex align-items-center justify-content-end">
                     <button
                       type="button"
                       class="btn btn-sm text-danger p-1 border-0"
@@ -1688,7 +1666,7 @@ const clearFilters = () => {
 }
 
 .custom-check:checked {
-  background-color: var(--botanical-primary);
-  border-color: var(--botanical-primary);
+  background-color: #2d5a43;
+  border-color: #2d5a43;
 }
 </style>

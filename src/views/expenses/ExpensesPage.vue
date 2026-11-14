@@ -24,6 +24,9 @@
         >
           <span class="seg-tab-dot active"></span>
           <span>{{ $t('expenses.active') }}</span>
+          <span v-if="filters.status === 'ACTIVE' && pagination.total_items > 0" class="seg-tab-count tabular">
+            {{ pagination.total_items }}
+          </span>
         </button>
         <button
           type="button"
@@ -33,6 +36,9 @@
         >
           <span class="seg-tab-dot voided"></span>
           <span>{{ $t('expenses.voided') }}</span>
+          <span v-if="filters.status === 'VOIDED' && pagination.total_items > 0" class="seg-tab-count tabular">
+            {{ pagination.total_items }}
+          </span>
         </button>
       </div>
 
@@ -254,6 +260,16 @@
                     <i class="bi bi-trash3"></i>
                   </button>
                 </div>
+                <div v-else-if="exp.status === 'VOIDED' && authStore.isOwner" class="action-group">
+                  <button
+                    type="button"
+                    class="btn-action-icon is-danger"
+                    :title="$t('expenses.confirmDelete')"
+                    @click="openDeleteModal(exp)"
+                  >
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
                 <span v-else class="small text-muted">—</span>
               </td>
             </tr>
@@ -384,10 +400,10 @@
                 <input
                   v-model.number="form.amount"
                   type="number"
-                  :step="form.currency === 'USD' ? '0.01' : '100'"
-                  min="0.01"
+                  :step="form.currency === 'USD' ? '0.01' : '1'"
+                  :min="form.currency === 'USD' ? '0.01' : '1'"
                   class="form-control form-control-clean fw-bold tabular"
-                  placeholder="0.00"
+                  :placeholder="form.currency === 'USD' ? '0.00' : '1000'"
                   required
                 />
               </div>
@@ -462,6 +478,44 @@
             <button type="submit" class="btn btn-danger flex-grow-1" :disabled="isVoiding">
               <span v-if="isVoiding" class="spinner-border spinner-border-sm me-1"></span>
               {{ $t('expenses.confirmVoid') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= MODAL 3: PERMANENT DELETE VOIDED EXPENSE (OWNER ONLY) ================= -->
+    <div v-if="showDeleteModal && deletingExpense" class="modal-backdrop-custom" @click.self="showDeleteModal = false">
+      <div class="modal-card-custom modal-sm-custom">
+        <div class="modal-header-custom">
+          <h6 class="mb-0 fw-bold text-danger">{{ $t('expenses.deleteVoidedTitle', { id: deletingExpense.id }) }}</h6>
+          <button type="button" class="btn-close-custom" @click="showDeleteModal = false">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="handleConfirmDelete">
+          <div class="modal-body-custom">
+            <p class="small text-muted mb-0">
+              {{
+                $t('expenses.deleteVoidedDesc', {
+                  amount:
+                    deletingExpense.currency === 'USD'
+                      ? formatUsd(deletingExpense.amount)
+                      : formatKhr(deletingExpense.amount),
+                  category: getCategoryLabel(deletingExpense.category),
+                })
+              }}
+            </p>
+          </div>
+
+          <div class="modal-footer-custom">
+            <button type="button" class="toolbar-btn" @click="showDeleteModal = false">
+              {{ $t('common.cancel') }}
+            </button>
+            <button type="submit" class="btn btn-danger flex-grow-1" :disabled="isDeleting">
+              <span v-if="isDeleting" class="spinner-border spinner-border-sm me-1"></span>
+              {{ $t('expenses.confirmDelete') }}
             </button>
           </div>
         </form>
@@ -581,6 +635,10 @@ const showVoidModal = ref(false)
 const voidingExpense = ref(null)
 const voidReason = ref('')
 const isVoiding = ref(false)
+
+const showDeleteModal = ref(false)
+const deletingExpense = ref(null)
+const isDeleting = ref(false)
 
 // ================= METHODS =================
 const canManageExpense = (exp) => {
@@ -769,6 +827,37 @@ const handleConfirmVoid = async () => {
     toast.error(err.response?.data?.message || 'Failed to void expense')
   } finally {
     isVoiding.value = false
+  }
+}
+
+// Permanent Delete Modal (OWNER only for VOIDED expenses)
+const openDeleteModal = (exp) => {
+  deletingExpense.value = exp
+  showDeleteModal.value = true
+}
+
+const handleConfirmDelete = async () => {
+  if (!deletingExpense.value) return
+  isDeleting.value = true
+  try {
+    await api.delete(`/expenses/${deletingExpense.value.id}`)
+    toast.success(`Expense #${deletingExpense.value.id} deleted permanently`)
+    showDeleteModal.value = false
+
+    const nextPage =
+      expensesList.value.length === 1 && pagination.current_page > 1
+        ? pagination.current_page - 1
+        : pagination.current_page
+
+    await Promise.all([
+      fetchExpenses(nextPage),
+      fetchSummary(),
+      appStore.fetchCurrentShift(),
+    ])
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Failed to delete expense')
+  } finally {
+    isDeleting.value = false
   }
 }
 
