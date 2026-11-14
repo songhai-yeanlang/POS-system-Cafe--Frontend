@@ -73,13 +73,20 @@ const handleUpdatePassword = async () => {
     await api.post('/auth/reset-password', {
       resetToken: resetToken.value,
       newPassword: newPassword.value,
+      confirmPassword: confirmPassword.value,
     })
 
     sessionStorage.removeItem('resetToken')
     sessionStorage.removeItem('resetEmail')
+    localStorage.removeItem('resetToken')
+    localStorage.removeItem('resetEmail')
     router.push('/login')
   } catch (err) {
-    errorMessage.value = err.response?.data?.message || err.message || 'Failed to update password'
+    errorMessage.value =
+      err.response?.data?.errors?.[0]?.message ||
+      err.response?.data?.message ||
+      err.message ||
+      'Failed to update password'
   } finally {
     isLoading.value = false
   }
