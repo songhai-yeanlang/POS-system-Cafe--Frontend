@@ -1654,30 +1654,24 @@ onMounted(async () => {
 
 /* Badges */
 .type-badge {
-  font-size: 0.74rem;
+  font-size: 0.81rem;
   font-weight: 600;
-  padding: 0.24rem 0.6rem;
-  border-radius: 6px;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.38rem;
   white-space: nowrap;
 }
 
 .type-badge i {
-  font-size: 0.74rem;
+  font-size: 0.8rem;
 }
 
 .type-badge.dine-in {
-  background: #e8f4fd;
   color: #0369a1;
-  border: 1px solid #cde6fa;
 }
 
 .type-badge.takeaway {
-  background: #eef5f1;
   color: #2d5a43;
-  border: 1px solid #d8e6de;
 }
 
 .status-text {
@@ -1703,16 +1697,13 @@ onMounted(async () => {
 }
 
 .method-pill {
-  font-size: 0.75rem;
+  font-size: 0.81rem;
   font-weight: 600;
-  background: #eef5f1;
   color: #193e2b;
-  border: 1px solid #d8e6de;
-  padding: 0.22rem 0.58rem;
-  border-radius: 6px;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.38rem;
+  white-space: nowrap;
 }
 
 /* Action Buttons */

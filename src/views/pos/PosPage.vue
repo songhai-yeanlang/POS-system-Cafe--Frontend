@@ -2780,11 +2780,19 @@ onUnmounted(() => {
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  grid-auto-rows: max-content;
   gap: 0.85rem;
-  padding: 0.85rem 0.15rem 0.85rem 0;
+  padding: 0.85rem 0;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   align-content: start;
   flex: 1;
+  min-height: 0;
+}
+
+.menu-grid::-webkit-scrollbar {
+  display: none;
 }
 
 .menu-item {
@@ -2820,6 +2828,7 @@ onUnmounted(() => {
 .menu-item__visual {
   aspect-ratio: 4 / 3;
   width: 100%;
+  flex-shrink: 0;
   background: #f3f6f4;
   position: relative;
   display: flex;
@@ -2899,7 +2908,7 @@ onUnmounted(() => {
   padding: 0.72rem 0.82rem 0.78rem;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 0 auto;
   gap: 0.45rem;
 }
 
