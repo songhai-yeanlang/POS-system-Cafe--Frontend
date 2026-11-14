@@ -1,11 +1,14 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/api/api'
+import { useAuthStore } from '@/stores/authStore'
 import { useI18n } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useFormatDate } from '@/composables/useFormatDate'
 import { useCurrency } from '@/composables/useCurrency'
 
+const authStore = useAuthStore()
+const isOwner = computed(() => authStore.isOwner)
 const { t, isKhmer } = useI18n()
 const toast = useToast()
 const { formatDateTime } = useFormatDate()
@@ -38,6 +41,12 @@ const showDetailModal = ref(false)
 const selectedLog = ref(null)
 const isLoadingSingleLog = ref(false)
 const showRawJson = ref(false)
+
+// Delete / Clear Modal State (OWNER only)
+const showDeleteModal = ref(false)
+const deleteMode = ref('single') // 'single' | 'all'
+const deletingLog = ref(null)
+const isDeleting = ref(false)
 
 // ================= OPTIONS =================
 const moduleKeys = [
@@ -100,7 +109,7 @@ const actionGroups = [
   },
   {
     key: 'expenses',
-    actions: ['CREATE_EXPENSE', 'UPDATE_EXPENSE', 'VOID_EXPENSE'],
+    actions: ['CREATE_EXPENSE', 'UPDATE_EXPENSE', 'VOID_EXPENSE', 'DELETE_EXPENSE'],
   },
   {
     key: 'security',
@@ -476,6 +485,61 @@ const copyJsonPayload = async () => {
   }
 }
 
+const openDeleteSingleModal = (log) => {
+  if (!isOwner.value) return
+  deletingLog.value = log
+  deleteMode.value = 'single'
+  showDeleteModal.value = true
+}
+
+const openClearAllModal = () => {
+  if (!isOwner.value) return
+  deletingLog.value = null
+  deleteMode.value = 'all'
+  showDeleteModal.value = true
+}
+
+const closeDeleteModal = () => {
+  if (isDeleting.value) return
+  showDeleteModal.value = false
+  deletingLog.value = null
+}
+
+const handleConfirmDelete = async () => {
+  if (!isOwner.value || isDeleting.value) return
+  isDeleting.value = true
+  try {
+    if (deleteMode.value === 'all') {
+      await api.delete('/audit-logs')
+      toast.success('All audit logs cleared successfully')
+      showDetailModal.value = false
+      selectedLog.value = null
+      showDeleteModal.value = false
+      await fetchAuditLogs(1)
+    } else if (deletingLog.value?.id) {
+      const deletedId = deletingLog.value.id
+      await api.delete(`/audit-logs/${deletedId}`)
+      toast.success(`Audit log #${deletedId} deleted`)
+      if (selectedLog.value?.id === deletedId) {
+        showDetailModal.value = false
+        selectedLog.value = null
+      }
+      showDeleteModal.value = false
+      deletingLog.value = null
+
+      const nextPage =
+        logs.value.length === 1 && pagination.page > 1
+          ? pagination.page - 1
+          : pagination.page
+      await fetchAuditLogs(nextPage)
+    }
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Failed to delete audit log')
+  } finally {
+    isDeleting.value = false
+  }
+}
+
 onMounted(async () => {
   await Promise.all([fetchUsersList(), fetchAuditLogs(1)])
 })
@@ -584,6 +648,17 @@ onMounted(async () => {
             <span v-if="isLoading" class="spinner-border spinner-border-sm"></span>
             <i v-else class="bi bi-arrow-clockwise"></i>
           </button>
+
+          <button
+            v-if="isOwner && logs.length > 0"
+            type="button"
+            class="toolbar-btn toolbar-btn--danger"
+            :disabled="isLoading"
+            @click="openClearAllModal"
+          >
+            <i class="bi bi-trash3"></i>
+            <span>{{ $t('auditLogs.clearAll') }}</span>
+          </button>
         </div>
       </div>
 
@@ -667,14 +742,25 @@ onMounted(async () => {
               </td>
 
               <td class="text-end" @click.stop>
-                <button
-                  type="button"
-                  class="btn-action-icon"
-                  :title="$t('auditLogs.colDetails')"
-                  @click="openDetailModal(log)"
-                >
-                  <i class="bi bi-eye"></i>
-                </button>
+                <div class="action-group">
+                  <button
+                    type="button"
+                    class="btn-action-icon"
+                    :title="$t('auditLogs.colDetails')"
+                    @click="openDetailModal(log)"
+                  >
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button
+                    v-if="isOwner"
+                    type="button"
+                    class="btn-action-icon is-danger"
+                    :title="$t('common.delete')"
+                    @click="openDeleteSingleModal(log)"
+                  >
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -828,8 +914,75 @@ onMounted(async () => {
           </div>
 
           <div class="modal-actions">
+            <button
+              v-if="isOwner"
+              type="button"
+              class="btn-modal-danger"
+              @click="openDeleteSingleModal(selectedLog)"
+            >
+              <i class="bi bi-trash3"></i>
+              <span>{{ $t('common.delete') }}</span>
+            </button>
             <button type="button" class="btn-modal-close" @click="closeDetailModal">
               {{ $t('auditLogs.closeInspector') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Delete / Clear Confirmation Modal (OWNER only) -->
+    <Teleport to="body">
+      <div
+        v-if="showDeleteModal"
+        class="modal-backdrop-custom"
+        @click.self="closeDeleteModal"
+      >
+        <div class="modal-sheet modal-sheet--sm">
+          <div class="modal-head">
+            <h6 class="modal-heading text-danger">
+              {{
+                deleteMode === 'all'
+                  ? $t('auditLogs.clearAllTitle')
+                  : $t('auditLogs.deleteLogTitle', { id: deletingLog?.id })
+              }}
+            </h6>
+            <button type="button" class="btn-close-quiet" @click="closeDeleteModal">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <div class="modal-body-scroll">
+            <p class="mb-0 small text-muted">
+              {{
+                deleteMode === 'all'
+                  ? $t('auditLogs.clearAllDesc')
+                  : $t('auditLogs.deleteLogDesc')
+              }}
+            </p>
+          </div>
+
+          <div class="modal-actions modal-actions--end">
+            <button
+              type="button"
+              class="btn-modal-close"
+              :disabled="isDeleting"
+              @click="closeDeleteModal"
+            >
+              {{ $t('common.cancel') }}
+            </button>
+            <button
+              type="button"
+              class="btn-modal-confirm-danger"
+              :disabled="isDeleting"
+              @click="handleConfirmDelete"
+            >
+              <span v-if="isDeleting" class="spinner-border spinner-border-sm me-1"></span>
+              {{
+                deleteMode === 'all'
+                  ? $t('auditLogs.confirmClearAll')
+                  : $t('auditLogs.confirmDelete')
+              }}
             </button>
           </div>
         </div>
@@ -1015,6 +1168,18 @@ onMounted(async () => {
   color: var(--botanical-primary);
 }
 
+.toolbar-btn--danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.toolbar-btn--danger:hover:not(:disabled) {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
 .toolbar-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -1125,6 +1290,13 @@ onMounted(async () => {
   font-size: 0.8rem;
 }
 
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
 .btn-action-icon {
   width: 30px;
   height: 30px;
@@ -1144,6 +1316,18 @@ onMounted(async () => {
   background: #f0f6f2;
   border-color: #b8ccc0;
   color: var(--botanical-primary);
+}
+
+.btn-action-icon.is-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.btn-action-icon.is-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
 }
 
 /* Empty State */
@@ -1452,11 +1636,21 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
+.modal-sheet--sm {
+  max-width: 410px;
+}
+
 .modal-actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   padding-top: 0.85rem;
   border-top: 1px solid #edf2ef;
+}
+
+.modal-actions--end {
+  justify-content: flex-end;
 }
 
 .btn-modal-close {
@@ -1469,10 +1663,58 @@ onMounted(async () => {
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+  margin-left: auto;
 }
 
-.btn-modal-close:hover {
+.modal-actions--end .btn-modal-close {
+  margin-left: 0;
+}
+
+.btn-modal-close:hover:not(:disabled) {
   background: #f5f8f6;
+}
+
+.btn-modal-danger {
+  height: 36px;
+  padding: 0 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.btn-modal-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+.btn-modal-confirm-danger {
+  height: 36px;
+  padding: 0 1.05rem;
+  border-radius: 8px;
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.btn-modal-confirm-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
 }
 
 @media (max-width: 768px) {
