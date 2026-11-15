@@ -2,8 +2,17 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import api from '@/api/api'
 
+const loadStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || 'null')
+  } catch {
+    localStorage.removeItem('user')
+    return null
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
+  const user = ref(loadStoredUser())
   const token = ref(localStorage.getItem('token') || null)
   const refreshToken = ref(localStorage.getItem('refreshToken') || null)
 

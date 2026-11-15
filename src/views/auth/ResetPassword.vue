@@ -22,7 +22,7 @@ const errorMessage = ref('')
 
 const newPasswordError = computed(() => {
   if (!errorMessage.value) return ''
-  if (errorMessage.value.toLowerCase().includes('8 characters')) {
+  if (errorMessage.value.toLowerCase().includes('6 characters')) {
     return errorMessage.value
   }
   return ''
@@ -44,8 +44,8 @@ watch([newPassword, confirmPassword], () => {
 
 const isReady = computed(() => {
   return (
-    newPassword.value.length >= 8 &&
-    confirmPassword.value.length >= 8 &&
+    newPassword.value.length >= 6 &&
+    confirmPassword.value.length >= 6 &&
     newPassword.value === confirmPassword.value
   )
 })
@@ -58,8 +58,8 @@ const handleUpdatePassword = async () => {
     return
   }
 
-  if (newPassword.value.length < 8) {
-    errorMessage.value = 'Password must be at least 8 characters long'
+  if (newPassword.value.length < 6) {
+    errorMessage.value = 'Password must be at least 6 characters long'
     return
   }
 

@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3009/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -97,6 +97,17 @@ api.interceptors.response.use(
         return Promise.reject(refreshErr)
       } finally {
         isRefreshing = false
+      }
+    }
+
+    if (status === 403 && !isAuthPublicRoute) {
+      const msg = (error.response?.data?.message || '').toLowerCase()
+      if (msg.includes('deactivated')) {
+        const authStore = useAuthStore()
+        authStore.clearAuth()
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
       }
     }
 

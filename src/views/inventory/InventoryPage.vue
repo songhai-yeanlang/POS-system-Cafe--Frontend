@@ -687,6 +687,44 @@
         </form>
       </div>
     </div>
+
+    <!-- ================= MODAL 3: DELETE INGREDIENT CONFIRMATION ================= -->
+    <div v-if="deleteIngredientModal.show" class="modal-backdrop-custom" @click.self="deleteIngredientModal.show = false">
+      <div class="modal-card-custom modal-sm-custom">
+        <div class="modal-header-custom">
+          <h6 class="mb-0 fw-bold text-danger">{{ $t('inventory.deleteIngredientTitle') }}</h6>
+          <button type="button" class="btn-close-custom" @click="deleteIngredientModal.show = false">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="modal-body-custom">
+          <p class="small text-muted mb-0">
+            {{ $t('inventory.deleteIngredientDesc', { name: deleteIngredientModal.name }) }}
+          </p>
+        </div>
+
+        <div class="modal-footer-custom">
+          <button
+            type="button"
+            class="btn btn-light-coffee"
+            :disabled="deleteIngredientModal.isDeleting"
+            @click="deleteIngredientModal.show = false"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger flex-grow-1"
+            :disabled="deleteIngredientModal.isDeleting"
+            @click="handleConfirmDeleteIngredient"
+          >
+            <span v-if="deleteIngredientModal.isDeleting" class="spinner-border spinner-border-sm me-1"></span>
+            {{ $t('common.delete') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -809,7 +847,7 @@ const switchTab = (tab) => {
 // ================= METHODS: FETCH INGREDIENTS =================
 const fetchAllIngredientsSummary = async () => {
   try {
-    const res = await api.get('/inventory/ingredients')
+    const res = await api.get('/inventory/ingredients', { params: { limit: 200 } })
     allIngredientsDropdown.value = res.data?.data || []
     lowStockCount.value = allIngredientsDropdown.value.filter(
       (i) => i.is_active && i.is_low_stock
@@ -949,13 +987,31 @@ const handleSaveIngredient = async () => {
   }
 }
 
-const confirmDeleteIngredient = async (ing) => {
+const deleteIngredientModal = reactive({
+  show: false,
+  id: null,
+  name: '',
+  isDeleting: false,
+})
+
+const confirmDeleteIngredient = (ing) => {
+  deleteIngredientModal.id = ing.id
+  deleteIngredientModal.name = ing.name
+  deleteIngredientModal.show = true
+}
+
+const handleConfirmDeleteIngredient = async () => {
+  if (!deleteIngredientModal.id || deleteIngredientModal.isDeleting) return
+  deleteIngredientModal.isDeleting = true
   try {
-    await api.delete(`/inventory/ingredients/${ing.id}`)
-    toast.success(`Ingredient '${ing.name}' deleted`)
+    await api.delete(`/inventory/ingredients/${deleteIngredientModal.id}`)
+    toast.success(`Ingredient '${deleteIngredientModal.name}' deleted`)
+    deleteIngredientModal.show = false
     await Promise.all([fetchIngredients(ingredientPagination.page), fetchAllIngredientsSummary()])
   } catch (err) {
     toast.error(err.response?.data?.message || 'Cannot delete ingredient')
+  } finally {
+    deleteIngredientModal.isDeleting = false
   }
 }
 

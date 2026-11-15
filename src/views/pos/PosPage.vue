@@ -839,14 +839,14 @@
 
             <section v-if="!authStore.isOwner" class="field-group mb-0">
               <label class="field-group__label">
-                {{ $t('pos.approvedByOwnerId') }} <span class="text-danger">*</span>
+                {{ $t('pos.ownerPassword') }} <span class="text-danger">*</span>
               </label>
               <input
-                v-model.number="discountDraft.approved_by"
-                type="number"
-                min="1"
-                class="pos-input tabular"
-                placeholder="1"
+                v-model="discountDraft.owner_password"
+                type="password"
+                class="pos-input"
+                :placeholder="$t('pos.ownerPasswordPlaceholder')"
+                autocomplete="off"
               />
               <p class="field-group__hint">{{ $t('pos.discountOwnerHint') }}</p>
             </section>
@@ -1008,36 +1008,139 @@
             </div>
           </section>
 
-          <!-- Cash Tender Display -->
+          <!-- Cash Tender & Change Calculator -->
           <template v-if="paymentForm.method === 'CASH'">
-            <div class="cash-tender-summary">
-              <div class="cash-tender-summary__label">
-                <i class="bi bi-wallet2"></i>
-                <span>{{ $t('pos.received') }} ({{ paymentForm.currency }})</span>
+            <section class="field-group">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <label class="field-group__label mb-0">
+                  {{ $t('pos.received') }} ({{ paymentForm.currency }})
+                </label>
+                <button
+                  type="button"
+                  class="cash-exact-btn tabular"
+                  :class="{ 'is-active': Number(paymentForm.received_amount) === requiredBillAmount }"
+                  @click="paymentForm.received_amount = requiredBillAmount"
+                >
+                  {{
+                    $t('pos.exactAmount', {
+                      amount:
+                        paymentForm.currency === 'USD'
+                          ? formatUsd(requiredBillAmount)
+                          : formatKhr(requiredBillAmount),
+                    })
+                  }}
+                </button>
               </div>
-              <strong class="cash-tender-summary__amount tabular">
-                {{
-                  paymentForm.currency === 'USD'
-                    ? formatUsd(paymentForm.received_amount)
-                    : formatKhr(paymentForm.received_amount)
-                }}
-              </strong>
+
+              <div class="cash-received-input-wrap">
+                <span class="cash-received-input__prefix tabular">
+                  {{ paymentForm.currency === 'USD' ? '$' : '៛' }}
+                </span>
+                <input
+                  v-model.number="paymentForm.received_amount"
+                  type="number"
+                  :step="paymentForm.currency === 'USD' ? '0.01' : '100'"
+                  min="0"
+                  class="pos-input cash-received-input tabular"
+                  :placeholder="paymentForm.currency === 'USD' ? '0.00' : '0'"
+                />
+              </div>
+            </section>
+
+            <!-- Change Currency Selector & Change Due Readout -->
+            <div
+              class="cash-change-box"
+              :class="{ 'is-insufficient': !isCashSufficient }"
+            >
+              <div class="cash-change-box__top">
+                <div class="cash-change-box__label">
+                  <i
+                    class="bi"
+                    :class="isCashSufficient ? 'bi-cash-coin' : 'bi-exclamation-triangle-fill'"
+                  ></i>
+                  <span>
+                    {{ isCashSufficient ? $t('pos.changeToReturn') : $t('pos.insufficientCash') }}
+                  </span>
+                </div>
+
+                <div v-if="isCashSufficient" class="change-currency-pills" role="group">
+                  <span class="change-currency-pills__caption">{{ $t('pos.step4GiveChangeIn') }}:</span>
+                  <button
+                    type="button"
+                    class="change-curr-pill"
+                    :class="{ 'is-active': paymentForm.change_currency === 'USD' }"
+                    @click="paymentForm.change_currency = 'USD'"
+                  >
+                    USD ($)
+                  </button>
+                  <button
+                    type="button"
+                    class="change-curr-pill"
+                    :class="{ 'is-active': paymentForm.change_currency === 'KHR' }"
+                    @click="paymentForm.change_currency = 'KHR'"
+                  >
+                    KHR (៛)
+                  </button>
+                </div>
+              </div>
+
+              <div class="cash-change-box__main tabular">
+                <template v-if="isCashSufficient">
+                  <strong class="cash-change-box__amount">
+                    {{
+                      paymentForm.change_currency === 'USD'
+                        ? formatUsd(calculatedChange.changeUsd)
+                        : formatKhr(calculatedChange.changeKhr)
+                    }}
+                  </strong>
+                  <span class="cash-change-box__equiv">
+                    {{ $t('pos.equivalent') }}
+                    {{
+                      paymentForm.change_currency === 'USD'
+                        ? formatKhr(Math.round(calculatedChange.changeUsd * exchangeRate))
+                        : formatUsd(calculatedChange.changeKhr / exchangeRate)
+                    }}
+                  </span>
+                </template>
+                <template v-else>
+                  <strong class="cash-change-box__shortage">
+                    {{ $t('pos.shortBy', { amount: cashShortageFormatted }) }}
+                  </strong>
+                </template>
+              </div>
             </div>
           </template>
 
-          <!-- KHQR Details -->
+          <!-- KHQR & Bank Transfer Details -->
           <template v-else>
             <section class="field-group mb-0">
-              <label class="field-group__label">{{ $t('pos.transactionRef') }}</label>
-              <div class="input-with-icon">
-                <i class="bi bi-hash input-with-icon__glyph"></i>
-                <input
-                  v-model="paymentForm.reference"
-                  type="text"
-                  class="pos-input pos-input--padded"
-                  :placeholder="$t('pos.transactionRefPlaceholder')"
-                  maxlength="150"
-                />
+              <div class="row g-2">
+                <div class="col-sm-6">
+                  <label class="field-group__label">{{ $t('pos.bankWalletName') }}</label>
+                  <div class="input-with-icon">
+                    <i class="bi bi-bank input-with-icon__glyph"></i>
+                    <input
+                      v-model="paymentForm.bank_name"
+                      type="text"
+                      class="pos-input pos-input--padded"
+                      :placeholder="$t('pos.bankPlaceholder')"
+                      maxlength="50"
+                    />
+                  </div>
+                </div>
+                <div class="col-sm-6">
+                  <label class="field-group__label">{{ $t('pos.transactionRef') }}</label>
+                  <div class="input-with-icon">
+                    <i class="bi bi-hash input-with-icon__glyph"></i>
+                    <input
+                      v-model="paymentForm.reference"
+                      type="text"
+                      class="pos-input pos-input--padded"
+                      :placeholder="$t('pos.transactionRefPlaceholder')"
+                      maxlength="150"
+                    />
+                  </div>
+                </div>
               </div>
               <div class="checkout-verify-hint">
                 <i class="bi bi-shield-check"></i>
@@ -1306,14 +1409,35 @@
             </div>
             <div class="d-flex justify-content-between fw-semibold receipt-meta">
               <span>{{ $t('receipt.totalKhr') }}</span>
-              <span>{{ formatKhr(usdToKhr(completedReceipt.order.total)) }}</span>
+              <span>
+                {{
+                  formatKhr(
+                    usdToKhr(
+                      completedReceipt.order.total,
+                      completedReceipt.payment?.khr_per_usd || completedReceipt.order.exchange_rate
+                    )
+                  )
+                }}
+              </span>
             </div>
 
             <template v-if="completedReceipt.payment">
               <div class="receipt-divider"></div>
               <div class="d-flex justify-content-between receipt-meta">
                 <span>
-                  {{ $t('receipt.paidBy', { method: completedReceipt.payment.method }) }}
+                  {{
+                    $t('receipt.paidBy', {
+                      method:
+                        completedReceipt.payment.method === 'CASH'
+                          ? $t('common.cash')
+                          : completedReceipt.payment.method === 'BANK_TRANSFER'
+                            ? $t('common.bankTransfer')
+                            : $t('common.khqr'),
+                    })
+                  }}
+                  <template v-if="completedReceipt.payment.bank_name">
+                    ({{ completedReceipt.payment.bank_name }})
+                  </template>
                 </span>
                 <span>
                   {{
@@ -1591,6 +1715,7 @@ const orderForm = reactive({
   discount_value: 0,
   discount_reason: '',
   discount_approved_by: null,
+  discount_owner_password: '',
 })
 
 // ================= STATE: ITEM CUSTOMIZE MODAL =================
@@ -1663,6 +1788,7 @@ const discountDraft = reactive({
   value: 0,
   reason: '',
   approved_by: 1,
+  owner_password: '',
 })
 
 // ================= STATE: PAYMENT MODAL =================
@@ -1900,11 +2026,24 @@ const isCashSufficient = computed(() => {
   return effectiveReceivedAmount.value >= requiredBillAmount.value
 })
 
+const cashShortageFormatted = computed(() => {
+  const diff = Math.max(0, requiredBillAmount.value - effectiveReceivedAmount.value)
+  return paymentForm.currency === 'USD' ? formatUsd(diff) : formatKhr(Math.round(diff))
+})
+
 const calculatedChange = computed(() => {
   if (paymentForm.method !== 'CASH' || !isCashSufficient.value) {
     return { changeUsd: 0, changeKhr: 0 }
   }
-  const diffInPaidCurrency = effectiveReceivedAmount.value - requiredBillAmount.value
+  const diffInPaidCurrency = Math.max(0, effectiveReceivedAmount.value - requiredBillAmount.value)
+
+  if (paymentForm.currency === 'KHR' && paymentForm.change_currency === 'KHR') {
+    return {
+      changeUsd: 0,
+      changeKhr: Math.round(diffInPaidCurrency),
+    }
+  }
+
   const diffUsd =
     paymentForm.currency === 'USD'
       ? diffInPaidCurrency
@@ -2142,6 +2281,7 @@ watch(showDiscountModal, (val) => {
     discountDraft.reason = orderForm.discount_reason
     discountDraft.approved_by =
       orderForm.discount_approved_by || (authStore.isOwner ? authStore.user?.id : 1)
+    discountDraft.owner_password = orderForm.discount_owner_password || ''
   }
 })
 
@@ -2150,6 +2290,7 @@ const clearDiscount = () => {
   orderForm.discount_value = 0
   orderForm.discount_reason = ''
   orderForm.discount_approved_by = null
+  orderForm.discount_owner_password = ''
   showDiscountModal.value = false
 }
 
@@ -2170,6 +2311,10 @@ const applyDiscountDraft = () => {
     toast.warning('Fixed discount cannot exceed subtotal')
     return
   }
+  if (!authStore.isOwner && !discountDraft.owner_password?.trim()) {
+    toast.warning(t('pos.ownerPasswordRequired'))
+    return
+  }
 
   orderForm.discount_type = discountDraft.type
   orderForm.discount_value = Number(discountDraft.value)
@@ -2177,6 +2322,7 @@ const applyDiscountDraft = () => {
   orderForm.discount_approved_by = authStore.isOwner
     ? authStore.user?.id
     : Number(discountDraft.approved_by) || 1
+  orderForm.discount_owner_password = authStore.isOwner ? '' : discountDraft.owner_password
   showDiscountModal.value = false
 }
 
@@ -2213,9 +2359,11 @@ const buildOrderPayload = () => {
 
   if (orderForm.discount_type !== 'NONE' && orderForm.discount_value > 0) {
     payload.discount_reason = orderForm.discount_reason
-    payload.discount_approved_by = authStore.isOwner
-      ? authStore.user?.id
-      : Number(orderForm.discount_approved_by) || 1
+    if (authStore.isOwner) {
+      payload.discount_approved_by = authStore.user?.id
+    } else if (orderForm.discount_owner_password) {
+      payload.owner_password = orderForm.discount_owner_password
+    }
   }
 
   return payload
@@ -2232,6 +2380,7 @@ const resetCart = () => {
   orderForm.discount_value = 0
   orderForm.discount_reason = ''
   orderForm.discount_approved_by = null
+  orderForm.discount_owner_password = ''
 
   if (route.query.orderId) {
     router.replace({ path: '/pos', query: {} })
@@ -4356,15 +4505,21 @@ onUnmounted(() => {
 
 .channel-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.6rem;
+}
+
+@media (max-width: 520px) {
+  .channel-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .channel-card {
   border: 1.5px solid #e1ebe5;
   border-radius: 9px;
   background: #f9fbf9;
-  padding: 0.65rem 0.8rem;
+  padding: 0.65rem 0.75rem;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -4479,34 +4634,140 @@ onUnmounted(() => {
   color: #193e2b;
 }
 
-.cash-tender-summary {
+.cash-exact-btn {
+  border: 1px solid #cde2d5;
+  background: #f2f8f4;
+  color: #2d5a43;
+  border-radius: 6px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.73rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.cash-exact-btn:hover,
+.cash-exact-btn.is-active {
+  background: #2d5a43;
+  border-color: #2d5a43;
+  color: #ffffff;
+}
+
+.cash-received-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cash-received-input__prefix {
+  position: absolute;
+  left: 12px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #2d5a43;
+  pointer-events: none;
+}
+
+.cash-received-input {
+  padding-left: 32px !important;
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  height: 42px !important;
+  color: #193e2b !important;
+}
+
+.cash-change-box {
+  padding: 0.75rem 0.95rem;
+  border-radius: 10px;
+  background: #f4f9f6;
+  border: 1.5px solid #cfe3d7;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.cash-change-box.is-insufficient {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.cash-change-box__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.72rem 0.95rem;
-  border-radius: 9px;
-  background: #f8fbf9;
-  border: 1.5px solid #dfeae3;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.cash-tender-summary__label {
+.cash-change-box__label {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
+  gap: 0.45rem;
+  font-size: 0.79rem;
+  font-weight: 700;
+  color: #2d5a43;
+}
+
+.cash-change-box.is-insufficient .cash-change-box__label {
+  color: #dc2626;
+}
+
+.change-currency-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.change-currency-pills__caption {
+  font-size: 0.72rem;
   font-weight: 600;
-  color: #4f6356;
+  color: #54695c;
+  margin-right: 0.15rem;
 }
 
-.cash-tender-summary__label i {
-  font-size: 0.95rem;
-  color: #3b7054;
+.change-curr-pill {
+  border: 1px solid #cde0d4;
+  background: #ffffff;
+  color: #43594c;
+  border-radius: 6px;
+  padding: 0.16rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s ease;
 }
 
-.cash-tender-summary__amount {
-  font-size: 1.15rem;
+.change-curr-pill.is-active {
+  background: #2d5a43;
+  border-color: #2d5a43;
+  color: #ffffff;
+}
+
+.cash-change-box__main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cash-change-box__amount {
+  font-size: 1.3rem;
   font-weight: 800;
   color: #193e2b;
+  line-height: 1.15;
+}
+
+.cash-change-box__equiv {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #54695c;
+}
+
+.cash-change-box__shortage {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #dc2626;
 }
 
 .bank-strip {

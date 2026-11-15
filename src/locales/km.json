@@ -7,6 +7,7 @@
     "delete": "លុប",
     "remove": "ដកចេញ",
     "edit": "កែប្រែ",
+    "view": "មើលលម្អិត",
     "create": "បង្កើត",
     "update": "ធ្វើបច្ចុប្បន្នភាព",
     "clear": "សម្អាត",
@@ -30,7 +31,7 @@
     "pageOf": "ទំព័រ {page} នៃ {total}",
     "yes": "បាទ/ចាស",
     "no": "ទេ",
-    "optional": "មិនบังคับ",
+    "optional": "មិនបង្ខំ",
     "required": "ចាំបាច់",
     "upload": "បង្ហោះរូប",
     "change": "ប្តូរ",
@@ -138,7 +139,7 @@
     "resendOtp": "ផ្ញើលេខកូដ OTP ម្តងទៀត",
     "resetHeader": "កំណត់ពាក្យសម្ងាត់ឡើងវិញ",
     "setPasswordTitle": "ដាក់ពាក្យសម្ងាត់ថ្មី",
-    "setPasswordSubtitle": "ជ្រើសរើសពាក្យសម្ងាត់ដែលរឹងមាំយ៉ាងតិច ៨ តួអក្សរ។",
+    "setPasswordSubtitle": "ជ្រើសរើសពាក្យសម្ងាត់ដែលរឹងមាំយ៉ាងតិច ៦ តួអក្សរ។",
     "newPasswordLabel": "ពាក្យសម្ងាត់ថ្មី",
     "confirmPasswordLabel": "បញ្ជាក់ពាក្យសម្ងាត់ថ្មី",
     "updatePasswordBtn": "ផ្លាស់ប្តូរពាក្យសម្ងាត់",
@@ -171,7 +172,11 @@
     "newOrder": "កម្មង់ថ្មី",
     "paymentCompleted": "ការទូទាត់ជោគជ័យ",
     "livePreview": "គំរូវិក្កយបត្រផ្ទាល់",
-    "widthMm": "ទំហំ {width}mm"
+    "widthMm": "ទំហំ {width}mm",
+    "colItem": "មុខទំនិញ",
+    "colQty": "បរិមាណ",
+    "colPrice": "តម្លៃ",
+    "colTotal": "សរុប"
   },
   "pos": {
     "noActiveShift": "មិនទាន់បានបើកវេនលក់ទេ",
@@ -234,7 +239,10 @@
     "discountReason": "មូលហេតុបញ្ចុះតម្លៃ",
     "discountReasonPlaceholder": "ឧ. អតិថិជនសមាជិក ភ្ញៀវ VIP បុគ្គលិក...",
     "approvedByOwnerId": "អនុម័តដោយលេខសម្គាល់ម្ចាស់ហាង (Owner ID)",
-    "discountOwnerHint": "ការបញ្ចុះតម្លៃដោយបុគ្គលិកតម្រូវឱ្យមានលេខ ID ម្ចាស់ហាង។",
+    "ownerPassword": "ពាក្យសម្ងាត់ម្ចាស់ហាង (Owner Password)",
+    "ownerPasswordPlaceholder": "បញ្ចូលពាក្យសម្ងាត់ម្ចាស់ហាងដើម្បីអនុម័ត",
+    "ownerPasswordRequired": "តម្រូវឱ្យបញ្ចូលពាក្យសម្ងាត់ម្ចាស់ហាងសម្រាប់ការអនុម័ត",
+    "discountOwnerHint": "ការបញ្ចុះតម្លៃដោយបុគ្គលិកតម្រូវឱ្យបញ្ចូលពាក្យសម្ងាត់ម្ចាស់ហាង។",
     "applyDiscount": "អនុវត្តការបញ្ចុះតម្លៃ",
     "generalNoteLabel": "ចំណាំទូទៅសម្រាប់ផ្នែកឆុង / វិក្កយបត្រ",
     "orderNotePlaceholder": "សរសេរចំណាំពិសេសសម្រាប់ការកម្មង់នេះ...",
@@ -247,7 +255,7 @@
     "step2PaymentCurrency": "២. រូបិយប័ណ្ណទទួលប្រាក់",
     "step3CashReceived": "៣. ប្រាក់ទទួលបាន ({currency})",
     "exactAmount": "គ្រប់ចំនួន ({amount})",
-    "step4GiveChangeIn": "៤. អាប់ប្រាក់ជា",
+    "step4GiveChangeIn": "អាប់ប្រាក់ជា",
     "bankWalletName": "ឈ្មោះធនាគារ / គណនី",
     "bankPlaceholder": "ឧ. ABA Bank, ACLEDA...",
     "transactionRef": "លេខយោងប្រតិបត្តិការ (មិនបង្ខំ)",
@@ -540,7 +548,9 @@
     "selectActiveIngredient": "ជ្រើសរើសគ្រឿងផ្សំ...",
     "unitCostOptional": "តម្លៃក្នុង ១ ឯកតា ($ មិនបង្ខំ)",
     "reasonNoteLabel": "មូលហេតុ / កំណត់ចំណាំ",
-    "saveStockMovement": "រក្សាទុកចលនាស្តុក"
+    "saveStockMovement": "រក្សាទុកចលនាស្តុក",
+    "deleteIngredientTitle": "លុបគ្រឿងផ្សំ?",
+    "deleteIngredientDesc": "តើអ្នកពិតជាចង់លុបគ្រឿងផ្សំ '{name}' មែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។"
   },
   "recipes": {
     "productsCount": "មុខទំនិញ ({count})",
@@ -570,7 +580,9 @@
     "addFirstIngredient": "បន្ថែមគ្រឿងផ្សំដំបូង",
     "chooseActiveIngredient": "ជ្រើសរើសគ្រឿងផ្សំ...",
     "quantityRequired": "បរិមាណត្រូវប្រើ",
-    "saveRecipeBtn": "រក្សាទុករូបមន្ត ({count} គ្រឿងផ្សំ)"
+    "saveRecipeBtn": "រក្សាទុករូបមន្ត ({count} គ្រឿងផ្សំ)",
+    "clearRecipeTitle": "សម្អាតរូបមន្ត?",
+    "clearRecipeDesc": "តើអ្នកពិតជាចង់លុបគ្រឿងផ្សំទាំងអស់ចេញពីរូបមន្ត '{name}' មែនទេ?"
   },
   "dashboard": {
     "today": "ថ្ងៃនេះ",
