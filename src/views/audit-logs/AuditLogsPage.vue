@@ -40,7 +40,6 @@ const filters = reactive({
 const showDetailModal = ref(false)
 const selectedLog = ref(null)
 const isLoadingSingleLog = ref(false)
-const showRawJson = ref(false)
 
 // Delete / Clear Modal State (OWNER only)
 const showDeleteModal = ref(false)
@@ -395,15 +394,6 @@ const parsedModalDetailsEntries = computed(() => {
   return Object.entries(obj).filter(([, val]) => val !== null && val !== undefined && val !== '')
 })
 
-const formattedRawJson = computed(() => {
-  if (!selectedLog.value?.details) return ''
-  const parsed = parseDetailsObject(selectedLog.value.details)
-  if (parsed && typeof parsed === 'object') {
-    return JSON.stringify(parsed, null, 2)
-  }
-  return String(selectedLog.value.details)
-})
-
 // ================= API CALLS =================
 const fetchUsersList = async () => {
   try {
@@ -455,7 +445,6 @@ const resetFilters = () => {
 
 const openDetailModal = async (log) => {
   selectedLog.value = { ...log }
-  showRawJson.value = false
   showDetailModal.value = true
   isLoadingSingleLog.value = true
 
@@ -474,15 +463,6 @@ const openDetailModal = async (log) => {
 const closeDetailModal = () => {
   showDetailModal.value = false
   selectedLog.value = null
-}
-
-const copyJsonPayload = async () => {
-  try {
-    await navigator.clipboard.writeText(formattedRawJson.value)
-    toast.success(t('auditLogs.copiedJson'))
-  } catch {
-    toast.error('Unable to copy JSON payload')
-  }
 }
 
 const openDeleteSingleModal = (log) => {
@@ -885,32 +865,6 @@ onMounted(async () => {
             <div v-else class="no-details-note">
               {{ $t('auditLogs.noExtraDetails') }}
             </div>
-
-            <!-- Collapsible Technical JSON -->
-            <div v-if="formattedRawJson" class="raw-json-wrap">
-              <div class="raw-json-bar">
-                <button
-                  type="button"
-                  class="btn-link-quiet"
-                  @click="showRawJson = !showRawJson"
-                >
-                  <i class="bi" :class="showRawJson ? 'bi-chevron-up' : 'bi-code-slash'"></i>
-                  <span>{{ showRawJson ? $t('auditLogs.hideRawJson') : $t('auditLogs.showRawJson') }}</span>
-                </button>
-
-                <button
-                  v-if="showRawJson"
-                  type="button"
-                  class="btn-link-quiet"
-                  @click="copyJsonPayload"
-                >
-                  <i class="bi bi-clipboard"></i>
-                  <span>{{ $t('auditLogs.copyJson') }}</span>
-                </button>
-              </div>
-
-              <pre v-if="showRawJson" class="json-code-box">{{ formattedRawJson }}</pre>
-            </div>
           </div>
 
           <div class="modal-actions">
@@ -1168,16 +1122,10 @@ onMounted(async () => {
   color: var(--botanical-primary);
 }
 
-.toolbar-btn--danger {
+.toolbar-btn--danger:hover:not(:disabled) {
   background: #fef2f2;
   border-color: #fecaca;
-  color: #b91c1c;
-}
-
-.toolbar-btn--danger:hover:not(:disabled) {
-  background: #dc2626;
-  border-color: #dc2626;
-  color: #ffffff;
+  color: #dc2626;
 }
 
 .toolbar-btn:disabled {
@@ -1318,16 +1266,10 @@ onMounted(async () => {
   color: var(--botanical-primary);
 }
 
-.btn-action-icon.is-danger {
+.btn-action-icon.is-danger:hover {
   background: #fef2f2;
   border-color: #fecaca;
-  color: #b91c1c;
-}
-
-.btn-action-icon.is-danger:hover {
-  background: #dc2626;
-  border-color: #dc2626;
-  color: #ffffff;
+  color: #dc2626;
 }
 
 /* Empty State */
@@ -1439,7 +1381,8 @@ onMounted(async () => {
   width: 100%;
   max-width: 500px;
   max-height: 88vh;
-  padding: 1.3rem 1.4rem;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid #e2e8e4;
   box-shadow: 0 20px 44px rgba(15, 28, 20, 0.14);
   display: flex;
@@ -1451,7 +1394,7 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-  padding-bottom: 0.9rem;
+  padding: 1.15rem 1.4rem 0.9rem;
   border-bottom: 1px solid #edf2ef;
 }
 
@@ -1497,7 +1440,13 @@ onMounted(async () => {
 
 .modal-body-scroll {
   overflow-y: auto;
-  padding: 0.9rem 0;
+  padding: 0.95rem 1.4rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.modal-body-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .info-list {
@@ -1595,47 +1544,6 @@ onMounted(async () => {
   color: var(--sage-muted);
 }
 
-.raw-json-wrap {
-  margin-top: 0.85rem;
-}
-
-.raw-json-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.btn-link-quiet {
-  border: none;
-  background: transparent;
-  padding: 0.2rem 0;
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: var(--sage-muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
-}
-
-.btn-link-quiet:hover {
-  color: var(--botanical-primary);
-}
-
-.json-code-box {
-  margin: 0.5rem 0 0;
-  padding: 0.75rem 0.85rem;
-  background: #f6f9f7;
-  border: 1px solid #e2eae5;
-  border-radius: 8px;
-  color: #1f3328;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.75rem;
-  max-height: 190px;
-  overflow-y: auto;
-}
-
 .modal-sheet--sm {
   max-width: 410px;
 }
@@ -1645,7 +1553,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding-top: 0.85rem;
+  padding: 0.85rem 1.4rem 1.15rem;
   border-top: 1px solid #edf2ef;
 }
 
@@ -1678,9 +1586,9 @@ onMounted(async () => {
   height: 36px;
   padding: 0 0.9rem;
   border-radius: 8px;
-  border: 1px solid #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
+  border: 1px solid #dce6e0;
+  background: #ffffff;
+  color: #54665b;
   font-size: 0.8rem;
   font-weight: 600;
   display: inline-flex;
@@ -1691,9 +1599,9 @@ onMounted(async () => {
 }
 
 .btn-modal-danger:hover {
-  background: #dc2626;
-  border-color: #dc2626;
-  color: #ffffff;
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
 }
 
 .btn-modal-confirm-danger {

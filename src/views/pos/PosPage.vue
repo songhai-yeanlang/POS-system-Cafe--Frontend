@@ -84,12 +84,22 @@
           </div>
 
           <!-- Category Rail -->
-          <nav class="category-rail" aria-label="Menu categories">
+          <nav
+            ref="categoryRailRef"
+            class="category-rail"
+            :class="{ 'is-dragging': isDraggingCategoryRail }"
+            aria-label="Menu categories"
+            @wheel.prevent="handleCategoryWheel"
+            @mousedown="handleCategoryMouseDown"
+            @mousemove="handleCategoryMouseMove"
+            @mouseup="handleCategoryMouseUp"
+            @mouseleave="handleCategoryMouseUp"
+          >
             <button
               type="button"
               class="category-rail__tab"
               :class="{ 'is-active': selectedCategoryId === 'ALL' }"
-              @click="selectedCategoryId = 'ALL'"
+              @click="selectCategory('ALL', $event)"
             >
               <span>{{ $t('pos.allItems') }}</span>
               <span class="category-rail__count tabular">{{ totalCatalogCount }}</span>
@@ -101,7 +111,7 @@
               type="button"
               class="category-rail__tab"
               :class="{ 'is-active': selectedCategoryId === cat.id }"
-              @click="selectedCategoryId = cat.id"
+              @click="selectCategory(cat.id, $event)"
             >
               <span>{{ $tCategory(cat.name) }}</span>
               <span class="category-rail__count tabular">{{ getCategoryItemCount(cat.id) }}</span>
@@ -1015,24 +1025,8 @@
             </div>
           </template>
 
-          <!-- KHQR Bank / Wallet Details -->
+          <!-- KHQR Details -->
           <template v-else>
-            <section class="field-group">
-              <label class="field-group__label">{{ $t('pos.bankWalletName') }}</label>
-              <div class="bank-strip">
-                <button
-                  v-for="b in ['ABA KHQR', 'ACLEDA', 'Wing', 'Bakong', 'Canadia']"
-                  :key="b"
-                  type="button"
-                  class="bank-chip"
-                  :class="{ 'is-selected': paymentForm.bank_name === b }"
-                  @click="paymentForm.bank_name = b"
-                >
-                  {{ b }}
-                </button>
-              </div>
-            </section>
-
             <section class="field-group mb-0">
               <label class="field-group__label">{{ $t('pos.transactionRef') }}</label>
               <div class="input-with-icon">
@@ -1528,6 +1522,61 @@ const products = ref([])
 const isLoadingCatalog = ref(false)
 const searchQuery = ref('')
 const selectedCategoryId = ref('ALL')
+
+// Category Rail Horizontal Scroll (Wheel + Drag without scrollbar)
+const categoryRailRef = ref(null)
+const isDraggingCategoryRail = ref(false)
+let railDragStartX = 0
+let railDragScrollLeft = 0
+let railHasDragged = false
+
+const handleCategoryWheel = (event) => {
+  const el = categoryRailRef.value
+  if (!el) return
+  const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX
+  el.scrollLeft += delta
+}
+
+const handleCategoryMouseDown = (event) => {
+  const el = categoryRailRef.value
+  if (!el || event.button !== 0) return
+  isDraggingCategoryRail.value = true
+  railHasDragged = false
+  railDragStartX = event.pageX - el.offsetLeft
+  railDragScrollLeft = el.scrollLeft
+}
+
+const handleCategoryMouseMove = (event) => {
+  if (!isDraggingCategoryRail.value) return
+  const el = categoryRailRef.value
+  if (!el) return
+  const x = event.pageX - el.offsetLeft
+  const walk = x - railDragStartX
+  if (Math.abs(walk) > 4) {
+    railHasDragged = true
+    event.preventDefault()
+    el.scrollLeft = railDragScrollLeft - walk
+  }
+}
+
+const handleCategoryMouseUp = () => {
+  isDraggingCategoryRail.value = false
+}
+
+const selectCategory = (catId, event) => {
+  if (railHasDragged) {
+    railHasDragged = false
+    return
+  }
+  selectedCategoryId.value = catId
+  if (event?.currentTarget?.scrollIntoView) {
+    event.currentTarget.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'nearest',
+      block: 'nearest',
+    })
+  }
+}
 
 // ================= STATE: CART & ORDER =================
 const cartItems = ref([])
@@ -2239,9 +2288,6 @@ const openCheckoutModal = () => {
 const selectPaymentMethod = (method) => {
   paymentForm.method = method
   paymentForm.received_amount = requiredBillAmount.value
-  if (method === 'KHQR' && !paymentForm.bank_name) {
-    paymentForm.bank_name = 'ABA KHQR'
-  }
 }
 
 const selectPaymentCurrency = (currency) => {
@@ -2736,15 +2782,27 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.38rem;
   overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: 2px;
   scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  user-select: none;
+  cursor: grab;
+}
+
+.category-rail.is-dragging {
+  cursor: grabbing;
 }
 
 .category-rail::-webkit-scrollbar {
   display: none;
+  width: 0;
+  height: 0;
 }
 
 .category-rail__tab {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -2756,6 +2814,7 @@ onUnmounted(() => {
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
+  cursor: pointer;
   transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 

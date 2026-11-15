@@ -1758,16 +1758,10 @@ onMounted(async () => {
   color: #92400e;
 }
 
-.btn-action-icon.is-danger {
+.btn-action-icon.is-danger:hover {
   background: #fef2f2;
   border-color: #fecaca;
-  color: #b91c1c;
-}
-
-.btn-action-icon.is-danger:hover {
-  background: #dc2626;
-  border-color: #dc2626;
-  color: #ffffff;
+  color: #dc2626;
 }
 
 /* Pagination & Empty States */
