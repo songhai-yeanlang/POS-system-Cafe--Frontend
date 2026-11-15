@@ -7,6 +7,7 @@
     "delete": "Delete",
     "remove": "Remove",
     "edit": "Edit",
+    "view": "View",
     "create": "Create",
     "update": "Update",
     "clear": "Clear",
@@ -138,7 +139,7 @@
     "resendOtp": "Resend OTP",
     "resetHeader": "Reset password",
     "setPasswordTitle": "Set password",
-    "setPasswordSubtitle": "Choose a strong password with 8+ characters.",
+    "setPasswordSubtitle": "Choose a strong password with 6+ characters.",
     "newPasswordLabel": "New password",
     "confirmPasswordLabel": "Confirm password",
     "updatePasswordBtn": "Update Password",
@@ -171,7 +172,11 @@
     "newOrder": "New Order",
     "paymentCompleted": "Payment Completed",
     "livePreview": "Live Receipt Preview",
-    "widthMm": "{width}mm Width"
+    "widthMm": "{width}mm Width",
+    "colItem": "Item",
+    "colQty": "Quantity",
+    "colPrice": "Price",
+    "colTotal": "Total"
   },
   "pos": {
     "noActiveShift": "No Active Cashier Shift",
@@ -234,7 +239,10 @@
     "discountReason": "Discount Reason",
     "discountReasonPlaceholder": "e.g. Member promo, VIP guest, Staff discount",
     "approvedByOwnerId": "Approved By Owner ID",
-    "discountOwnerHint": "Discounts applied by Staff require an active Owner ID.",
+    "ownerPassword": "Owner Approval Password",
+    "ownerPasswordPlaceholder": "Enter Owner password to authorize",
+    "ownerPasswordRequired": "Owner approval password is required for Staff",
+    "discountOwnerHint": "Discounts applied by Staff require an active Owner password.",
     "applyDiscount": "Apply Discount",
     "generalNoteLabel": "General Note for Kitchen / Receipt",
     "orderNotePlaceholder": "Write any special note for this order...",
@@ -247,7 +255,7 @@
     "step2PaymentCurrency": "2. Payment Currency",
     "step3CashReceived": "3. Cash Received ({currency})",
     "exactAmount": "Exact ({amount})",
-    "step4GiveChangeIn": "4. Give Change In",
+    "step4GiveChangeIn": "Give Change In",
     "bankWalletName": "Bank / Wallet Name",
     "bankPlaceholder": "e.g. ABA Bank, ACLEDA...",
     "transactionRef": "Transaction Reference (Optional)",
@@ -540,7 +548,9 @@
     "selectActiveIngredient": "Select an active ingredient...",
     "unitCostOptional": "Unit Cost ($ Optional)",
     "reasonNoteLabel": "Reason / Note",
-    "saveStockMovement": "Save Stock Movement"
+    "saveStockMovement": "Save Stock Movement",
+    "deleteIngredientTitle": "Delete Ingredient?",
+    "deleteIngredientDesc": "Are you sure you want to delete '{name}'? This action cannot be undone."
   },
   "recipes": {
     "productsCount": "Products ({count})",
@@ -570,7 +580,9 @@
     "addFirstIngredient": "Add First Ingredient",
     "chooseActiveIngredient": "Choose active ingredient...",
     "quantityRequired": "Quantity Required",
-    "saveRecipeBtn": "Save Recipe ({count} ingredient(s))"
+    "saveRecipeBtn": "Save Recipe ({count} ingredient(s))",
+    "clearRecipeTitle": "Clear Variant Recipe?",
+    "clearRecipeDesc": "Are you sure you want to remove all recipe ingredients from '{name}'?"
   },
   "dashboard": {
     "today": "Today",

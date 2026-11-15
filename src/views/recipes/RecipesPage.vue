@@ -404,11 +404,49 @@
         </div>
       </div>
     </div>
+
+    <!-- ================= MODAL 2: CLEAR RECIPE CONFIRMATION ================= -->
+    <div v-if="clearRecipeModal.show" class="modal-backdrop-custom" @click.self="clearRecipeModal.show = false">
+      <div class="modal-card-custom" style="max-width: 420px">
+        <div class="modal-header-custom">
+          <h6 class="mb-0 fw-bold text-danger">{{ $t('recipes.clearRecipeTitle') }}</h6>
+          <button type="button" class="btn-close-custom" @click="clearRecipeModal.show = false">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="modal-body-custom">
+          <p class="small text-muted mb-0">
+            {{ $t('recipes.clearRecipeDesc', { name: clearRecipeModal.variantName }) }}
+          </p>
+        </div>
+
+        <div class="modal-footer-custom">
+          <button
+            type="button"
+            class="btn-cancel-clean"
+            :disabled="clearRecipeModal.isDeleting"
+            @click="clearRecipeModal.show = false"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger flex-grow-1"
+            :disabled="clearRecipeModal.isDeleting"
+            @click="confirmClearVariantRecipe"
+          >
+            <span v-if="clearRecipeModal.isDeleting" class="spinner-border spinner-border-sm me-1"></span>
+            {{ $t('common.delete') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import api, { getAssetUrl } from '@/api/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
@@ -525,7 +563,7 @@ const fetchInitialData = async () => {
     const [catRes, prodRes, ingRes] = await Promise.all([
       api.get('/categories'),
       api.get('/products', { params: { limit: 200 } }),
-      api.get('/inventory/ingredients'),
+      api.get('/inventory/ingredients', { params: { limit: 200 } }),
     ])
     categories.value = catRes.data?.data || []
     products.value = prodRes.data?.data || []
@@ -640,13 +678,31 @@ const handleSaveRecipe = async () => {
   }
 }
 
-const handleDeleteVariantRecipe = async (variant) => {
+const clearRecipeModal = reactive({
+  show: false,
+  variantId: null,
+  variantName: '',
+  isDeleting: false,
+})
+
+const handleDeleteVariantRecipe = (variant) => {
+  clearRecipeModal.variantId = variant.id
+  clearRecipeModal.variantName = variant.variant_name
+  clearRecipeModal.show = true
+}
+
+const confirmClearVariantRecipe = async () => {
+  if (!clearRecipeModal.variantId || clearRecipeModal.isDeleting) return
+  clearRecipeModal.isDeleting = true
   try {
-    await api.delete(`/inventory/recipes/variant/${variant.id}`)
-    toast.success(`Recipe cleared for ${variant.variant_name}`)
+    await api.delete(`/inventory/recipes/variant/${clearRecipeModal.variantId}`)
+    toast.success(`Recipe cleared for ${clearRecipeModal.variantName}`)
+    clearRecipeModal.show = false
     await fetchProductRecipes(selectedProduct.value.id)
   } catch (err) {
     toast.error(err.response?.data?.message || 'Failed to clear recipe')
+  } finally {
+    clearRecipeModal.isDeleting = false
   }
 }
 

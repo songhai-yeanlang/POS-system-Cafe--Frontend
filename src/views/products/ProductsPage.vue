@@ -38,6 +38,7 @@ const searchQuery = ref('')
 const debouncedSearch = useDebounce(searchQuery, 300)
 const selectedCategoryId = ref('')
 const selectedProductType = ref('')
+const selectedStatus = ref('')
 
 // Fetch Categories
 const fetchCategories = async () => {
@@ -62,6 +63,7 @@ const fetchProducts = async (page = 1) => {
     }
     if (selectedCategoryId.value) params.category_id = selectedCategoryId.value
     if (selectedProductType.value) params.product_type = selectedProductType.value
+    if (selectedStatus.value !== '') params.is_active = selectedStatus.value
     if (debouncedSearch.value?.trim()) params.search = debouncedSearch.value.trim()
 
     const res = await api.get('/products', { params })
@@ -76,7 +78,7 @@ const fetchProducts = async (page = 1) => {
   }
 }
 
-watch([debouncedSearch, selectedCategoryId, selectedProductType], () => {
+watch([debouncedSearch, selectedCategoryId, selectedProductType, selectedStatus], () => {
   fetchProducts(1)
 })
 
@@ -477,6 +479,7 @@ const clearFilters = () => {
   searchQuery.value = ''
   selectedCategoryId.value = ''
   selectedProductType.value = ''
+  selectedStatus.value = ''
 }
 </script>
 
@@ -573,11 +576,20 @@ const clearFilters = () => {
             <option value="FOOD">{{ $t('common.food') }}</option>
             <option value="ADDON">{{ $t('common.addon') }}</option>
           </select>
+
+          <select
+            v-model="selectedStatus"
+            class="filter-input filter-select"
+          >
+            <option value="">{{ $t('common.allStatus') }}</option>
+            <option value="true">{{ $t('common.active') }}</option>
+            <option value="false">{{ $t('common.inactive') }}</option>
+          </select>
         </div>
 
         <div class="filter-bar__right">
           <button
-            v-if="searchQuery || selectedCategoryId || selectedProductType"
+            v-if="searchQuery || selectedCategoryId || selectedProductType || selectedStatus !== ''"
             type="button"
             class="toolbar-btn"
             @click="clearFilters"
@@ -992,6 +1004,18 @@ const clearFilters = () => {
               />
             </div>
 
+            <div class="form-check mb-3">
+              <input
+                id="prodActive"
+                v-model="productForm.is_active"
+                type="checkbox"
+                class="form-check-input custom-check"
+              />
+              <label for="prodActive" class="form-check-label small fw-medium">
+                {{ $t('products.productActiveCheck') }}
+              </label>
+            </div>
+
             <!-- Variants Section -->
             <div class="variants-box p-3 rounded-3 mb-3">
               <div class="d-flex align-items-center justify-content-between mb-2">
@@ -1017,6 +1041,7 @@ const clearFilters = () => {
                   v-for="(v, idx) in productForm.variants"
                   :key="idx"
                   class="variant-row row g-2 align-items-center bg-white p-2 rounded-2 border"
+                  :class="{ 'opacity-75 bg-light': !v.is_active }"
                 >
                   <div class="col-12 col-sm-4">
                     <input
@@ -1060,7 +1085,19 @@ const clearFilters = () => {
                     </div>
                   </div>
 
-                  <div class="col-12 col-sm-2 d-flex align-items-center justify-content-end">
+                  <div class="col-12 col-sm-2 d-flex align-items-center justify-content-end gap-2">
+                    <div
+                      class="form-check form-switch mb-0 d-flex align-items-center"
+                      :title="v.is_active ? $t('common.active') : $t('common.inactive')"
+                    >
+                      <input
+                        :id="`varActive-${idx}`"
+                        v-model="v.is_active"
+                        type="checkbox"
+                        class="form-check-input custom-check mt-0 cursor-pointer"
+                        role="switch"
+                      />
+                    </div>
                     <button
                       type="button"
                       class="btn btn-sm text-danger p-1 border-0"

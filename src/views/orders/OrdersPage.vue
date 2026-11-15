@@ -192,7 +192,7 @@
               <td>
                 <div class="amount-cell tabular">
                   <strong class="amount-cell__usd">{{ formatUsd(ord.total) }}</strong>
-                  <span class="amount-cell__khr">{{ formatKhr(usdToKhr(ord.total)) }}</span>
+                  <span class="amount-cell__khr">{{ formatKhr(usdToKhr(ord.total, ord.exchange_rate)) }}</span>
                 </div>
               </td>
               <td>
@@ -583,6 +583,32 @@
           </tbody>
         </table>
       </div>
+
+      <div v-if="refundPagination.total_pages > 1" class="pagination-bar">
+        <div class="pagination-info tabular">
+          {{ $t('common.pageOf', { page: refundPagination.current_page, total: refundPagination.total_pages }) }}
+        </div>
+        <div class="d-flex gap-2">
+          <button
+            type="button"
+            class="toolbar-btn"
+            :disabled="refundPagination.current_page <= 1"
+            @click="fetchRefunds(refundPagination.current_page - 1)"
+          >
+            <i class="bi bi-chevron-left"></i>
+            <span>{{ $t('common.prev') }}</span>
+          </button>
+          <button
+            type="button"
+            class="toolbar-btn"
+            :disabled="refundPagination.current_page >= refundPagination.total_pages"
+            @click="fetchRefunds(refundPagination.current_page + 1)"
+          >
+            <span>{{ $t('common.next') }}</span>
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- ================= MODAL 1: ORDER DETAILS & RECEIPT REPRINT ================= -->
@@ -744,8 +770,49 @@
                 </div>
                 <div class="d-flex justify-content-between receipt-meta fw-semibold">
                   <span>{{ $t('receipt.totalKhr') }}</span>
-                  <span>{{ formatKhr(usdToKhr(selectedOrder.total)) }}</span>
+                  <span>
+                    {{
+                      formatKhr(
+                        usdToKhr(
+                          selectedOrder.total,
+                          selectedOrder.exchange_rate || selectedOrder.payments?.[0]?.khr_per_usd
+                        )
+                      )
+                    }}
+                  </span>
                 </div>
+
+                <template v-if="selectedOrder.payments?.length > 0">
+                  <div class="receipt-divider"></div>
+                  <div
+                    v-for="p in selectedOrder.payments"
+                    :key="`rcp-pay-${p.id}`"
+                  >
+                    <div class="d-flex justify-content-between receipt-meta">
+                      <span>
+                        {{ $t('receipt.paidBy', { method: getMethodLabel(p.method) }) }}
+                        <template v-if="p.bank_name"> ({{ p.bank_name }})</template>
+                      </span>
+                      <span>
+                        {{ p.currency === 'USD' ? formatUsd(p.received_amount) : formatKhr(p.received_amount) }}
+                      </span>
+                    </div>
+                    <div
+                      v-if="p.change_usd > 0"
+                      class="d-flex justify-content-between receipt-meta"
+                    >
+                      <span>{{ $t('receipt.changeUsd') }}</span>
+                      <span>{{ formatUsd(p.change_usd) }}</span>
+                    </div>
+                    <div
+                      v-if="p.change_khr > 0"
+                      class="d-flex justify-content-between receipt-meta"
+                    >
+                      <span>{{ $t('receipt.changeKhr') }}</span>
+                      <span>{{ formatKhr(p.change_khr) }}</span>
+                    </div>
+                  </div>
+                </template>
 
                 <div class="receipt-divider"></div>
                 <div class="text-center receipt-sub">
@@ -872,13 +939,13 @@
           </div>
 
           <div v-if="!authStore.isOwner" class="mb-3">
-            <label class="form-label-clean">{{ $t('pos.approvedByOwnerId') }} <span class="text-danger">*</span></label>
+            <label class="form-label-clean">{{ $t('pos.ownerPassword') }} <span class="text-danger">*</span></label>
             <input
-              v-model.number="refundForm.approved_by"
-              type="number"
-              min="1"
+              v-model="refundForm.owner_password"
+              type="password"
               class="form-control form-control-clean"
-              placeholder="Active Owner User ID (e.g. 1)"
+              :placeholder="$t('pos.ownerPasswordPlaceholder')"
+              autocomplete="off"
             />
           </div>
 
@@ -1008,6 +1075,12 @@ const paymentFilters = reactive({
 // ================= STATE: REFUNDS =================
 const refundsList = ref([])
 const isLoadingRefunds = ref(false)
+const refundPagination = reactive({
+  current_page: 1,
+  limit: 15,
+  total_items: 0,
+  total_pages: 1,
+})
 const refundFilters = reactive({
   search: '',
 })
@@ -1027,6 +1100,7 @@ const isSubmittingRefund = ref(false)
 const refundForm = reactive({
   reason: '',
   approved_by: 1,
+  owner_password: '',
   reference: '',
 })
 
@@ -1116,11 +1190,14 @@ const resetPaymentFilters = () => {
 const fetchRefunds = async (page = 1) => {
   isLoadingRefunds.value = true
   try {
-    const params = { page, limit: 20 }
+    const params = { page, limit: refundPagination.limit }
     if (refundFilters.search?.trim()) params.search = refundFilters.search.trim()
 
     const res = await api.get('/refunds', { params })
     refundsList.value = res.data?.data || []
+    if (res.data?.pagination) {
+      Object.assign(refundPagination, res.data.pagination)
+    }
   } catch (err) {
     toast.error(err.response?.data?.message || 'Failed to load refunds')
   } finally {
@@ -1192,12 +1269,17 @@ const openRefundModalWithPayment = (payment) => {
   refundForm.reason = ''
   refundForm.reference = ''
   refundForm.approved_by = authStore.isOwner ? authStore.user?.id : 1
+  refundForm.owner_password = ''
   showRefundModal.value = true
 }
 
 const handleConfirmRefund = async () => {
   if (!refundForm.reason || refundForm.reason.trim().length < 3) {
     toast.warning('Refund reason must be at least 3 characters')
+    return
+  }
+  if (!authStore.isOwner && !refundForm.owner_password?.trim()) {
+    toast.warning(t('pos.ownerPasswordRequired'))
     return
   }
   isSubmittingRefund.value = true
@@ -1210,7 +1292,7 @@ const handleConfirmRefund = async () => {
       payload.reference = refundForm.reference.trim()
     }
     if (!authStore.isOwner) {
-      payload.approved_by = Number(refundForm.approved_by) || 1
+      payload.owner_password = refundForm.owner_password
     }
 
     await api.post('/refunds', payload)
