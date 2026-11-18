@@ -89,6 +89,12 @@ const navGroups = computed(() => {
           roles: ['OWNER', 'STAFF'],
         },
         {
+          name: t('nav.discountCodes'),
+          path: '/discount-codes',
+          icon: 'bi-ticket-perforated',
+          roles: ['OWNER'],
+        },
+        {
           name: t('nav.inventory'),
           path: '/inventory',
           icon: 'bi-boxes',
