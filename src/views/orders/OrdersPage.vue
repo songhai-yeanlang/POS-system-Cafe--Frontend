@@ -656,6 +656,18 @@
                   <span class="text-muted">{{ $t('orders.paidAt') }}</span>
                   <span class="text-success fw-semibold">{{ formatDateTime(selectedOrder.paid_at) }}</span>
                 </div>
+                <div
+                  v-if="selectedOrder.discount?.amount > 0"
+                  class="d-flex justify-content-between small mb-2"
+                >
+                  <span class="text-muted">{{ $t('common.discount') }}</span>
+                  <span class="fw-semibold text-success tabular">
+                    <template v-if="selectedOrder.discount?.code">
+                      {{ selectedOrder.discount.code }} •
+                    </template>
+                    -{{ formatUsd(selectedOrder.discount.amount) }}
+                  </span>
+                </div>
                 <div v-if="selectedOrder.cancelled_at" class="d-flex justify-content-between small mb-2">
                   <span class="text-muted">{{ $t('orders.cancelledBy') }}</span>
                   <span class="text-danger">
@@ -761,7 +773,12 @@
                   v-if="selectedOrder.discount?.amount > 0"
                   class="d-flex justify-content-between receipt-meta"
                 >
-                  <span>{{ $t('receipt.discount') }}</span>
+                  <span>
+                    {{ $t('receipt.discount') }}
+                    <template v-if="selectedOrder.discount?.code">
+                      ({{ selectedOrder.discount.code }})
+                    </template>
+                  </span>
                   <span>-{{ formatUsd(selectedOrder.discount.amount) }}</span>
                 </div>
                 <div class="d-flex justify-content-between fw-bold mt-1">

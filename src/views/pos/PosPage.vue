@@ -383,6 +383,7 @@
               :class="{
                 'is-engaged': orderForm.discount_type !== 'NONE' && orderForm.discount_value > 0,
               }"
+              :disabled="cartItems.length === 0"
               @click="showDiscountModal = true"
             >
               <i class="bi bi-tag"></i>
@@ -390,14 +391,24 @@
                 {{ $t('pos.addDiscount') }}
               </span>
               <span v-else class="tabular">
-                {{
-                  $t('pos.discountApplied', {
-                    val:
-                      orderForm.discount_type === 'PERCENT'
-                        ? `${orderForm.discount_value}%`
-                        : formatUsd(orderForm.discount_value),
-                  })
-                }}
+                <template v-if="orderForm.discount_code">
+                  {{ orderForm.discount_code }}
+                  ({{
+                    orderForm.discount_type === 'PERCENT'
+                      ? `${orderForm.discount_value}%`
+                      : formatUsd(orderForm.discount_value)
+                  }})
+                </template>
+                <template v-else>
+                  {{
+                    $t('pos.discountApplied', {
+                      val:
+                        orderForm.discount_type === 'PERCENT'
+                          ? `${orderForm.discount_value}%`
+                          : formatUsd(orderForm.discount_value),
+                    })
+                  }}
+                </template>
               </span>
             </button>
 
@@ -423,7 +434,10 @@
               <div v-if="cartDiscountAmount > 0" class="register-line is-discount">
                 <span>
                   {{ $t('common.discount') }}
-                  <template v-if="orderForm.discount_type === 'PERCENT'">
+                  <template v-if="orderForm.discount_code">
+                    ({{ orderForm.discount_code }})
+                  </template>
+                  <template v-else-if="orderForm.discount_type === 'PERCENT'">
                     ({{ orderForm.discount_value }}%)
                   </template>
                 </span>
@@ -774,82 +788,193 @@
         </header>
 
         <div class="pos-dialog__body">
-          <section class="field-group">
-            <label class="field-group__label">{{ $t('pos.discountType') }}</label>
-            <div class="calibration-strip">
-              <button
-                type="button"
-                class="calibration-pill flex-grow-1"
-                :class="{ 'is-selected': discountDraft.type === 'NONE' }"
-                @click="discountDraft.type = 'NONE'"
-              >
-                {{ $t('pos.none') }}
-              </button>
-              <button
-                type="button"
-                class="calibration-pill flex-grow-1"
-                :class="{ 'is-selected': discountDraft.type === 'PERCENT' }"
-                @click="discountDraft.type = 'PERCENT'"
-              >
-                {{ $t('pos.percent') }}
-              </button>
-              <button
-                type="button"
-                class="calibration-pill flex-grow-1"
-                :class="{ 'is-selected': discountDraft.type === 'FIXED' }"
-                @click="discountDraft.type = 'FIXED'"
-              >
-                {{ $t('pos.fixed') }}
-              </button>
+          <!-- Mode Tabs (Owner can choose Promo Code or Manual Discount; Staff uses Promo Code only) -->
+          <div v-if="authStore.isOwner" class="calibration-strip mb-3">
+            <button
+              type="button"
+              class="calibration-pill flex-grow-1"
+              :class="{ 'is-selected': discountDraft.mode === 'CODE' }"
+              @click="discountDraft.mode = 'CODE'"
+            >
+              <i class="bi bi-ticket-perforated me-1"></i>
+              {{ $t('pos.discountModeCode') }}
+            </button>
+            <button
+              type="button"
+              class="calibration-pill flex-grow-1"
+              :class="{ 'is-selected': discountDraft.mode === 'MANUAL' }"
+              @click="discountDraft.mode = 'MANUAL'"
+            >
+              <i class="bi bi-sliders me-1"></i>
+              {{ $t('pos.discountModeManual') }}
+            </button>
+          </div>
+
+          <!-- MODE A: PROMO / DISCOUNT CODE -->
+          <template v-if="discountDraft.mode === 'CODE' || !authStore.isOwner">
+            <section class="field-group">
+              <label class="field-group__label">
+                {{ $t('pos.enterPromoCode') }}
+              </label>
+              <div class="promo-input-row">
+                <input
+                  :value="discountDraft.code"
+                  type="text"
+                  class="pos-input text-uppercase fw-bold tabular"
+                  :placeholder="$t('pos.promoCodePlaceholder')"
+                  maxlength="50"
+                  @input="onPromoCodeInput"
+                  @keyup.enter.prevent="verifyPromoCode()"
+                />
+                <button
+                  type="button"
+                  class="pos-btn pos-btn--primary promo-verify-btn"
+                  :disabled="isValidatingPromo || !discountDraft.code.trim()"
+                  @click="verifyPromoCode()"
+                >
+                  <span v-if="isValidatingPromo" class="spinner-border spinner-border-sm"></span>
+                  <span v-else>{{ $t('pos.verifyCode') }}</span>
+                </button>
+              </div>
+              <p v-if="promoValidationError" class="promo-error-text">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <span>{{ promoValidationError }}</span>
+              </p>
+              <p v-else-if="!verifiedPromo" class="field-group__hint">{{ $t('pos.promoCodeStaffHint') }}</p>
+            </section>
+
+            <!-- Verified Promo Code Preview Card -->
+            <div v-if="verifiedPromo" class="promo-verified-card mb-3">
+              <div class="promo-verified-card__icon">
+                <i class="bi bi-check2"></i>
+              </div>
+              <div class="promo-verified-card__info">
+                <div class="promo-verified-card__title">{{ verifiedPromo.name }}</div>
+                <div class="promo-verified-card__sub tabular">
+                  <span class="promo-verified-card__code">{{ verifiedPromo.code }}</span>
+                  <template v-if="verifiedPromo.discount_type === 'PERCENT'">
+                    <span>•</span>
+                    <span>{{ verifiedPromo.discount_value }}%</span>
+                  </template>
+                  <template v-if="verifiedPromo.remaining_uses !== null">
+                    <span>•</span>
+                    <span>{{ $t('pos.promoRemaining', { count: verifiedPromo.remaining_uses }) }}</span>
+                  </template>
+                </div>
+              </div>
+              <div class="promo-verified-card__amount tabular">
+                -{{ formatUsd(verifiedPromo.calculated_discount_amount || 0) }}
+              </div>
             </div>
-          </section>
 
-          <template v-if="discountDraft.type !== 'NONE'">
+            <!-- Quick Pick Active Promo Codes (OWNER only — hidden from STAFF) -->
+            <section v-if="authStore.isOwner" class="field-group mb-0">
+              <div class="field-group__head">
+                <label class="field-group__label">{{ $t('pos.availablePromoCodes') }}</label>
+                <span v-if="isLoadingPromoCodes" class="field-group__meta">
+                  <span class="spinner-border spinner-border-sm"></span>
+                </span>
+              </div>
+
+              <div v-if="!isLoadingPromoCodes && availablePromoCodes.length === 0" class="promo-empty-hint">
+                {{ $t('pos.noActivePromoCodes') }}
+              </div>
+
+              <div v-else class="promo-quick-list">
+                <button
+                  v-for="pc in availablePromoCodes"
+                  :key="pc.id"
+                  type="button"
+                  class="promo-quick-chip"
+                  :class="{ 'is-selected': verifiedPromo?.id === pc.id }"
+                  @click="pickAndVerifyPromo(pc)"
+                >
+                  <div class="promo-quick-chip__left">
+                    <strong class="promo-quick-chip__code tabular">{{ pc.code }}</strong>
+                    <span class="promo-quick-chip__name">{{ pc.name }}</span>
+                  </div>
+                  <div class="promo-quick-chip__right tabular">
+                    <span class="promo-quick-chip__val">
+                      {{
+                        pc.discount_type === 'PERCENT'
+                          ? `${pc.discount_value}%`
+                          : formatUsd(pc.discount_value)
+                      }}
+                    </span>
+                    <span v-if="pc.min_order_amount > 0" class="promo-quick-chip__min">
+                      ≥ {{ formatUsd(pc.min_order_amount) }}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            </section>
+          </template>
+
+          <!-- MODE B: OWNER MANUAL DISCOUNT -->
+          <template v-else>
             <section class="field-group">
-              <label class="field-group__label">
-                {{
-                  discountDraft.type === 'PERCENT'
-                    ? $t('pos.percentageRange')
-                    : $t('pos.amountInUsd')
-                }}
-              </label>
-              <input
-                v-model.number="discountDraft.value"
-                type="number"
-                step="0.01"
-                min="0"
-                :max="discountDraft.type === 'PERCENT' ? 100 : cartSubtotal"
-                class="pos-input tabular"
-                placeholder="0.00"
-              />
+              <label class="field-group__label">{{ $t('pos.discountType') }}</label>
+              <div class="calibration-strip">
+                <button
+                  type="button"
+                  class="calibration-pill flex-grow-1"
+                  :class="{ 'is-selected': discountDraft.type === 'NONE' }"
+                  @click="discountDraft.type = 'NONE'"
+                >
+                  {{ $t('pos.none') }}
+                </button>
+                <button
+                  type="button"
+                  class="calibration-pill flex-grow-1"
+                  :class="{ 'is-selected': discountDraft.type === 'PERCENT' }"
+                  @click="discountDraft.type = 'PERCENT'"
+                >
+                  {{ $t('pos.percent') }}
+                </button>
+                <button
+                  type="button"
+                  class="calibration-pill flex-grow-1"
+                  :class="{ 'is-selected': discountDraft.type === 'FIXED' }"
+                  @click="discountDraft.type = 'FIXED'"
+                >
+                  {{ $t('pos.fixed') }}
+                </button>
+              </div>
             </section>
 
-            <section class="field-group">
-              <label class="field-group__label">
-                {{ $t('pos.discountReason') }} <span class="text-danger">*</span>
-              </label>
-              <input
-                v-model="discountDraft.reason"
-                type="text"
-                class="pos-input"
-                :placeholder="$t('pos.discountReasonPlaceholder')"
-                maxlength="255"
-              />
-            </section>
+            <template v-if="discountDraft.type !== 'NONE'">
+              <section class="field-group">
+                <label class="field-group__label">
+                  {{
+                    discountDraft.type === 'PERCENT'
+                      ? $t('pos.percentageRange')
+                      : $t('pos.amountInUsd')
+                  }}
+                </label>
+                <input
+                  v-model.number="discountDraft.value"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  :max="discountDraft.type === 'PERCENT' ? 100 : cartSubtotal"
+                  class="pos-input tabular"
+                  placeholder="0.00"
+                />
+              </section>
 
-            <section v-if="!authStore.isOwner" class="field-group mb-0">
-              <label class="field-group__label">
-                {{ $t('pos.ownerPassword') }} <span class="text-danger">*</span>
-              </label>
-              <input
-                v-model="discountDraft.owner_password"
-                type="password"
-                class="pos-input"
-                :placeholder="$t('pos.ownerPasswordPlaceholder')"
-                autocomplete="off"
-              />
-              <p class="field-group__hint">{{ $t('pos.discountOwnerHint') }}</p>
-            </section>
+              <section class="field-group mb-0">
+                <label class="field-group__label">
+                  {{ $t('pos.discountReason') }} <span class="text-danger">*</span>
+                </label>
+                <input
+                  v-model="discountDraft.reason"
+                  type="text"
+                  class="pos-input"
+                  :placeholder="$t('pos.discountReasonPlaceholder')"
+                  maxlength="255"
+                />
+              </section>
+            </template>
           </template>
         </div>
 
@@ -860,6 +985,7 @@
           <button
             type="button"
             class="pos-btn pos-btn--primary flex-grow-1 justify-content-center"
+            :disabled="isValidatingPromo"
             @click="applyDiscountDraft"
           >
             {{ $t('pos.applyDiscount') }}
@@ -1400,7 +1526,12 @@
               v-if="completedReceipt.order.discount?.amount > 0"
               class="d-flex justify-content-between receipt-meta"
             >
-              <span>{{ $t('receipt.discount') }}</span>
+              <span>
+                {{ $t('receipt.discount') }}
+                <template v-if="completedReceipt.order.discount?.code">
+                  ({{ completedReceipt.order.discount.code }})
+                </template>
+              </span>
               <span>-{{ formatUsd(completedReceipt.order.discount.amount) }}</span>
             </div>
             <div class="d-flex justify-content-between fw-bold mt-1">
@@ -1711,11 +1842,12 @@ const orderForm = reactive({
   order_type: 'TAKEAWAY',
   table_no: '',
   note: '',
+  discount_code_id: null,
+  discount_code: '',
   discount_type: 'NONE',
   discount_value: 0,
   discount_reason: '',
   discount_approved_by: null,
-  discount_owner_password: '',
 })
 
 // ================= STATE: ITEM CUSTOMIZE MODAL =================
@@ -1783,12 +1915,18 @@ const normalizeSugar = () => {
 // ================= STATE: DISCOUNT & NOTE MODALS =================
 const showDiscountModal = ref(false)
 const showNoteModal = ref(false)
+const availablePromoCodes = ref([])
+const isLoadingPromoCodes = ref(false)
+const isValidatingPromo = ref(false)
+const promoValidationError = ref('')
+const verifiedPromo = ref(null)
+
 const discountDraft = reactive({
+  mode: 'CODE', // 'CODE' | 'MANUAL' (OWNER only)
+  code: '',
   type: 'NONE',
   value: 0,
   reason: '',
-  approved_by: 1,
-  owner_password: '',
 })
 
 // ================= STATE: PAYMENT MODAL =================
@@ -2274,27 +2412,154 @@ const formatIceLabel = (ice) => {
 }
 
 // ================= METHODS: DISCOUNT =================
+const fetchAvailablePromoCodes = async () => {
+  isLoadingPromoCodes.value = true
+  try {
+    const res = await api.get('/discount-codes', { params: { valid_only: true, limit: 30 } })
+    availablePromoCodes.value = res.data?.data || []
+  } catch {
+    availablePromoCodes.value = []
+  } finally {
+    isLoadingPromoCodes.value = false
+  }
+}
+
+const onPromoCodeInput = (e) => {
+  discountDraft.code = String(e.target.value || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]/g, '')
+  promoValidationError.value = ''
+  if (verifiedPromo.value && verifiedPromo.value.code !== discountDraft.code) {
+    verifiedPromo.value = null
+  }
+}
+
+const verifyPromoCode = async (overrideCode = null) => {
+  const rawCode = typeof overrideCode === 'string' ? overrideCode : discountDraft.code
+  const codeToCheck = String(rawCode || '').trim().toUpperCase()
+  if (!codeToCheck) {
+    promoValidationError.value = t('pos.promoCodeRequired')
+    return false
+  }
+
+  discountDraft.code = codeToCheck
+  promoValidationError.value = ''
+  isValidatingPromo.value = true
+
+  try {
+    const payload = {
+      code: codeToCheck,
+      subtotal: cartSubtotal.value,
+    }
+    if (editingOrder.value?.id) {
+      payload.order_id = editingOrder.value.id
+    }
+    const res = await api.post('/discount-codes/validate', payload)
+    verifiedPromo.value = res.data?.data || null
+    return Boolean(verifiedPromo.value)
+  } catch (err) {
+    verifiedPromo.value = null
+    promoValidationError.value =
+      err.response?.data?.errors?.[0]?.message ||
+      err.response?.data?.message ||
+      'Invalid discount code'
+    return false
+  } finally {
+    isValidatingPromo.value = false
+  }
+}
+
+// Keep applied discount consistent if cart items are removed or subtotal drops below a FIXED discount
+watch(cartSubtotal, (newSub) => {
+  if (newSub <= 0) {
+    if (orderForm.discount_type !== 'NONE' || orderForm.discount_code) {
+      orderForm.discount_code_id = null
+      orderForm.discount_code = ''
+      orderForm.discount_type = 'NONE'
+      orderForm.discount_value = 0
+      orderForm.discount_reason = ''
+      orderForm.discount_approved_by = null
+    }
+    return
+  }
+
+  if (orderForm.discount_type === 'FIXED' && Number(orderForm.discount_value) > newSub) {
+    const removedCode = orderForm.discount_code
+    orderForm.discount_code_id = null
+    orderForm.discount_code = ''
+    orderForm.discount_type = 'NONE'
+    orderForm.discount_value = 0
+    orderForm.discount_reason = ''
+    orderForm.discount_approved_by = null
+    toast.warning(
+      removedCode
+        ? `Discount code '${removedCode}' was removed because the order subtotal is lower than the discount amount`
+        : 'Fixed discount was removed because the order subtotal is lower than the discount amount'
+    )
+  }
+})
+
+const pickAndVerifyPromo = async (promo) => {
+  discountDraft.code = promo.code
+  await verifyPromoCode(promo.code)
+}
+
 watch(showDiscountModal, (val) => {
   if (val) {
+    promoValidationError.value = ''
+    verifiedPromo.value = null
+    discountDraft.code = orderForm.discount_code || ''
     discountDraft.type = orderForm.discount_type
     discountDraft.value = orderForm.discount_value
     discountDraft.reason = orderForm.discount_reason
-    discountDraft.approved_by =
-      orderForm.discount_approved_by || (authStore.isOwner ? authStore.user?.id : 1)
-    discountDraft.owner_password = orderForm.discount_owner_password || ''
+    discountDraft.mode =
+      !authStore.isOwner || orderForm.discount_code || orderForm.discount_type === 'NONE'
+        ? 'CODE'
+        : 'MANUAL'
+
+    if (authStore.isOwner) {
+      fetchAvailablePromoCodes()
+    }
+    if (orderForm.discount_code) {
+      verifyPromoCode(orderForm.discount_code)
+    }
   }
 })
 
 const clearDiscount = () => {
+  orderForm.discount_code_id = null
+  orderForm.discount_code = ''
   orderForm.discount_type = 'NONE'
   orderForm.discount_value = 0
   orderForm.discount_reason = ''
   orderForm.discount_approved_by = null
-  orderForm.discount_owner_password = ''
+  verifiedPromo.value = null
+  promoValidationError.value = ''
   showDiscountModal.value = false
 }
 
-const applyDiscountDraft = () => {
+const applyDiscountDraft = async () => {
+  if (discountDraft.mode === 'CODE' || !authStore.isOwner) {
+    if (!discountDraft.code.trim()) {
+      clearDiscount()
+      return
+    }
+    if (!verifiedPromo.value || verifiedPromo.value.code !== discountDraft.code.trim().toUpperCase()) {
+      const ok = await verifyPromoCode()
+      if (!ok) return
+    }
+    const promo = verifiedPromo.value
+    orderForm.discount_code_id = promo.id
+    orderForm.discount_code = promo.code
+    orderForm.discount_type = promo.discount_type
+    orderForm.discount_value = Number(promo.discount_value)
+    orderForm.discount_reason = `${promo.code} - ${promo.name}`
+    orderForm.discount_approved_by = promo.created_by?.id || null
+    showDiscountModal.value = false
+    return
+  }
+
+  // OWNER Manual Discount Mode
   if (discountDraft.type === 'NONE' || Number(discountDraft.value) <= 0) {
     clearDiscount()
     return
@@ -2311,18 +2576,13 @@ const applyDiscountDraft = () => {
     toast.warning('Fixed discount cannot exceed subtotal')
     return
   }
-  if (!authStore.isOwner && !discountDraft.owner_password?.trim()) {
-    toast.warning(t('pos.ownerPasswordRequired'))
-    return
-  }
 
+  orderForm.discount_code_id = null
+  orderForm.discount_code = ''
   orderForm.discount_type = discountDraft.type
   orderForm.discount_value = Number(discountDraft.value)
   orderForm.discount_reason = discountDraft.reason.trim()
-  orderForm.discount_approved_by = authStore.isOwner
-    ? authStore.user?.id
-    : Number(discountDraft.approved_by) || 1
-  orderForm.discount_owner_password = authStore.isOwner ? '' : discountDraft.owner_password
+  orderForm.discount_approved_by = authStore.user?.id || null
   showDiscountModal.value = false
 }
 
@@ -2357,13 +2617,22 @@ const buildOrderPayload = () => {
     payload.table_no = orderForm.table_no.trim()
   }
 
-  if (orderForm.discount_type !== 'NONE' && orderForm.discount_value > 0) {
+  if (orderForm.discount_code) {
+    payload.discount_code = orderForm.discount_code
+    if (orderForm.discount_code_id) {
+      payload.discount_code_id = orderForm.discount_code_id
+    }
+    if (orderForm.discount_reason) {
+      payload.discount_reason = orderForm.discount_reason
+    }
+  } else if (orderForm.discount_type !== 'NONE' && orderForm.discount_value > 0) {
     payload.discount_reason = orderForm.discount_reason
     if (authStore.isOwner) {
       payload.discount_approved_by = authStore.user?.id
-    } else if (orderForm.discount_owner_password) {
-      payload.owner_password = orderForm.discount_owner_password
     }
+  } else {
+    payload.discount_code = null
+    payload.discount_code_id = null
   }
 
   return payload
@@ -2376,11 +2645,12 @@ const resetCart = () => {
   orderForm.order_type = 'TAKEAWAY'
   orderForm.table_no = ''
   orderForm.note = ''
+  orderForm.discount_code_id = null
+  orderForm.discount_code = ''
   orderForm.discount_type = 'NONE'
   orderForm.discount_value = 0
   orderForm.discount_reason = ''
   orderForm.discount_approved_by = null
-  orderForm.discount_owner_password = ''
 
   if (route.query.orderId) {
     router.replace({ path: '/pos', query: {} })
@@ -2526,6 +2796,8 @@ const loadOrderIntoCart = async (orderId) => {
     orderForm.order_type = ord.order_type || 'TAKEAWAY'
     orderForm.table_no = ord.table_no || ''
     orderForm.note = ord.note || ''
+    orderForm.discount_code_id = ord.discount?.code_id || null
+    orderForm.discount_code = ord.discount?.code || ''
     orderForm.discount_type = ord.discount?.type || 'NONE'
     orderForm.discount_value = Number(ord.discount?.value) || 0
     orderForm.discount_reason = ord.discount?.reason || ''
@@ -3517,9 +3789,14 @@ onUnmounted(() => {
   transition: border-color 0.12s ease, color 0.12s ease, background-color 0.12s ease;
 }
 
-.adjustment-chip:hover {
+.adjustment-chip:hover:not(:disabled) {
   color: var(--roast-ink);
   border-color: #b7c6bc;
+}
+
+.adjustment-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .adjustment-chip.is-engaged {
@@ -4951,6 +5228,183 @@ onUnmounted(() => {
   font-size: 0.92rem;
   font-weight: 700;
   color: var(--botanical-espresso);
+}
+
+/* Promo Code Modal Styles */
+.promo-input-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+
+.promo-input-row .pos-input {
+  flex: 1;
+}
+
+.promo-input-row .pos-input::placeholder {
+  color: #a3b2a9;
+  font-weight: 400;
+  text-transform: none;
+  opacity: 1;
+}
+
+.promo-verify-btn {
+  padding: 0 0.95rem;
+  white-space: nowrap;
+}
+
+.promo-error-text {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.promo-verified-card {
+  display: flex;
+  align-items: center;
+  gap: 0.72rem;
+  background: #f5faf7;
+  border: 1px solid #cde2d5;
+  border-radius: 10px;
+  padding: 0.72rem 0.88rem;
+}
+
+.promo-verified-card__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2d5a43;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.promo-verified-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.promo-verified-card__title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #193e2b;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.promo-verified-card__sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 2px;
+  font-size: 0.73rem;
+  color: #5b7064;
+}
+
+.promo-verified-card__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  color: #2d5a43;
+}
+
+.promo-verified-card__amount {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #166534;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.promo-empty-hint {
+  font-size: 0.76rem;
+  color: var(--sage-muted);
+  background: #f8fbf9;
+  border: 1px dashed #d5e3db;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  text-align: center;
+}
+
+.promo-quick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 175px;
+  overflow-y: auto;
+}
+
+.promo-quick-chip {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.52rem 0.72rem;
+  border-radius: 9px;
+  border: 1.5px solid #e1ebe5;
+  background: #f9fbf9;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.promo-quick-chip:hover {
+  border-color: #9dc5ae;
+  background: #f1f8f4;
+}
+
+.promo-quick-chip.is-selected {
+  border-color: #2d5a43;
+  background: #eaf5ee;
+}
+
+.promo-quick-chip__left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.promo-quick-chip__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #193e2b;
+}
+
+.promo-quick-chip__name {
+  font-size: 0.73rem;
+  color: #556c5e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.promo-quick-chip__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.promo-quick-chip__val {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #166534;
+}
+
+.promo-quick-chip__min {
+  font-size: 0.69rem;
+  color: #62756a;
 }
 
 /* Thermal Receipt */

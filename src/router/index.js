@@ -7,6 +7,7 @@ import VerifyOtp from '@/views/auth/VerifyOtp.vue'
 import ResetPassword from '@/views/auth/ResetPassword.vue'
 import SettingsPage from '@/views/settings/SettingsPage.vue'
 import ProductsPage from '@/views/products/ProductsPage.vue'
+import DiscountCodesPage from '@/views/discount-codes/DiscountCodesPage.vue'
 import UsersPage from '@/views/users/UsersPage.vue'
 import ProfilePage from '@/views/profile/ProfilePage.vue'
 import ShiftsPage from '@/views/shifts/ShiftsPage.vue'
@@ -78,6 +79,16 @@ const router = createRouter({
             title: 'Products & Categories',
             icon: 'bi-cup-hot',
             roles: ['OWNER', 'STAFF'],
+          },
+        },
+        {
+          path: 'discount-codes',
+          name: 'discount-codes',
+          component: DiscountCodesPage,
+          meta: {
+            title: 'Discount Codes & Promotions',
+            icon: 'bi-ticket-perforated',
+            roles: ['OWNER'],
           },
         },
         {
