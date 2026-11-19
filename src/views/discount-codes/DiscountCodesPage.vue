@@ -60,8 +60,10 @@ const getValiditySubtext = (item) => {
   if (item.is_not_started) return t('discountCodes.statusScheduled')
   const now = new Date()
   const exp = new Date(item.expires_at)
-  const diffMs = exp.getTime() - now.getTime()
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  if (isNaN(exp.getTime())) return t('discountCodes.noExpiry')
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const expStart = new Date(exp.getFullYear(), exp.getMonth(), exp.getDate())
+  const diffDays = Math.round((expStart.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24))
   if (diffDays <= 0) return t('discountCodes.endsToday')
   return t('discountCodes.daysLeft', { days: diffDays })
 }
@@ -121,7 +123,7 @@ const fetchDiscountCodes = async (page = 1) => {
       pagination.totalPages = res.data.pagination.totalPages || 1
     }
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Failed to load discount codes')
+    toast.error(err.response?.data?.message || t('discountCodes.loadFailed'))
   } finally {
     isLoading.value = false
   }
@@ -149,6 +151,7 @@ onMounted(() => {
 const showFormModal = ref(false)
 const isSaving = ref(false)
 const editingId = ref(null)
+const editingUsedCount = ref(0)
 
 const form = reactive({
   code: '',
@@ -156,7 +159,6 @@ const form = reactive({
   description: '',
   discount_type: 'PERCENT',
   discount_value: '',
-  min_order_amount: 0,
   max_uses: '',
   starts_at: '',
   expires_at: '',
@@ -167,6 +169,7 @@ const formErrors = reactive({
   code: '',
   name: '',
   discount_value: '',
+  max_uses: '',
   dates: '',
 })
 
@@ -174,17 +177,18 @@ const clearFormErrors = () => {
   formErrors.code = ''
   formErrors.name = ''
   formErrors.discount_value = ''
+  formErrors.max_uses = ''
   formErrors.dates = ''
 }
 
 const openCreateModal = () => {
   editingId.value = null
+  editingUsedCount.value = 0
   form.code = ''
   form.name = ''
   form.description = ''
   form.discount_type = 'PERCENT'
   form.discount_value = ''
-  form.min_order_amount = 0
   form.max_uses = ''
   form.starts_at = ''
   form.expires_at = ''
@@ -195,13 +199,13 @@ const openCreateModal = () => {
 
 const openEditModal = (item) => {
   editingId.value = item.id
+  editingUsedCount.value = Number(item.used_count || 0)
   form.code = item.code || ''
   form.name = item.name || ''
   form.description = item.description || ''
   form.discount_type = item.discount_type || 'PERCENT'
   form.discount_value = Number(item.discount_value)
-  form.min_order_amount = Number(item.min_order_amount || 0)
-  form.max_uses = item.max_uses !== null && item.max_uses !== undefined ? item.max_uses : ''
+  form.max_uses = item.max_uses !== null && item.max_uses !== undefined ? String(item.max_uses) : ''
   form.starts_at = formatShortDate(item.starts_at)
   form.expires_at = formatShortDate(item.expires_at)
   form.is_active = Boolean(item.is_active)
@@ -210,6 +214,7 @@ const openEditModal = (item) => {
 }
 
 const closeFormModal = () => {
+  if (isSaving.value) return
   showFormModal.value = false
 }
 
@@ -219,35 +224,57 @@ const onCodeInput = (e) => {
     .replace(/[^A-Z0-9_-]/g, '')
 }
 
+const parseMaxUsesInput = () => {
+  if (form.max_uses === '' || form.max_uses === null || form.max_uses === undefined) {
+    return null
+  }
+  const trimmed = String(form.max_uses).trim()
+  if (trimmed === '') return null
+  return Number(trimmed)
+}
+
 const validateForm = () => {
   clearFormErrors()
   let valid = true
 
   const cleanCode = form.code.trim().toUpperCase()
   if (cleanCode.length < 2) {
-    formErrors.code = 'Code must be at least 2 characters (letters, numbers, -, _)'
+    formErrors.code = t('discountCodes.validationCodeMin')
     valid = false
   } else if (!/^[A-Z0-9_-]+$/.test(cleanCode)) {
-    formErrors.code = 'Only letters, numbers, hyphens (-), and underscores (_) allowed'
+    formErrors.code = t('discountCodes.validationCodePattern')
     valid = false
   }
 
   if (!form.name.trim()) {
-    formErrors.name = 'Promotion name is required'
+    formErrors.name = t('discountCodes.validationNameRequired')
     valid = false
   }
 
   const val = Number(form.discount_value)
   if (!val || isNaN(val) || val <= 0) {
-    formErrors.discount_value = 'Discount value must be greater than 0'
+    formErrors.discount_value = t('discountCodes.validationValuePositive')
     valid = false
   } else if (form.discount_type === 'PERCENT' && val > 100) {
-    formErrors.discount_value = 'Percentage discount cannot exceed 100%'
+    formErrors.discount_value = t('discountCodes.validationPercentMax')
     valid = false
   }
 
+  const parsedMaxUses = parseMaxUsesInput()
+  if (parsedMaxUses !== null) {
+    if (!Number.isInteger(parsedMaxUses) || parsedMaxUses < 1) {
+      formErrors.max_uses = t('discountCodes.validationMaxUsesInteger')
+      valid = false
+    } else if (editingId.value && editingUsedCount.value > 0 && parsedMaxUses < editingUsedCount.value) {
+      formErrors.max_uses = t('discountCodes.validationMaxUsesBelowUsed', {
+        used: editingUsedCount.value,
+      })
+      valid = false
+    }
+  }
+
   if (form.starts_at && form.expires_at && form.expires_at < form.starts_at) {
-    formErrors.dates = 'Expiry date must be on or after the start date'
+    formErrors.dates = t('discountCodes.validationDatesOrder')
     valid = false
   }
 
@@ -259,6 +286,7 @@ const handleSave = async () => {
 
   isSaving.value = true
   try {
+    const parsedMaxUses = parseMaxUsesInput()
     const payload = {
       code: form.code.trim().toUpperCase(),
       name: form.name.trim(),
@@ -266,10 +294,7 @@ const handleSave = async () => {
       discount_type: form.discount_type,
       discount_value: Number(Number(form.discount_value).toFixed(2)),
       min_order_amount: 0,
-      max_uses:
-        form.max_uses !== '' && form.max_uses !== null && Number(form.max_uses) > 0
-          ? parseInt(form.max_uses, 10)
-          : null,
+      max_uses: parsedMaxUses,
       starts_at: form.starts_at || null,
       expires_at: form.expires_at || null,
       is_active: Boolean(form.is_active),
@@ -277,19 +302,20 @@ const handleSave = async () => {
 
     if (editingId.value) {
       await api.put(`/discount-codes/${editingId.value}`, payload)
-      toast.success(`Discount code '${payload.code}' updated`)
+      toast.success(t('discountCodes.updatedSuccess', { code: payload.code }))
     } else {
       await api.post('/discount-codes', payload)
-      toast.success(`Discount code '${payload.code}' created`)
+      toast.success(t('discountCodes.createdSuccess', { code: payload.code }))
     }
 
-    closeFormModal()
+    isSaving.value = false
+    showFormModal.value = false
     await fetchDiscountCodes(editingId.value ? pagination.page : 1)
   } catch (err) {
     toast.error(
       err.response?.data?.errors?.[0]?.message ||
         err.response?.data?.message ||
-        'Failed to save discount code'
+        t('discountCodes.saveFailed')
     )
   } finally {
     isSaving.value = false
@@ -298,17 +324,23 @@ const handleSave = async () => {
 
 // Quick toggle active status
 const togglingId = ref(null)
-const handleToggleActive = async (item) => {
+const handleToggleActive = async (item, event) => {
   if (!isOwner.value || togglingId.value) return
   togglingId.value = item.id
+  const nextActive = !item.is_active
   try {
-    await api.put(`/discount-codes/${item.id}`, { is_active: !item.is_active })
+    await api.put(`/discount-codes/${item.id}`, { is_active: nextActive })
     toast.success(
-      `Code '${item.code}' ${!item.is_active ? 'activated' : 'deactivated'}`
+      t(nextActive ? 'discountCodes.activatedSuccess' : 'discountCodes.deactivatedSuccess', {
+        code: item.code,
+      })
     )
     await fetchDiscountCodes(pagination.page)
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Failed to update status')
+    if (event?.target) {
+      event.target.checked = Boolean(item.is_active)
+    }
+    toast.error(err.response?.data?.message || t('discountCodes.statusUpdateFailed'))
   } finally {
     togglingId.value = null
   }
@@ -337,11 +369,11 @@ const handleConfirmDelete = async () => {
   deleteModal.isDeleting = true
   try {
     await api.delete(`/discount-codes/${deleteModal.id}`)
-    toast.success(`Discount code '${deleteModal.code}' deleted`)
+    toast.success(t('discountCodes.deletedSuccess', { code: deleteModal.code }))
     deleteModal.show = false
     await fetchDiscountCodes(1)
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Failed to delete discount code')
+    toast.error(err.response?.data?.message || t('discountCodes.deleteFailed'))
   } finally {
     deleteModal.isDeleting = false
   }
@@ -513,7 +545,7 @@ const handleConfirmDelete = async () => {
                 </div>
               </td>
 
-              <!-- 2. Discount Value & Minimum Order -->
+              <!-- 2. Discount Value -->
               <td>
                 <div class="value-cell tabular">
                   <div class="value-cell__main">
@@ -531,9 +563,6 @@ const handleConfirmDelete = async () => {
                           : $t('discountCodes.typeFixedShort')
                       }}
                     </span>
-                  </div>
-                  <div v-if="item.min_order_amount > 0" class="cell-sub">
-                    {{ $t('discountCodes.minOrder', { amount: formatUsd(item.min_order_amount) }) }}
                   </div>
                 </div>
               </td>
@@ -599,7 +628,7 @@ const handleConfirmDelete = async () => {
                       type="checkbox"
                       :checked="item.is_active"
                       :disabled="togglingId === item.id"
-                      @change="handleToggleActive(item)"
+                      @change="handleToggleActive(item, $event)"
                     />
                     <span class="switch-slider"></span>
                   </label>
@@ -764,7 +793,7 @@ const handleConfirmDelete = async () => {
               </div>
             </div>
 
-            <!-- Section 2: Conditions & Validity -->
+            <!-- Section 2: Usage Limit & Validity -->
             <div class="form-section mb-2">
               <div class="form-section__title">{{ $t('discountCodes.sectionRules') }}</div>
 
@@ -776,7 +805,7 @@ const handleConfirmDelete = async () => {
                   <input
                     v-model="form.max_uses"
                     type="number"
-                    min="1"
+                    :min="editingId && editingUsedCount > 0 ? editingUsedCount : 1"
                     step="1"
                     class="form-control clean-input tabular"
                     :placeholder="$t('discountCodes.unlimited')"
@@ -805,9 +834,13 @@ const handleConfirmDelete = async () => {
                   />
                 </div>
 
+                <div v-if="formErrors.max_uses" class="col-12 mt-1">
+                  <div class="text-danger small">{{ formErrors.max_uses }}</div>
+                </div>
                 <div v-if="formErrors.dates" class="col-12 mt-1">
                   <div class="text-danger small">{{ formErrors.dates }}</div>
                 </div>
+                
               </div>
             </div>
 
@@ -858,7 +891,7 @@ const handleConfirmDelete = async () => {
       <div
         v-if="deleteModal.show"
         class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3"
-        @click.self="deleteModal.show = false"
+        @click.self="!deleteModal.isDeleting && (deleteModal.show = false)"
       >
         <div class="modal-card bg-white p-4" style="max-width: 400px">
           <h5 class="fw-semibold mb-2 text-danger">{{ $t('discountCodes.deleteTitle') }}</h5>
@@ -891,22 +924,9 @@ const handleConfirmDelete = async () => {
 
 <style scoped>
 .discounts-page {
-  --botanical-primary: #2d5a43;
-  --botanical-deep: #193e2b;
-  --botanical-tint: #eaf5ee;
-  --botanical-border: #3b7054;
-  --ledger-line: #dce6e0;
-  --ledger-hairline: #edf3ef;
-  --roast-ink: #1b2820;
-  --sage-muted: #66796e;
-
   width: 100%;
   max-width: 1560px;
   margin: 0 auto;
-}
-
-.tabular {
-  font-variant-numeric: tabular-nums;
 }
 
 /* ── Top Bar: Segmented Tabs & Primary Action ── */
@@ -929,219 +949,12 @@ const handleConfirmDelete = async () => {
   border-radius: 10px;
 }
 
-.seg-tab-btn {
-  border: none;
-  background: transparent;
-  padding: 0.44rem 0.92rem;
-  border-radius: 7px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #4f6356;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.seg-tab-btn:hover:not(.active) {
-  color: var(--roast-ink);
-  background: rgba(255, 255, 255, 0.55);
-}
-
-.seg-tab-btn.active {
-  background: #ffffff;
-  color: var(--botanical-deep);
-  font-weight: 700;
-  box-shadow: 0 1px 3px rgba(20, 35, 26, 0.08);
-}
-
-.seg-tab-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-
 .seg-tab-dot.is-valid {
   background: #16a34a;
 }
 
 .seg-tab-dot.is-inactive {
   background: #94a39b;
-}
-
-.seg-tab-count {
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.08rem 0.44rem;
-  border-radius: 999px;
-  background: var(--botanical-tint);
-  color: var(--botanical-deep);
-}
-
-.btn-primary-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.42rem;
-  height: 38px;
-  padding: 0 1.05rem;
-  border-radius: 9px;
-  background: var(--botanical-primary);
-  border: 1px solid var(--botanical-primary);
-  color: #ffffff;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.16);
-}
-
-.btn-primary-action:hover {
-  background: var(--botanical-deep);
-  border-color: var(--botanical-deep);
-}
-
-/* ── Main Card & Filter Toolbar ── */
-.clean-card {
-  background: #ffffff;
-  border: 1px solid var(--ledger-line);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
-}
-
-.filter-bar {
-  padding: 0.78rem 1.15rem;
-  border-bottom: 1px solid var(--ledger-hairline);
-  background: #f9fcfa;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
-}
-
-.filter-bar__left {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.55rem;
-  flex: 1;
-}
-
-.filter-bar__right {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.search-wrap {
-  position: relative;
-  min-width: 245px;
-  flex: 0 1 310px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 11px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--sage-muted);
-  font-size: 0.8rem;
-  pointer-events: none;
-}
-
-.search-clear {
-  position: absolute;
-  right: 7px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--sage-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.68rem;
-  cursor: pointer;
-}
-
-.filter-input {
-  height: 36px;
-  border-radius: 8px;
-  border: 1.5px solid #dce6e0;
-  background: #ffffff;
-  color: var(--roast-ink);
-  font-size: 0.81rem;
-  font-weight: 500;
-  padding: 0 0.75rem;
-  outline: none;
-}
-
-.filter-input:focus {
-  border-color: var(--botanical-border);
-  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
-}
-
-.search-input {
-  width: 100%;
-  padding-left: 32px;
-  padding-right: 28px;
-}
-
-.filter-select {
-  padding-right: 1.85rem;
-  cursor: pointer;
-}
-
-.toolbar-btn {
-  height: 36px;
-  padding: 0 0.8rem;
-  border: 1.5px solid #dce6e0;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #3d5245;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  cursor: pointer;
-}
-
-.toolbar-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* ── Clean Ledger Table ── */
-.clean-table th {
-  background: #f4f8f5;
-  font-size: 0.75rem;
-  color: #4f6356;
-  font-weight: 700;
-  padding: 0.78rem 1.15rem;
-  border-bottom: 1px solid var(--ledger-line);
-  white-space: nowrap;
-}
-
-.clean-table td {
-  padding: 0.95rem 1.15rem;
-  border-bottom: 1px solid var(--ledger-hairline);
-  font-size: 0.84rem;
-  color: var(--roast-ink);
-}
-
-.clean-table tbody tr:hover td {
-  background-color: #f9fcfa;
-}
-
-.clean-table tbody tr:last-child td {
-  border-bottom: none;
 }
 
 .clean-table tbody tr.row-muted td {
@@ -1288,48 +1101,7 @@ const handleConfirmDelete = async () => {
   color: #8ca195;
 }
 
-/* 5. Clean Semantic Status */
-.status-text {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.42rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.status-text.is-valid {
-  color: #15803d;
-}
-
-.status-text.is-scheduled {
-  color: #0369a1;
-}
-
-.status-text.is-expired,
-.status-text.is-exhausted {
-  color: #b91c1c;
-}
-
-.status-text.is-inactive {
-  color: #64746b;
-}
-
 /* 6. Actions & Clean Toggle Switch */
-.action-group {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.45rem;
-}
-
 .switch-control {
   position: relative;
   display: inline-flex;
@@ -1380,110 +1152,8 @@ const handleConfirmDelete = async () => {
   cursor: not-allowed;
 }
 
-.btn-action-icon {
-  width: 31px;
-  height: 31px;
-  border-radius: 7px;
-  border: 1px solid #dce6e0;
-  background: #ffffff;
-  color: #465a4e;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.82rem;
-  transition: all 0.14s ease;
-  cursor: pointer;
-}
-
-.btn-action-icon:hover {
-  background: var(--botanical-tint);
-  border-color: var(--botanical-border);
-  color: var(--botanical-deep);
-}
-
-.btn-action-icon.is-danger:hover {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #dc2626;
-}
-
 .btn-action-icon.is-muted {
   opacity: 0.42;
-}
-
-/* Pagination & Empty */
-.pagination-bar {
-  padding: 0.72rem 1.15rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f9fcfa;
-  border-top: 1px solid var(--ledger-hairline);
-}
-
-.pagination-info {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #3d5245;
-}
-
-.empty-box {
-  padding: 3.5rem 1.25rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.empty-box__icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 0.65rem;
-  border-radius: 10px;
-  background: #f0f6f2;
-  border: 1px solid #dce6e0;
-  color: #3b7054;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.35rem;
-}
-
-.empty-box__title {
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: var(--roast-ink);
-  margin-bottom: 2px;
-}
-
-.empty-box__desc {
-  font-size: 0.8rem;
-  color: var(--sage-muted);
-  max-width: 410px;
-}
-
-/* Modal (Explicit colors because Teleport renders outside .discounts-page scope) */
-.modal-backdrop-custom {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(18, 28, 22, 0.45);
-  backdrop-filter: blur(2px);
-  z-index: 1060;
-}
-
-.modal-card {
-  width: 100%;
-  border-radius: 16px;
-  border: 1px solid #dce6e0;
-  max-height: 94vh;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  box-shadow: 0 20px 45px rgba(15, 28, 21, 0.16);
-}
-
-.modal-card::-webkit-scrollbar {
-  display: none;
 }
 
 .modal-card--md {

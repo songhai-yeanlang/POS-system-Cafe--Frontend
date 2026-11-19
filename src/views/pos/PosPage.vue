@@ -812,7 +812,31 @@
 
           <!-- MODE A: PROMO / DISCOUNT CODE -->
           <template v-if="discountDraft.mode === 'CODE' || !authStore.isOwner">
-            <section class="field-group">
+            <div v-if="!authStore.isOwner && hasExistingManualDiscount && !verifiedPromo" class="promo-verified-card mb-3">
+              <div class="promo-verified-card__icon">
+                <i class="bi bi-shield-check"></i>
+              </div>
+              <div class="promo-verified-card__info">
+                <div class="promo-verified-card__title">
+                  {{
+                    $t('pos.ownerManualDiscountActive', {
+                      val:
+                        orderForm.discount_type === 'PERCENT'
+                          ? `${orderForm.discount_value}%`
+                          : formatUsd(orderForm.discount_value),
+                    })
+                  }}
+                </div>
+                <div class="promo-verified-card__sub">
+                  <span>{{ $t('pos.ownerManualDiscountKeepHint') }}</span>
+                </div>
+              </div>
+              <div class="promo-verified-card__amount tabular">
+                -{{ formatUsd(cartDiscountAmount) }}
+              </div>
+            </div>
+
+            <section class="field-group" :class="{ 'mb-0': !verifiedPromo }">
               <label class="field-group__label">
                 {{ $t('pos.enterPromoCode') }}
               </label>
@@ -838,13 +862,13 @@
               </div>
               <p v-if="promoValidationError" class="promo-error-text">
                 <i class="bi bi-exclamation-circle-fill"></i>
-                <span>{{ promoValidationError }}</span>
+                <span>{{ $tToast(promoValidationError) }}</span>
               </p>
               <p v-else-if="!verifiedPromo" class="field-group__hint">{{ $t('pos.promoCodeStaffHint') }}</p>
             </section>
 
             <!-- Verified Promo Code Preview Card -->
-            <div v-if="verifiedPromo" class="promo-verified-card mb-3">
+            <div v-if="verifiedPromo" class="promo-verified-card">
               <div class="promo-verified-card__icon">
                 <i class="bi bi-check2"></i>
               </div>
@@ -866,48 +890,6 @@
                 -{{ formatUsd(verifiedPromo.calculated_discount_amount || 0) }}
               </div>
             </div>
-
-            <!-- Quick Pick Active Promo Codes (OWNER only — hidden from STAFF) -->
-            <section v-if="authStore.isOwner" class="field-group mb-0">
-              <div class="field-group__head">
-                <label class="field-group__label">{{ $t('pos.availablePromoCodes') }}</label>
-                <span v-if="isLoadingPromoCodes" class="field-group__meta">
-                  <span class="spinner-border spinner-border-sm"></span>
-                </span>
-              </div>
-
-              <div v-if="!isLoadingPromoCodes && availablePromoCodes.length === 0" class="promo-empty-hint">
-                {{ $t('pos.noActivePromoCodes') }}
-              </div>
-
-              <div v-else class="promo-quick-list">
-                <button
-                  v-for="pc in availablePromoCodes"
-                  :key="pc.id"
-                  type="button"
-                  class="promo-quick-chip"
-                  :class="{ 'is-selected': verifiedPromo?.id === pc.id }"
-                  @click="pickAndVerifyPromo(pc)"
-                >
-                  <div class="promo-quick-chip__left">
-                    <strong class="promo-quick-chip__code tabular">{{ pc.code }}</strong>
-                    <span class="promo-quick-chip__name">{{ pc.name }}</span>
-                  </div>
-                  <div class="promo-quick-chip__right tabular">
-                    <span class="promo-quick-chip__val">
-                      {{
-                        pc.discount_type === 'PERCENT'
-                          ? `${pc.discount_value}%`
-                          : formatUsd(pc.discount_value)
-                      }}
-                    </span>
-                    <span v-if="pc.min_order_amount > 0" class="promo-quick-chip__min">
-                      ≥ {{ formatUsd(pc.min_order_amount) }}
-                    </span>
-                  </div>
-                </button>
-              </div>
-            </section>
           </template>
 
           <!-- MODE B: OWNER MANUAL DISCOUNT -->
@@ -1528,8 +1510,8 @@
             >
               <span>
                 {{ $t('receipt.discount') }}
-                <template v-if="completedReceipt.order.discount?.code">
-                  ({{ completedReceipt.order.discount.code }})
+                <template v-if="getReceiptDiscountLabel(completedReceipt.order.discount)">
+                  ({{ getReceiptDiscountLabel(completedReceipt.order.discount) }})
                 </template>
               </span>
               <span>-{{ formatUsd(completedReceipt.order.discount.amount) }}</span>
@@ -1915,8 +1897,6 @@ const normalizeSugar = () => {
 // ================= STATE: DISCOUNT & NOTE MODALS =================
 const showDiscountModal = ref(false)
 const showNoteModal = ref(false)
-const availablePromoCodes = ref([])
-const isLoadingPromoCodes = ref(false)
 const isValidatingPromo = ref(false)
 const promoValidationError = ref('')
 const verifiedPromo = ref(null)
@@ -2411,19 +2391,19 @@ const formatIceLabel = (ice) => {
   return found ? found.label : ice
 }
 
-// ================= METHODS: DISCOUNT =================
-const fetchAvailablePromoCodes = async () => {
-  isLoadingPromoCodes.value = true
-  try {
-    const res = await api.get('/discount-codes', { params: { valid_only: true, limit: 30 } })
-    availablePromoCodes.value = res.data?.data || []
-  } catch {
-    availablePromoCodes.value = []
-  } finally {
-    isLoadingPromoCodes.value = false
+const getReceiptDiscountLabel = (discount) => {
+  if (!discount) return ''
+  if (discount.name) return discount.name
+  if (discount.code && discount.reason) {
+    const prefix = `${discount.code} - `
+    if (discount.reason.startsWith(prefix)) {
+      return discount.reason.slice(prefix.length).trim()
+    }
   }
+  return ''
 }
 
+// ================= METHODS: DISCOUNT =================
 const onPromoCodeInput = (e) => {
   discountDraft.code = String(e.target.value || '')
     .toUpperCase()
@@ -2499,11 +2479,6 @@ watch(cartSubtotal, (newSub) => {
   }
 })
 
-const pickAndVerifyPromo = async (promo) => {
-  discountDraft.code = promo.code
-  await verifyPromoCode(promo.code)
-}
-
 watch(showDiscountModal, (val) => {
   if (val) {
     promoValidationError.value = ''
@@ -2517,14 +2492,18 @@ watch(showDiscountModal, (val) => {
         ? 'CODE'
         : 'MANUAL'
 
-    if (authStore.isOwner) {
-      fetchAvailablePromoCodes()
-    }
     if (orderForm.discount_code) {
       verifyPromoCode(orderForm.discount_code)
     }
   }
 })
+
+const hasExistingManualDiscount = computed(
+  () =>
+    !orderForm.discount_code &&
+    orderForm.discount_type !== 'NONE' &&
+    Number(orderForm.discount_value) > 0
+)
 
 const clearDiscount = () => {
   orderForm.discount_code_id = null
@@ -2541,6 +2520,11 @@ const clearDiscount = () => {
 const applyDiscountDraft = async () => {
   if (discountDraft.mode === 'CODE' || !authStore.isOwner) {
     if (!discountDraft.code.trim()) {
+      // Preserve an existing Owner manual discount if Staff/Owner clicks Apply with empty promo code
+      if (hasExistingManualDiscount.value) {
+        showDiscountModal.value = false
+        return
+      }
       clearDiscount()
       return
     }
@@ -2914,24 +2898,6 @@ onUnmounted(() => {
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 .pos-shell {
-  /* Core Token Palette */
-  --roast-ink: #1a2820;
-  --sage-muted: #5a6f62;
-  --botanical-espresso: #2d5a43;
-  --botanical-hover: #244936;
-  --botanical-tint: #ecf6f0;
-  --register-deep: #13261b;
-  --register-surface: #1b3526;
-  --counter-stone: #f4f8f5;
-  --counter-well: #e8f0eb;
-  --docket-paper: #ffffff;
-  --ledger-line: #dce6e0;
-  --ledger-hairline: #e9f1ec;
-  --crema-amber: #b45309;
-  --crema-tint: #fef3c7;
-  --berry-crimson: #b91c1c;
-  --berry-tint: #fee2e2;
-
   font-family: 'Plus Jakarta Sans', 'Kantumruy Pro', 'Noto Sans Khmer', sans-serif;
   color: var(--roast-ink);
   display: flex;
@@ -2944,11 +2910,6 @@ onUnmounted(() => {
 .pos-shell button:focus,
 .pos-shell button:focus-visible {
   outline: none;
-}
-
-.tabular {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1, 'zero' 1;
 }
 
 /* ================= SHIFT CLOSED BAR ================= */
@@ -5325,140 +5286,6 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.promo-empty-hint {
-  font-size: 0.76rem;
-  color: var(--sage-muted);
-  background: #f8fbf9;
-  border: 1px dashed #d5e3db;
-  border-radius: 8px;
-  padding: 0.65rem 0.75rem;
-  text-align: center;
-}
-
-.promo-quick-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  max-height: 175px;
-  overflow-y: auto;
-}
-
-.promo-quick-chip {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
-  padding: 0.52rem 0.72rem;
-  border-radius: 9px;
-  border: 1.5px solid #e1ebe5;
-  background: #f9fbf9;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.14s ease;
-}
-
-.promo-quick-chip:hover {
-  border-color: #9dc5ae;
-  background: #f1f8f4;
-}
-
-.promo-quick-chip.is-selected {
-  border-color: #2d5a43;
-  background: #eaf5ee;
-}
-
-.promo-quick-chip__left {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.promo-quick-chip__code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: #193e2b;
-}
-
-.promo-quick-chip__name {
-  font-size: 0.73rem;
-  color: #556c5e;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.promo-quick-chip__right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  flex-shrink: 0;
-}
-
-.promo-quick-chip__val {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: #166534;
-}
-
-.promo-quick-chip__min {
-  font-size: 0.69rem;
-  color: #62756a;
-}
-
-/* Thermal Receipt */
-.thermal-receipt {
-  background: #fffef9;
-  border: 1px dashed #c8c2b8;
-  border-radius: 6px;
-  padding: 1rem;
-  font-family: 'Kantumruy Pro', 'Courier New', Courier, monospace;
-  font-size: 0.8rem;
-  color: #1c1917;
-}
-
-.receipt-logo {
-  max-height: 44px;
-  object-fit: contain;
-}
-
-.receipt-sub {
-  font-size: 0.74rem;
-  color: #57534e;
-}
-
-.receipt-divider {
-  border-top: 1px dashed #a8a29e;
-  margin: 0.55rem 0;
-}
-
-.receipt-meta {
-  font-size: 0.75rem;
-  margin-bottom: 2px;
-}
-
-.receipt-item {
-  margin-bottom: 0.4rem;
-}
-
-.receipt-item-sub {
-  font-size: 0.72rem;
-  color: #57534e;
-  padding-left: 0.75rem;
-}
-
-@keyframes spin {
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.is-spinning {
-  display: inline-block;
-  animation: spin 0.8s linear infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -5466,27 +5293,6 @@ onUnmounted(() => {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  #printable-receipt,
-  #printable-receipt * {
-    visibility: visible;
-  }
-  #printable-receipt {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 80mm;
-    border: none;
-    padding: 0;
-  }
-  .no-print {
-    display: none !important;
   }
 }
 </style>

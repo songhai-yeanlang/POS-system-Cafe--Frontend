@@ -18,7 +18,35 @@
   --outline-variant: #c4d0c8;
   --border-hairline: #e1e7e2;
   --border-subtle: #e5ebe6;
-  --surface-tint: #2d5a43;
+  --surface-tint: #f8fbf9;
+
+  /* Shared Botanical & Ledger Tokens (Accessible inside Teleported modals) */
+  --botanical-primary: #2d5a43;
+  --botanical-espresso: #2d5a43;
+  --botanical-deep: #1e3f2f;
+  --botanical-hover: #244936;
+  --botanical-tint: #eaf5ee;
+  --botanical-surface: #f4f9f6;
+  --botanical-border: #3b7054;
+  --counter-stone: #f4f8f5;
+  --counter-well: #e8f0eb;
+  --docket-paper: #ffffff;
+  --ledger-line: #dce6e0;
+  --ledger-hairline: #edf3ef;
+  --ledger-border: #dce6e0;
+  --ledger-border-soft: #e8efe9;
+  --roast-ink: #1a2820;
+  --sage-muted: #5a6f62;
+  --text-strong: #16241c;
+  --text-body: #3f5247;
+  --text-muted: #6c7f74;
+  --emerald-ok: #1e6b43;
+  --amber-warn: #b45309;
+  --crimson-debit: #b91c1c;
+  --crema-amber: #b45309;
+  --crema-tint: #fef3c7;
+  --berry-crimson: #b91c1c;
+  --berry-tint: #fee2e2;
 
   --primary: #2d5a43;
   --primary-dark: #1e3f2f;
@@ -122,7 +150,9 @@ body {
   border: none;
 }
 
+.tabular,
 .numeric-tabular {
+  font-variant-numeric: tabular-nums;
   font-feature-settings:
     'tnum' 1,
     'zero' 1;
@@ -211,4 +241,36 @@ body {
 .bi-trash3::before {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   Global Thermal Receipt Print Isolation
+   ========================================================================== */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #printable-receipt,
+  #printable-receipt *,
+  #printable-order-receipt,
+  #printable-order-receipt * {
+    visibility: visible;
+  }
+
+  #printable-receipt,
+  #printable-order-receipt {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
 }

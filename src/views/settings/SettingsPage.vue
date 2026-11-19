@@ -830,19 +830,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.settings-page {
-  --roast-ink: #14231a;
-  --sage-muted: #54665b;
-  --botanical-primary: #2d5a43;
-  --botanical-deep: #1e3f2f;
-  --ledger-line: #e4ebe6;
-  --ledger-hairline: #eff4f1;
-}
-
-.tabular {
-  font-variant-numeric: tabular-nums;
-}
-
 /* Top Bar */
 .settings-top-bar {
   display: flex;

@@ -180,6 +180,10 @@ const TOAST_KM_MAP = {
   'please enter a reason for the discount': 'សូមបញ្ចូលមូលហេតុនៃការបញ្ចុះតម្លៃ',
   'percentage discount cannot exceed 100%': 'ការបញ្ចុះតម្លៃជាភាគរយមិនអាចលើសពី 100% ទេ',
   'fixed discount cannot exceed subtotal': 'ទឹកប្រាក់បញ្ចុះតម្លៃមិនអាចលើសពីតម្លៃសរុបបឋមទេ',
+  'invalid discount code': 'កូដបញ្ចុះតម្លៃមិនត្រឹមត្រូវទេ',
+  'discount code is required': 'សូមបញ្ចូលកូដបញ្ចុះតម្លៃ',
+  'discount code is no longer valid or has reached its maximum usage limit': 'កូដបញ្ចុះតម្លៃលែងមានសុពលភាព ឬអស់ចំនួនប្រើប្រាស់ហើយ',
+  'fixed discount was removed because the order subtotal is lower than the discount amount': 'ការបញ្ចុះតម្លៃជាលុយសុទ្ធត្រូវបានដកចេញ ដោយសារតម្លៃទំនិញសរុបតិចជាងទឹកប្រាក់បញ្ចុះតម្លៃ',
   'failed to save order': 'បរាជ័យក្នុងការរក្សាទុកការកម្មង់',
   'received cash amount is less than the order bill': 'ប្រាក់ទទួលបានតិចជាងទឹកប្រាក់ត្រូវបង់',
   'payment failed': 'ការទូទាត់ប្រាក់បរាជ័យ',
@@ -366,7 +370,18 @@ const TOAST_KM_PATTERNS = [
   [/^Cannot delete ingredient ['"](.+)['"] because it is referenced by other records\.?$/i, (_, name) => `មិនអាចលុបគ្រឿងផ្សំ '${name}' បានទេ ព្រោះមានទិន្នន័យពាក់ព័ន្ធ`],
   [/^Insufficient stock for ingredient ['"](.+)['"]/i, (_, name) => `ស្តុកគ្រឿងផ្សំ '${name}' មិនគ្រប់គ្រាន់ទេ`],
   [/^Product ['"](.+)['"] already exists in this category$/i, (_, name) => `ទំនិញ '${name}' មាននៅក្នុងប្រភេទនេះរួចហើយ`],
-  [/^Duplicate variant name ['"](.+)['"] in the same product$/i, (_, name) => `ឈ្មោះជម្រើស '${name}' ជាន់គ្នាក្នុងទំនិញតែមួយ`]
+  [/^Duplicate variant name ['"](.+)['"] in the same product$/i, (_, name) => `ឈ្មោះជម្រើស '${name}' ជាន់គ្នាក្នុងទំនិញតែមួយ`],
+  [/^Discount code ['"](.+)['"] already exists$/i, (_, code) => `កូដបញ្ចុះតម្លៃ '${code}' មានរួចហើយ`],
+  [/^Discount code ['"](.+)['"] (?:is invalid or )?does not exist$/i, (_, code) => `កូដបញ្ចុះតម្លៃ '${code}' មិនត្រឹមត្រូវ ឬមិនមានក្នុងប្រព័ន្ធទេ`],
+  [/^Discount code ['"](.+)['"] is currently inactive$/i, (_, code) => `កូដបញ្ចុះតម្លៃ '${code}' ត្រូវបានបិទដំណើរការ`],
+  [/^Discount code ['"](.+)['"] is not active (?:yet|until .+)$/i, (_, code) => `កូដបញ្ចុះតម្លៃ '${code}' មិនទាន់ដល់ថ្ងៃប្រើប្រាស់ទេ`],
+  [/^Discount code ['"](.+)['"] has expired$/i, (_, code) => `កូដបញ្ចុះតម្លៃ '${code}' ផុតកំណត់ហើយ`],
+  [/^Discount code ['"](.+)['"] has reached its maximum usage limit \((\d+)\)$/i, (_, code, max) => `កូដបញ្ចុះតម្លៃ '${code}' អស់ចំនួនប្រើប្រាស់ហើយ (${max} ដង)`],
+  [/^Fixed discount \(\$([\d.]+)\) for code ['"](.+)['"] cannot exceed order subtotal \(\$([\d.]+)\)$/i, (_, disc, code, sub) => `ទឹកប្រាក់បញ្ចុះតម្លៃ ($${disc}) របស់កូដ '${code}' មិនអាចធំជាងតម្លៃទំនិញសរុប ($${sub}) ទេ`],
+  [/^Fixed discount \(\$([\d.]+)\) cannot exceed order subtotal \(\$([\d.]+)\)$/i, (_, disc, sub) => `ទឹកប្រាក់បញ្ចុះតម្លៃ ($${disc}) មិនអាចធំជាងតម្លៃទំនិញសរុប ($${sub}) ទេ`],
+  [/^Order subtotal \(\$([\d.]+)\) does not meet the minimum required amount \(\$([\d.]+)\) for code ['"](.+)['"]$/i, (_, sub, min, code) => `តម្លៃទំនិញសរុប ($${sub}) តិចជាងកម្រិតអប្បបរមា ($${min}) សម្រាប់កូដ '${code}'`],
+  [/^Discount code ['"](.+)['"] was removed because the order subtotal is lower than the discount amount$/i, (_, code) => `កូដបញ្ចុះតម្លៃ '${code}' ត្រូវបានដកចេញ ដោយសារតម្លៃទំនិញសរុបតិចជាងទឹកប្រាក់បញ្ចុះតម្លៃ`],
+  [/^max_uses \((\d+)\) cannot be less than already used_count \((\d+)\)$/i, (_, next, used) => `ចំនួនដងអាចប្រើបាន (${next}) មិនអាចតិចជាងចំនួនដែលបានប្រើរួច (${used}) ទេ`]
 ]
 
 export function tToast(message) {
