@@ -713,21 +713,7 @@ onMounted(async () => {
 
 <style scoped>
 .recipes-page {
-  --botanical-deep: #1e3f2e;
-  --botanical-primary: #2d5a43;
-  --botanical-hover: #234735;
-  --botanical-tint: #eaf5ee;
-  --botanical-surface: #f4f9f6;
-  --ledger-border: #dce6e0;
-  --ledger-border-soft: #e8efe9;
-  --text-strong: #16241c;
-  --text-body: #3f5247;
-  --text-muted: #6c7f74;
   width: 100%;
-}
-
-.tabular {
-  font-variant-numeric: tabular-nums;
 }
 
 .recipes-layout {
@@ -1122,44 +1108,6 @@ onMounted(async () => {
   border-color: #bdd1c5;
 }
 
-/* ================= CLEAN TABLE ================= */
-.clean-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.clean-table thead th {
-  background: #f8fbf9;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--ledger-border);
-  white-space: nowrap;
-}
-
-.clean-table tbody td {
-  padding: 0.88rem 1rem;
-  border-bottom: 1px solid var(--ledger-border-soft);
-  vertical-align: middle;
-  color: var(--text-body);
-  font-size: 0.86rem;
-}
-
-.clean-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.clean-table tbody tr {
-  transition: background-color 0.14s ease;
-}
-
-.clean-table tbody tr:hover {
-  background: #fafdfb;
-}
-
 .variant-name {
   font-weight: 700;
   color: var(--text-strong);
@@ -1274,41 +1222,6 @@ onMounted(async () => {
   font-size: 0.85rem;
 }
 
-/* Actions Column */
-.action-group {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.35rem;
-}
-
-.btn-action-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--ledger-border);
-  background: #ffffff;
-  color: var(--text-body);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.84rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-action-icon:hover {
-  background: var(--botanical-surface);
-  color: var(--botanical-deep);
-  border-color: #bfd3c7;
-}
-
-.btn-action-icon.is-danger:hover {
-  background: #fef2f2;
-  color: #dc2626;
-  border-color: #fecaca;
-}
-
 .btn-set-recipe {
   display: inline-flex;
   align-items: center;
@@ -1371,38 +1284,14 @@ onMounted(async () => {
   margin: 0 auto;
 }
 
-.spin-icon {
-  animation: spin 0.8s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 /* ================= BUILDER MODAL ================= */
 .modal-backdrop-custom {
-  position: fixed;
-  inset: 0;
-  background: rgba(18, 30, 23, 0.45);
   backdrop-filter: blur(3px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1055;
-  padding: 1rem;
 }
 
 .modal-card-custom {
-  background: #ffffff;
   border-radius: 18px;
-  border: 1px solid var(--ledger-border);
-  width: 100%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  border-color: var(--ledger-border);
   box-shadow: 0 22px 48px rgba(18, 30, 23, 0.16);
 }
 
@@ -1412,57 +1301,24 @@ onMounted(async () => {
 
 .modal-header-custom {
   padding: 1.1rem 1.35rem;
-  border-bottom: 1px solid var(--ledger-border-soft);
+  border-bottom-color: var(--ledger-border-soft);
   background: #fcfefd;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.modal-title-custom {
-  margin: 0;
-  font-size: 0.98rem;
-  font-weight: 800;
-  color: var(--text-strong);
-}
-
-.modal-subtitle-custom {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-top: 2px;
 }
 
 .btn-close-custom {
-  border: 1px solid var(--ledger-border);
   background: #ffffff;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-color: var(--ledger-border);
   color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-close-custom:hover {
-  background: var(--botanical-surface);
-  color: var(--text-strong);
 }
 
 .modal-body-custom {
   padding: 1.25rem 1.35rem;
-  overflow-y: auto;
 }
 
 .modal-footer-custom {
   padding: 0.95rem 1.35rem;
-  border-top: 1px solid var(--ledger-border-soft);
+  border-top-color: var(--ledger-border-soft);
   background: #f9fcfa;
-  display: flex;
-  align-items: center;
   gap: 0.65rem;
 }
 
@@ -1509,15 +1365,12 @@ onMounted(async () => {
 }
 
 .form-label-clean {
-  display: block;
   font-size: 0.75rem;
-  font-weight: 700;
   color: var(--text-body);
   margin-bottom: 0.32rem;
 }
 
 .form-control-clean {
-  border-radius: 9px;
   border: 1px solid var(--ledger-border);
   font-size: 0.84rem;
   color: var(--text-strong);
@@ -1527,6 +1380,19 @@ onMounted(async () => {
 .form-control-clean:focus {
   border-color: var(--botanical-primary);
   box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.1);
+}
+
+.btn-action-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.btn-primary-action {
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  box-shadow: none;
 }
 
 .qty-input-group {
@@ -1552,49 +1418,5 @@ onMounted(async () => {
   border-top-right-radius: 9px;
   border-bottom-right-radius: 9px;
   white-space: nowrap;
-}
-
-.btn-primary-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  height: 38px;
-  padding: 0 1rem;
-  border-radius: 10px;
-  border: 1px solid var(--botanical-primary);
-  background: var(--botanical-primary);
-  color: #ffffff;
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.16s ease;
-}
-
-.btn-primary-action:hover:not(:disabled) {
-  background: var(--botanical-hover);
-  border-color: var(--botanical-hover);
-}
-
-.btn-primary-action:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.btn-cancel-clean {
-  height: 38px;
-  padding: 0 1rem;
-  border-radius: 10px;
-  border: 1px solid var(--ledger-border);
-  background: #ffffff;
-  color: var(--text-body);
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-cancel-clean:hover {
-  background: var(--botanical-surface);
-  color: var(--text-strong);
 }
 </style>

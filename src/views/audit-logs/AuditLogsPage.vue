@@ -55,6 +55,7 @@ const moduleKeys = [
   'shifts',
   'products',
   'categories',
+  'discount_codes',
   'ingredients',
   'stock_movements',
   'recipes',
@@ -105,6 +106,10 @@ const actionGroups = [
       'UPDATE_CATEGORY',
       'DELETE_CATEGORY',
     ],
+  },
+  {
+    key: 'discount_codes',
+    actions: ['CREATE_DISCOUNT_CODE', 'UPDATE_DISCOUNT_CODE', 'DELETE_DISCOUNT_CODE'],
   },
   {
     key: 'expenses',
@@ -245,6 +250,15 @@ const DETAIL_KEY_LABELS_KM = {
   opened_by: 'អ្នកបើកវេន',
   shop_name: 'ឈ្មោះហាង',
   exchange_rate: 'អត្រាប្តូរប្រាក់',
+  code: 'កូដបញ្ចុះតម្លៃ',
+  discount_type: 'ប្រភេទបញ្ចុះតម្លៃ',
+  discount_value: 'ចំនួនបញ្ចុះតម្លៃ',
+  min_order_amount: 'ទឹកប្រាក់អប្បបរមា',
+  max_uses: 'ចំនួនដងអាចប្រើបាន',
+  used_count: 'ចំនួនដងបានប្រើ',
+  starts_at: 'ថ្ងៃចាប់ផ្តើម',
+  expires_at: 'ថ្ងៃផុតកំណត់',
+  updated_fields: 'ចំណុចដែលបានកែប្រែ',
 }
 
 const formatKeyLabel = (key) => {
@@ -281,8 +295,9 @@ const formatReadableSummary = (log) => {
   const parts = []
 
   // Common human-first identifiers
-  const titleVal = obj.receipt_no || obj.receipt_number || obj.order_number || obj.name || obj.product_name || obj.category_name
+  const titleVal = obj.receipt_no || obj.receipt_number || obj.order_number || obj.code || obj.name || obj.product_name || obj.category_name
   if (titleVal) parts.push(String(titleVal))
+  if (obj.code && obj.name && String(obj.code) !== String(obj.name)) parts.push(String(obj.name))
   if (obj.email && !parts.includes(obj.email)) parts.push(obj.email)
 
   // Changed fields summary
@@ -291,6 +306,15 @@ const formatReadableSummary = (log) => {
       ? `កែប្រែ ${obj.changedFields.length} ចំណុច`
       : `Updated ${obj.changedFields.length} field${obj.changedFields.length > 1 ? 's' : ''}`
     parts.push(label)
+  } else if (obj.updated_fields && typeof obj.updated_fields === 'object' && !Array.isArray(obj.updated_fields)) {
+    const keys = Object.keys(obj.updated_fields)
+    if (obj.updated_fields.code) parts.push(String(obj.updated_fields.code))
+    if (keys.length > 0) {
+      const label = isKhmer.value
+        ? `កែប្រែ ${keys.length} ចំណុច`
+        : `Updated ${keys.length} field${keys.length > 1 ? 's' : ''}`
+      parts.push(label)
+    }
   }
 
   // Cash shift amounts
@@ -946,112 +970,15 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.audit-page {
-  --roast-ink: #14231a;
-  --sage-muted: #54665b;
-  --botanical-primary: #2d5a43;
-  --botanical-deep: #1e3f2f;
-  --ledger-line: #e4ebe6;
-  --ledger-hairline: #eff4f1;
-}
-
-.tabular {
-  font-variant-numeric: tabular-nums;
-}
-
-.clean-card {
-  background: #ffffff;
-  border: 1px solid var(--ledger-line);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 1px 2px rgba(20, 35, 26, 0.03);
-}
-
-/* Filter Toolbar */
-.filter-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--ledger-line);
-  background: #ffffff;
-}
-
 .filter-bar__controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   flex: 1;
   min-width: 0;
 }
 
-.filter-bar__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  flex-shrink: 0;
-}
-
-.search-wrap {
-  position: relative;
+.filter-bar__controls .search-wrap {
   flex: 1 1 200px;
   min-width: 180px;
   max-width: 260px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 0.72rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.78rem;
-  color: #7d8f84;
-  pointer-events: none;
-}
-
-.search-clear {
-  position: absolute;
-  right: 0.45rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 22px;
-  height: 22px;
-  border: none;
-  background: transparent;
-  color: #7d8f84;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.68rem;
-  cursor: pointer;
-}
-
-.search-clear:hover {
-  background: #eef3ef;
-  color: var(--roast-ink);
-}
-
-.filter-input {
-  height: 36px;
-  border: 1px solid #dce6e0;
-  border-radius: 8px;
-  background-color: #ffffff;
-  font-size: 0.8rem;
-  color: var(--roast-ink);
-  transition: border-color 0.14s ease;
-}
-
-.filter-input:focus {
-  outline: none;
-  border-color: var(--botanical-primary);
-}
-
-.search-input {
-  width: 100%;
-  padding: 0 1.9rem 0 2rem;
 }
 
 .filter-select {
@@ -1069,17 +996,6 @@ onMounted(async () => {
   max-width: 195px;
 }
 
-.date-range-group {
-  display: inline-flex;
-  align-items: center;
-  height: 36px;
-  padding: 0 0.55rem;
-  border: 1px solid #dce6e0;
-  border-radius: 8px;
-  background: #ffffff;
-  gap: 0.3rem;
-}
-
 .date-input {
   border: none;
   background: transparent;
@@ -1094,65 +1010,10 @@ onMounted(async () => {
   color: #8a9b90;
 }
 
-.toolbar-btn {
-  height: 36px;
-  padding: 0 0.75rem;
-  border: 1px solid #dce6e0;
-  border-radius: 8px;
-  background: #ffffff;
-  color: var(--sage-muted);
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  transition: all 0.14s ease;
-}
-
-.toolbar-btn--icon {
-  width: 36px;
-  padding: 0;
-}
-
-.toolbar-btn:hover:not(:disabled) {
-  background: #f5f9f6;
-  border-color: #b8ccc0;
-  color: var(--botanical-primary);
-}
-
 .toolbar-btn--danger:hover:not(:disabled) {
   background: #fef2f2;
   border-color: #fecaca;
   color: #dc2626;
-}
-
-.toolbar-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Table */
-.clean-table th {
-  background: #fafcfb;
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: var(--sage-muted);
-  padding: 0.72rem 1rem;
-  border-bottom: 1px solid var(--ledger-line);
-  white-space: nowrap;
-}
-
-.clean-table td {
-  padding: 0.78rem 1rem;
-  border-bottom: 1px solid var(--ledger-hairline);
-  font-size: 0.83rem;
-  color: var(--roast-ink);
-}
-
-.clean-table tbody tr:last-child td {
-  border-bottom: none;
 }
 
 .audit-row {
@@ -1238,90 +1099,6 @@ onMounted(async () => {
   font-size: 0.8rem;
 }
 
-.action-group {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.35rem;
-}
-
-.btn-action-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  border: 1px solid #dce6e0;
-  background: #ffffff;
-  color: #54665b;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.82rem;
-  cursor: pointer;
-  transition: all 0.14s ease;
-}
-
-.btn-action-icon:hover {
-  background: #f0f6f2;
-  border-color: #b8ccc0;
-  color: var(--botanical-primary);
-}
-
-.btn-action-icon.is-danger:hover {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #dc2626;
-}
-
-/* Empty State */
-.empty-box {
-  padding: 3.5rem 1rem;
-  text-align: center;
-}
-
-.empty-box__icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 0.75rem;
-  border-radius: 12px;
-  background: #f2f7f4;
-  border: 1px solid #dce6e0;
-  color: var(--botanical-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
-}
-
-.empty-box__title {
-  font-size: 0.94rem;
-  font-weight: 700;
-  color: var(--roast-ink);
-  margin-bottom: 0.25rem;
-}
-
-.empty-box__desc {
-  font-size: 0.8rem;
-  color: var(--sage-muted);
-}
-
-/* Pagination */
-.pagination-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  padding: 0.72rem 1rem;
-  border-top: 1px solid var(--ledger-hairline);
-  background: #fafcfb;
-}
-
-.pagination-info {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--sage-muted);
-}
-
 .pagination-controls {
   display: flex;
   align-items: center;
@@ -1360,21 +1137,6 @@ onMounted(async () => {
 }
 
 /* Clean Unified Detail Modal */
-.modal-backdrop-custom {
-  --roast-ink: #14231a;
-  --sage-muted: #54665b;
-  --botanical-primary: #2d5a43;
-  position: fixed;
-  inset: 0;
-  background-color: rgba(20, 35, 26, 0.42);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  z-index: 1060;
-}
-
 .modal-sheet {
   background: #ffffff;
   border-radius: 12px;
@@ -1635,7 +1397,7 @@ onMounted(async () => {
     justify-content: flex-end;
   }
 
-  .search-wrap {
+  .filter-bar__controls .search-wrap {
     max-width: none;
   }
 }

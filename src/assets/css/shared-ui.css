@@ -1,0 +1,780 @@
+/* ==========================================================================
+   Shared Botanical Ledger UI Components & Patterns
+   Consolidates common layout, card, toolbar, table, pagination, empty-state,
+   modal, and thermal receipt styles used across views.
+   ========================================================================== */
+
+/* ── 1. Segmented Tabs & Top-Bar Actions ── */
+.segmented-tabs {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: #e9f0ec;
+  border: 1px solid var(--ledger-line);
+  border-radius: 10px;
+}
+
+.segmented-tabs--sm {
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.seg-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.44rem 0.95rem;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #4f6356;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.seg-tab-btn i {
+  font-size: 0.9rem;
+}
+
+.segmented-tabs--sm .seg-tab-btn {
+  padding: 0.28rem 0.68rem;
+  font-size: 0.76rem;
+  border-radius: 6px;
+}
+
+.seg-tab-btn:hover:not(.active) {
+  color: var(--roast-ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.seg-tab-btn.active {
+  background: #ffffff;
+  color: var(--botanical-deep);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(20, 35, 26, 0.08);
+}
+
+.seg-tab-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  background: #dce8e1;
+  color: var(--botanical-primary);
+}
+
+.seg-tab-btn.active .seg-tab-count {
+  background: var(--botanical-tint);
+  color: var(--botanical-deep);
+}
+
+.seg-tab-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.btn-primary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  height: 38px;
+  padding: 0 1.05rem;
+  border-radius: 9px;
+  background: var(--botanical-primary);
+  border: 1px solid var(--botanical-primary);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.16);
+}
+
+.btn-primary-action:hover:not(:disabled) {
+  background: var(--botanical-deep);
+  border-color: var(--botanical-deep);
+}
+
+.btn-primary-action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-cancel-clean {
+  height: 38px;
+  padding: 0 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--ledger-line);
+  background: #ffffff;
+  color: #3d5245;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-cancel-clean:hover:not(:disabled) {
+  background: #f2f7f4;
+  color: var(--roast-ink);
+}
+
+.btn-secondary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  height: 38px;
+  padding: 0 0.95rem;
+  border-radius: 9px;
+  background: #ffffff;
+  border: 1.5px solid #cde2d5;
+  color: var(--botanical-deep);
+  font-size: 0.81rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary-action:hover:not(:disabled) {
+  background: #f2f8f4;
+  border-color: var(--botanical-border);
+}
+
+/* ── 2. Main Card & Filter Toolbar ── */
+.clean-card {
+  background: #ffffff;
+  border: 1px solid var(--ledger-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
+}
+
+.filter-bar {
+  padding: 0.78rem 1.05rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  background: #f8fbf9;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.filter-bar__left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-bar__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.filter-bar__right,
+.filter-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.search-wrap {
+  position: relative;
+}
+
+.filter-bar__left .search-wrap,
+.filter-bar__controls .search-wrap {
+  min-width: 245px;
+  flex: 0 1 295px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sage-muted);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.search-clear {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--sage-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.search-clear:hover {
+  background: #e8f0eb;
+  color: var(--roast-ink);
+}
+
+.filter-input {
+  height: 36px;
+  border-radius: 8px;
+  border: 1.5px solid #dce6e0;
+  background-color: #ffffff;
+  color: var(--roast-ink);
+  font-size: 0.81rem;
+  font-weight: 500;
+  padding: 0 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.filter-input:focus {
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.search-input {
+  width: 100%;
+  padding-left: 32px;
+  padding-right: 28px;
+}
+
+.filter-select {
+  padding-right: 1.85rem;
+  cursor: pointer;
+}
+
+/* Unified Date Range Pill */
+.date-range-group {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.65rem;
+  background: #ffffff;
+  border: 1.5px solid #dce6e0;
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.date-range-group:focus-within {
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.date-range-group__icon {
+  font-size: 0.78rem;
+  color: var(--sage-muted);
+  margin-right: 2px;
+}
+
+.date-range-group__input {
+  border: none;
+  background: transparent;
+  color: var(--roast-ink);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0;
+  width: 112px;
+  cursor: pointer;
+  outline: none;
+}
+
+.date-range-group__sep {
+  color: #94a89c;
+  font-size: 0.75rem;
+  padding: 0 2px;
+}
+
+/* Toolbar Buttons */
+.toolbar-btn {
+  height: 36px;
+  padding: 0 0.8rem;
+  border: 1.5px solid #dce6e0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #3d5245;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+}
+
+.toolbar-btn--icon {
+  width: 36px;
+  padding: 0;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  border-color: #b8ccc0;
+  background: #f2f7f4;
+  color: var(--roast-ink);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── 3. Clean Ledger Table, Statuses & Action Icons ── */
+.clean-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.clean-table th {
+  background: #f4f8f5;
+  font-size: 0.75rem;
+  color: #4f6356;
+  font-weight: 700;
+  padding: 0.72rem 1rem;
+  border-bottom: 1px solid var(--ledger-line);
+  white-space: nowrap;
+}
+
+.clean-table td {
+  padding: 0.78rem 1rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  font-size: 0.84rem;
+  color: var(--roast-ink);
+  vertical-align: middle;
+}
+
+.clean-table tbody tr:hover td {
+  background-color: #f8fbf9;
+}
+
+.clean-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.clickable-row:hover td {
+  background-color: #f8fbf9;
+}
+
+.status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-text.active,
+.status-text.open,
+.status-text.paid,
+.status-text.is-valid {
+  color: #166534;
+}
+
+.status-text.inactive,
+.status-text.closed,
+.status-text.cancelled,
+.status-text.is-inactive {
+  color: #526358;
+}
+
+.status-text.voided,
+.status-text.refunded,
+.status-text.is-expired,
+.status-text.is-exhausted {
+  color: #dc2626;
+}
+
+.status-text.is-scheduled {
+  color: #0369a1;
+}
+
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.btn-action-icon {
+  width: 31px;
+  height: 31px;
+  border-radius: 7px;
+  border: 1px solid #dce6e0;
+  background: #ffffff;
+  color: #465a4e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  transition: all 0.14s ease;
+  cursor: pointer;
+}
+
+.btn-action-icon:hover:not(:disabled) {
+  background: var(--botanical-tint);
+  border-color: var(--botanical-border);
+  color: var(--botanical-deep);
+}
+
+.btn-action-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-action-icon.is-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+/* ── 4. Pagination & Empty States ── */
+.pagination-bar {
+  padding: 0.72rem 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  background: #f8fbf9;
+  border-top: 1px solid var(--ledger-hairline);
+}
+
+.pagination-info {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3d5245;
+}
+
+.empty-box {
+  padding: 3.5rem 1.25rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.empty-box__icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 0.65rem;
+  border-radius: 10px;
+  background: #f0f6f2;
+  border: 1px solid #dce6e0;
+  color: #3b7054;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+
+.empty-box__title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--roast-ink);
+  margin-bottom: 2px;
+}
+
+.empty-box__desc {
+  font-size: 0.8rem;
+  color: var(--sage-muted);
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--sage-muted);
+}
+
+.empty-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.35rem;
+  opacity: 0.65;
+}
+
+.empty-text {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* ── 5. Modals & Modal Form Controls ── */
+.modal-backdrop-custom {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(18, 28, 22, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1060;
+}
+
+.modal-card {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--ledger-line);
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 45px rgba(15, 28, 21, 0.16);
+}
+
+.modal-card-custom {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid var(--ledger-line);
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 45px rgba(15, 28, 21, 0.16);
+}
+
+.modal-sm-custom {
+  max-width: 450px;
+}
+
+.modal-lg-custom {
+  max-width: 680px;
+}
+
+.modal-header-custom {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--ledger-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.modal-title-custom {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--roast-ink);
+}
+
+.modal-subtitle-custom {
+  font-size: 0.78rem;
+  color: var(--sage-muted);
+  margin-top: 2px;
+}
+
+.modal-body-custom {
+  padding: 1.2rem 1.25rem;
+  overflow-y: auto;
+}
+
+.modal-footer-custom {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--ledger-hairline);
+  background: #f8fbf9;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.btn-close-custom {
+  border: 1px solid var(--ledger-line);
+  background: #f8fbf9;
+  color: #4f6356;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-close-custom:hover {
+  background: #eaf5ee;
+  color: var(--botanical-deep);
+}
+
+.form-label-clean {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #35473c;
+  margin-bottom: 0.35rem;
+  display: block;
+}
+
+.form-control-clean {
+  border-radius: 9px;
+  border: 1.5px solid #dce6e0;
+  background-color: #ffffff;
+  font-size: 0.85rem;
+  color: var(--roast-ink);
+}
+
+.form-control-clean:focus {
+  background-color: #ffffff;
+  border-color: var(--botanical-border);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.option-pills {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.opt-pill {
+  border: 1.5px solid #dce6e0;
+  background: #ffffff;
+  color: #3d5245;
+  border-radius: 9px;
+  padding: 0.42rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.opt-pill:hover:not(.active):not(:disabled) {
+  background: #f2f7f4;
+  border-color: #b8ccc0;
+}
+
+.opt-pill.active {
+  background: var(--botanical-primary);
+  color: #ffffff;
+  border-color: var(--botanical-primary);
+}
+
+.btn-coffee {
+  background: var(--botanical-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  height: 36px;
+  padding: 0 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-coffee:hover:not(:disabled) {
+  background: var(--botanical-deep);
+  color: #ffffff;
+}
+
+.btn-light-coffee {
+  background: #ffffff;
+  color: #3d5245;
+  border: 1.5px solid #dce6e0;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  height: 36px;
+  padding: 0 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-light-coffee:hover:not(:disabled) {
+  background: #f2f7f4;
+}
+
+/* ── 6. Thermal Receipt & Spinners ── */
+.thermal-receipt {
+  background: #fffef9;
+  border: 1px dashed #c8c2b8;
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: 'Kantumruy Pro', 'Courier New', Courier, monospace;
+  font-size: 0.8rem;
+  color: #1c1917;
+}
+
+.receipt-logo {
+  max-height: 44px;
+  object-fit: contain;
+}
+
+.receipt-sub {
+  font-size: 0.73rem;
+  color: #57534e;
+}
+
+.receipt-divider {
+  border-top: 1px dashed #a8a29e;
+  margin: 0.5rem 0;
+}
+
+.receipt-meta {
+  font-size: 0.75rem;
+  margin-bottom: 2px;
+}
+
+.receipt-item {
+  margin-bottom: 0.4rem;
+}
+
+.receipt-item-sub {
+  font-size: 0.72rem;
+  color: #57534e;
+  padding-left: 0.75rem;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-anim,
+.spin-icon,
+.is-spinning {
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
