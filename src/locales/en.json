@@ -597,7 +597,10 @@
     "noIngredientsInRecipeDesc": "Click \"Add Ingredient Row\" to add raw materials (coffee beans, milk, syrup, cup) to this variant.",
     "addFirstIngredient": "Add First Ingredient",
     "chooseActiveIngredient": "Choose active ingredient...",
-    "quantityRequired": "Quantity Required",
+    "quantityRequired": "Quantity (100% Std)",
+    "scaleBySugar": "Scale by Sugar %",
+    "scaleBySugarShort": "Sugar %",
+    "scaleBySugarHint": "Auto-adjusts deducted quantity based on customer sugar level (e.g. 50% sugar = half quantity)",
     "saveRecipeBtn": "Save Recipe ({count} ingredient(s))",
     "clearRecipeTitle": "Clear Variant Recipe?",
     "clearRecipeDesc": "Are you sure you want to remove all recipe ingredients from '{name}'?"

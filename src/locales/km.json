@@ -597,7 +597,10 @@
     "noIngredientsInRecipeDesc": "ចុចប៊ូតុង \"បន្ថែមគ្រឿងផ្សំ\" ដើម្បីដាក់គ្រាប់កាហ្វេ ទឹកដោះគោ ទឹកស្ករ ឬកែវ។",
     "addFirstIngredient": "បន្ថែមគ្រឿងផ្សំដំបូង",
     "chooseActiveIngredient": "ជ្រើសរើសគ្រឿងផ្សំ...",
-    "quantityRequired": "បរិមាណត្រូវប្រើ",
+    "quantityRequired": "បរិមាណស្តង់ដារ (100%)",
+    "scaleBySugar": "កាត់តាម % ផ្អែម",
+    "scaleBySugarShort": "តាម % ផ្អែម",
+    "scaleBySugarHint": "កែតម្រូវបរិមាណកាត់ស្តុកស្វ័យប្រវត្តិតាមកម្រិតផ្អែមដែលភ្ញៀវកម្ម៉ង់ (ឧ. ផ្អែម 50% = កាត់ពាក់កណ្ដាល)",
     "saveRecipeBtn": "រក្សាទុករូបមន្ត ({count} គ្រឿងផ្សំ)",
     "clearRecipeTitle": "សម្អាតរូបមន្ត?",
     "clearRecipeDesc": "តើអ្នកពិតជាចង់លុបគ្រឿងផ្សំទាំងអស់ចេញពីរូបមន្ត '{name}' មែនទេ?"

@@ -1,14 +1,13 @@
 <template>
   <div class="recipes-page">
     <div class="recipes-layout">
-      <!-- ================= LEFT PANEL: PRODUCT LIST ================= -->
-      <div class="products-sidebar-card">
+      <!-- ================= LEFT PANEL: PRODUCT DIRECTORY ================= -->
+      <aside class="products-sidebar-card">
         <div class="sidebar-header">
           <div class="sidebar-top-row">
-            <span class="sidebar-title">
+            <h2 class="sidebar-title">
               {{ $t('recipes.productsCount', { count: filteredProducts.length }) }}
-            </span>
-            <span class="catalog-badge">{{ $t('recipes.catalog') }}</span>
+            </h2>
           </div>
 
           <div class="search-wrap">
@@ -82,10 +81,10 @@
             </span>
           </button>
         </div>
-      </div>
+      </aside>
 
-      <!-- ================= RIGHT PANEL: VARIANT RECIPES ================= -->
-      <div class="variants-recipe-panel">
+      <!-- ================= RIGHT PANEL: UNIFIED RECIPE SHEET ================= -->
+      <section class="variants-recipe-panel">
         <div v-if="!selectedProduct" class="surface-card empty-main">
           <div class="empty-icon-circle">
             <i class="bi bi-journal-text"></i>
@@ -96,61 +95,62 @@
           </div>
         </div>
 
-        <template v-else>
-          <!-- Selected Product Banner -->
-          <div class="surface-card product-banner">
-            <div class="banner-inner">
-              <div class="banner-product-info">
-                <div class="prod-thumb-lg">
-                  <img
-                    v-if="selectedProduct.image"
-                    :src="getAssetUrl(selectedProduct.image)"
-                    :alt="selectedProduct.name"
-                  />
-                  <i
-                    v-else
-                    class="bi"
-                    :class="selectedProduct.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot'"
-                  ></i>
-                </div>
-                <div class="banner-text-col">
-                  <div class="banner-title-row">
-                    <h5 class="banner-product-title">{{ selectedProduct.name }}</h5>
-                  </div>
-                  <div class="banner-meta-row">
-                    <span class="banner-meta-item">{{ $tCategory(selectedProduct.category_name) }}</span>
-                    <span class="meta-dot">•</span>
-                    <span class="banner-meta-item tabular">{{ $t('pos.sizesCount', { count: productVariantsRecipes.length }) }}</span>
-                  </div>
-                </div>
+        <div v-else class="surface-card recipe-sheet-card">
+          <!-- Integrated Product Header -->
+          <header class="sheet-header">
+            <div class="banner-product-info">
+              <div class="prod-thumb-lg">
+                <img
+                  v-if="selectedProduct.image"
+                  :src="getAssetUrl(selectedProduct.image)"
+                  :alt="selectedProduct.name"
+                />
+                <i
+                  v-else
+                  class="bi"
+                  :class="selectedProduct.product_type === 'FOOD' ? 'bi-egg-fried' : 'bi-cup-hot'"
+                ></i>
               </div>
 
-              <div class="banner-actions">
-                <router-link to="/inventory" class="btn-toolbar">
-                  <i class="bi bi-boxes"></i>
-                  <span>{{ $t('inventory.tabIngredients') }}</span>
-                </router-link>
-                <button
-                  type="button"
-                  class="btn-toolbar-icon"
-                  :title="$t('common.refresh')"
-                  :disabled="isLoadingProductRecipes"
-                  @click="fetchProductRecipes(selectedProduct.id)"
-                >
-                  <i class="bi bi-arrow-clockwise" :class="{ 'spin-icon': isLoadingProductRecipes }"></i>
-                </button>
+              <div class="banner-text-col">
+                <div class="banner-title-row">
+                  <h1 class="banner-product-title">{{ selectedProduct.name }}</h1>
+                  <span class="product-cat-tag">{{ $tCategory(selectedProduct.category_name) }}</span>
+                </div>
+                <div class="banner-meta-row tabular">
+                  <span>{{ $t('pos.sizesCount', { count: productVariantsRecipes.length }) }}</span>
+                  <span v-if="productVariantsRecipes.length > 0" class="configured-stat">
+                    {{ $t('recipes.configuredCount', { configured: configuredRecipesCount, total: productVariantsRecipes.length }) }}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+
+            <div class="banner-actions">
+              <router-link to="/inventory" class="btn-toolbar">
+                <i class="bi bi-boxes"></i>
+                <span>{{ $t('inventory.tabIngredients') }}</span>
+              </router-link>
+              <button
+                type="button"
+                class="btn-toolbar-icon"
+                :title="$t('common.refresh')"
+                :disabled="isLoadingProductRecipes"
+                @click="fetchProductRecipes(selectedProduct.id)"
+              >
+                <i class="bi bi-arrow-clockwise" :class="{ 'spin-icon': isLoadingProductRecipes }"></i>
+              </button>
+            </div>
+          </header>
 
           <!-- Variants Loading -->
-          <div v-if="isLoadingProductRecipes" class="surface-card empty-main">
+          <div v-if="isLoadingProductRecipes" class="empty-main">
             <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
             <div class="empty-main-desc">{{ $t('recipes.loadingVariantRecipes') }}</div>
           </div>
 
           <!-- Empty Variants -->
-          <div v-else-if="productVariantsRecipes.length === 0" class="surface-card empty-main">
+          <div v-else-if="productVariantsRecipes.length === 0" class="empty-main">
             <div class="empty-icon-circle">
               <i class="bi bi-box-seam"></i>
             </div>
@@ -161,118 +161,133 @@
           </div>
 
           <!-- Variants Recipe Table View -->
-          <div v-else class="surface-card">
-            <div class="table-responsive">
-              <table class="clean-table">
-                <thead>
-                  <tr>
-                    <th style="min-width: 160px;">{{ $t('recipes.colVariant') }}</th>
-                    <th style="min-width: 100px;">{{ $t('recipes.colPrice') }}</th>
-                    <th style="min-width: 280px;">{{ $t('recipes.colRecipeIngredients') }}</th>
-                    <th style="min-width: 130px;">{{ $t('recipes.colEstYield') }}</th>
-                    <th style="min-width: 130px;" class="text-end">{{ $t('common.actions') }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="v in productVariantsRecipes" :key="v.id">
-                    <!-- Variant Name -->
-                    <td>
-                      <div class="variant-name">{{ v.variant_name }}</div>
-                    </td>
+          <div v-else class="table-responsive">
+            <table class="clean-table recipe-ledger-table">
+              <thead>
+                <tr>
+                  <th style="width: 150px;">{{ $t('recipes.colVariant') }}</th>
+                  <th style="width: 110px;">{{ $t('recipes.colPrice') }}</th>
+                  <th>{{ $t('recipes.colRecipeIngredients') }}</th>
+                  <th style="width: 145px;">{{ $t('recipes.colEstYield') }}</th>
+                  <th style="width: 115px;" class="text-end">{{ $t('common.actions') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="v in productVariantsRecipes" :key="v.id">
+                  <!-- Variant Name -->
+                  <td>
+                    <div class="variant-cell">
+                      <span class="variant-name">{{ v.variant_name }}</span>
+                    </div>
+                  </td>
 
-                    <!-- Price -->
-                    <td>
-                      <span class="price-val tabular">{{ formatUsd(v.price) }}</span>
-                    </td>
+                  <!-- Price -->
+                  <td>
+                    <span class="price-val tabular">{{ formatUsd(v.price) }}</span>
+                  </td>
 
-                    <!-- Recipe Ingredients -->
-                    <td>
-                      <div v-if="!v.recipe || v.recipe.length === 0" class="no-recipe-wrap">
-                        <span class="no-recipe-pill">{{ $t('recipes.noRecipeSet') }}</span>
-                        <div v-if="getSiblingsWithRecipes(v).length > 0" class="copy-siblings-group">
-                          <span class="copy-label">{{ $t('recipes.copy') }}</span>
-                          <button
-                            v-for="sib in getSiblingsWithRecipes(v)"
-                            :key="sib.id"
-                            type="button"
-                            class="btn-copy-sibling"
-                            :title="`Copy recipe from ${sib.variant_name}`"
-                            @click="quickCopyRecipe(sib, v)"
-                          >
-                            <i class="bi bi-copy"></i>
-                            <span>{{ sib.variant_name }}</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div v-else class="recipe-dropdown-wrap">
-                        <select
-                          class="form-select form-select-sm recipe-select tabular"
-                          :title="$t('recipes.colRecipeIngredients')"
-                        >
-                          <option
-                            v-for="item in v.recipe"
-                            :key="item.id"
-                            :value="item.id"
-                          >
-                            {{ item.ingredient_name }} — {{ formatQty(item.quantity) }} {{ item.unit }}
-                          </option>
-                        </select>
-                      </div>
-                    </td>
-
-                    <!-- Est. Yield -->
-                    <td>
-                      <template v-if="v.recipe && v.recipe.length > 0">
-                        <span
-                          class="yield-text tabular"
-                          :class="getMaxMakeableUnits(v.recipe) <= 5 ? 'is-low' : 'is-ok'"
-                        >
-                          {{ $t('recipes.cupsCount', { count: getMaxMakeableUnits(v.recipe) }) }}
-                        </span>
-                      </template>
-                      <span v-else class="text-muted-dash">—</span>
-                    </td>
-
-                    <!-- Actions -->
-                    <td class="text-end">
-                      <div v-if="authStore.isOwner" class="action-group">
-                        <template v-if="v.recipe && v.recipe.length > 0">
-                          <button
-                            type="button"
-                            class="btn-action-icon"
-                            :title="$t('common.edit')"
-                            @click="openRecipeBuilderModal(v)"
-                          >
-                            <i class="bi bi-pencil"></i>
-                          </button>
-                          <button
-                            type="button"
-                            class="btn-action-icon is-danger"
-                            :title="$t('common.clear')"
-                            @click="handleDeleteVariantRecipe(v)"
-                          >
-                            <i class="bi bi-trash3"></i>
-                          </button>
-                        </template>
+                  <!-- Recipe Ingredients (Structured Non-Breaking Chips) -->
+                  <td>
+                    <div v-if="!v.recipe || v.recipe.length === 0" class="no-recipe-wrap">
+                      <span class="no-recipe-pill">{{ $t('recipes.noRecipeSet') }}</span>
+                      <div v-if="getSiblingsWithRecipes(v).length > 0" class="copy-siblings-group">
+                        <span class="copy-label">{{ $t('recipes.copy') }}</span>
                         <button
-                          v-else
+                          v-for="sib in getSiblingsWithRecipes(v)"
+                          :key="sib.id"
                           type="button"
-                          class="btn-set-recipe"
-                          @click="openRecipeBuilderModal(v)"
+                          class="btn-copy-sibling"
+                          :title="`Copy recipe from ${sib.variant_name}`"
+                          @click="quickCopyRecipe(sib, v)"
                         >
-                          <i class="bi bi-plus-lg"></i>
-                          <span>{{ $t('recipes.setRecipe') }}</span>
+                          <i class="bi bi-copy"></i>
+                          <span>{{ sib.variant_name }}</span>
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                    </div>
+
+                    <div v-else class="recipe-chips-flow tabular">
+                      <div
+                        v-for="item in v.recipe"
+                        :key="item.id"
+                        class="ing-chip"
+                        :class="{
+                          'is-sugar-scaled': item.scale_by_sugar && isSelectedProductDrink,
+                          'is-inactive': item.is_active === false,
+                        }"
+                      >
+                        <span class="ing-chip__name">{{ item.ingredient_name }}</span>
+                        <span class="ing-chip__qty">{{ formatQty(item.quantity) }} {{ item.unit }}</span>
+                        <span
+                          v-if="item.scale_by_sugar && isSelectedProductDrink"
+                          class="ing-chip__sugar"
+                          :title="$t('recipes.scaleBySugarHint')"
+                        >
+                          <i class="bi bi-droplet-half"></i>
+                          <span>%</span>
+                        </span>
+                        <span
+                          v-if="item.is_active === false"
+                          class="ing-chip__inactive"
+                        >
+                          {{ $t('common.inactive') }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Est. Yield -->
+                  <td>
+                    <template v-if="v.recipe && v.recipe.length > 0">
+                      <span
+                        class="yield-badge tabular"
+                        :class="getMaxMakeableUnits(v.recipe) <= 5 ? 'is-low' : 'is-ok'"
+                      >
+                        <span class="yield-dot"></span>
+                        <span>{{ $t('recipes.cupsCount', { count: getMaxMakeableUnits(v.recipe) }) }}</span>
+                      </span>
+                    </template>
+                    <span v-else class="text-muted-dash">—</span>
+                  </td>
+
+                  <!-- Actions -->
+                  <td class="text-end">
+                    <div v-if="authStore.isOwner" class="action-group">
+                      <template v-if="v.recipe && v.recipe.length > 0">
+                        <button
+                          type="button"
+                          class="btn-action-icon"
+                          :title="$t('common.edit')"
+                          @click="openRecipeBuilderModal(v)"
+                        >
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-action-icon is-danger"
+                          :title="$t('common.clear')"
+                          @click="handleDeleteVariantRecipe(v)"
+                        >
+                          <i class="bi bi-trash3"></i>
+                        </button>
+                      </template>
+                      <button
+                        v-else
+                        type="button"
+                        class="btn-set-recipe"
+                        @click="openRecipeBuilderModal(v)"
+                      >
+                        <i class="bi bi-plus-lg"></i>
+                        <span>{{ $t('recipes.setRecipe') }}</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </template>
-      </div>
+        </div>
+      </section>
     </div>
 
     <!-- ================= MODAL: RECIPE BUILDER (OWNER) ================= -->
@@ -287,96 +302,111 @@
               {{ $t('recipes.recipeBuilderSubtitle') }}
             </div>
           </div>
-          <button type="button" class="btn-close-custom" @click="showBuilderModal = false">
+          <button type="button" class="btn-close-plain" @click="showBuilderModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
 
         <div class="modal-body-custom">
-          <!-- Toolbar: Copy from sibling variant or Add Ingredient Row -->
-          <div class="builder-toolbar">
-            <div v-if="siblingVariantsWithRecipes.length > 0" class="copy-siblings-group">
-              <span class="copy-label">{{ $t('recipes.copyFrom') }}</span>
+          <!-- Quiet Copy Bar (only when sibling variants have recipes) -->
+          <div v-if="siblingVariantsWithRecipes.length > 0" class="builder-copy-bar">
+            <span class="copy-label">{{ $t('recipes.copyFrom') }}</span>
+            <div class="copy-links">
               <button
                 v-for="sib in siblingVariantsWithRecipes"
                 :key="sib.id"
                 type="button"
-                class="btn-copy-sibling"
+                class="btn-copy-link"
                 @click="copyFromSiblingVariant(sib)"
               >
-                <i class="bi bi-files"></i>
-                <span>{{ sib.variant_name }}</span>
+                {{ sib.variant_name }}
               </button>
             </div>
-
-            <button
-              type="button"
-              class="btn-toolbar ms-auto"
-              @click="addBuilderRow"
-            >
-              <i class="bi bi-plus-lg"></i>
-              <span>{{ $t('recipes.addIngredientRow') }}</span>
-            </button>
           </div>
 
-          <div v-if="builderItems.length === 0" class="empty-builder-box">
+          <div v-if="builderItems.length === 0" class="empty-builder-state">
             <div class="empty-main-title">{{ $t('recipes.noIngredientsInRecipe') }}</div>
             <div class="empty-main-desc mb-3">
               {{ $t('recipes.noIngredientsInRecipeDesc') }}
             </div>
-            <button type="button" class="btn-primary-action" @click="addBuilderRow">
+            <button type="button" class="btn-add-inline" @click="addBuilderRow">
               <i class="bi bi-plus-lg"></i>
               <span>{{ $t('recipes.addFirstIngredient') }}</span>
             </button>
           </div>
 
-          <div v-else class="builder-rows">
-            <div
-              v-for="(row, idx) in builderItems"
-              :key="idx"
-              class="builder-row"
-            >
-              <div class="flex-grow-1">
-                <label class="form-label-clean">{{ $t('inventory.colIngredient') }}</label>
-                <select
-                  v-model.number="row.ingredient_id"
-                  class="form-select form-control-clean"
-                  required
-                >
-                  <option :value="null" disabled>{{ $t('recipes.chooseActiveIngredient') }}</option>
-                  <option
-                    v-for="ing in activeIngredients"
-                    :key="ing.id"
-                    :value="ing.id"
-                    :disabled="isIngredientUsedInOtherRow(ing.id, idx)"
-                  >
-                    {{ ing.name }} ({{ ing.unit }} — {{ formatQty(ing.current_stock) }})
-                  </option>
-                </select>
-              </div>
+          <div v-else class="builder-list">
+            <!-- Quiet Column Labels -->
+            <div class="builder-cols-head">
+              <span class="builder-col-ing">{{ $t('inventory.colIngredient') }}</span>
+              <span class="builder-col-qty">{{ $t('recipes.quantityRequired') }}</span>
+              <span
+                v-if="isSelectedProductDrink"
+                class="builder-col-sugar"
+                :title="$t('recipes.scaleBySugarHint')"
+              >
+                {{ $t('recipes.scaleBySugar') }}
+              </span>
+              <span class="builder-col-act"></span>
+            </div>
 
-              <div class="builder-qty-col">
-                <label class="form-label-clean">{{ $t('recipes.quantityRequired') }}</label>
-                <div class="qty-input-group">
-                  <input
-                    v-model.number="row.quantity"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    class="form-control form-control-clean tabular"
-                    placeholder="0.00"
+            <div class="builder-rows">
+              <div
+                v-for="(row, idx) in builderItems"
+                :key="idx"
+                class="builder-row"
+              >
+                <div class="builder-ing-col">
+                  <select
+                    v-model.number="row.ingredient_id"
+                    class="form-select form-control-clean"
                     required
-                  />
-                  <span class="qty-unit-addon">
-                    {{ getIngredientUnit(row.ingredient_id) || 'Unit' }}
-                  </span>
+                  >
+                    <option :value="null" disabled>{{ $t('recipes.chooseActiveIngredient') }}</option>
+                    <option
+                      v-for="ing in activeIngredients"
+                      :key="ing.id"
+                      :value="ing.id"
+                      :disabled="isIngredientUsedInOtherRow(ing.id, idx)"
+                    >
+                      {{ ing.name }} ({{ ing.unit }} — {{ formatQty(ing.current_stock) }})
+                    </option>
+                  </select>
                 </div>
-              </div>
 
-              <div class="builder-remove-col">
+                <div class="builder-qty-col">
+                  <div class="qty-field">
+                    <input
+                      v-model.number="row.quantity"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      class="form-control form-control-clean qty-field__input tabular"
+                      placeholder="0"
+                      required
+                    />
+                    <span class="qty-field__unit">
+                      {{ getIngredientUnit(row.ingredient_id) || '' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div v-if="isSelectedProductDrink" class="builder-sugar-col">
+                  <button
+                    type="button"
+                    class="btn-sugar-toggle"
+                    :class="{ 'is-active': row.scale_by_sugar }"
+                    :title="$t('recipes.scaleBySugarHint')"
+                    @click="row.scale_by_sugar = !row.scale_by_sugar"
+                  >
+                    <i class="bi" :class="row.scale_by_sugar ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                    <span>{{ $t('recipes.scaleBySugarShort') }}</span>
+                  </button>
+                </div>
+
                 <button
                   type="button"
-                  class="btn-action-icon is-danger"
+                  class="btn-remove-plain"
                   :title="$t('common.remove')"
                   @click="removeBuilderRow(idx)"
                 >
@@ -384,21 +414,29 @@
                 </button>
               </div>
             </div>
+
+            <button
+              type="button"
+              class="btn-add-inline mt-2 ms-auto"
+              @click="addBuilderRow"
+            >
+              <i class="bi bi-plus-lg"></i>
+              <span>{{ $t('recipes.addIngredientRow') }}</span>
+            </button>
           </div>
         </div>
 
         <div class="modal-footer-custom">
-          <button type="button" class="btn-cancel-clean" @click="showBuilderModal = false">
+          <button type="button" class="btn-cancel-plain" @click="showBuilderModal = false">
             {{ $t('common.cancel') }}
           </button>
           <button
             type="button"
-            class="btn-primary-action flex-grow-1 justify-content-center"
+            class="btn-primary-action"
             :disabled="isSavingRecipe"
             @click="handleSaveRecipe"
           >
             <span v-if="isSavingRecipe" class="spinner-border spinner-border-sm"></span>
-            <i v-else class="bi bi-check2-circle"></i>
             <span>{{ $t('recipes.saveRecipeBtn', { count: builderItems.length }) }}</span>
           </button>
         </div>
@@ -507,6 +545,10 @@ const activeIngredients = computed(() =>
   ingredients.value.filter((i) => i.is_active)
 )
 
+const isSelectedProductDrink = computed(
+  () => String(selectedProduct.value?.product_type || 'DRINK').toUpperCase() === 'DRINK'
+)
+
 const siblingVariantsWithRecipes = computed(() => {
   if (!editingVariant.value) return []
   return productVariantsRecipes.value.filter(
@@ -531,6 +573,7 @@ const quickCopyRecipe = async (sibling, targetVariant) => {
       items: sibling.recipe.map((r) => ({
         ingredient_id: Number(r.ingredient_id),
         quantity: Number(r.quantity),
+        scale_by_sugar: Boolean(r.scale_by_sugar),
       })),
     }
     await api.put(`/inventory/recipes/variant/${targetVariant.id}`, payload)
@@ -549,7 +592,9 @@ const formatQty = (val) => {
 
 const getMaxMakeableUnits = (recipeList) => {
   if (!Array.isArray(recipeList) || recipeList.length === 0) return 0
-  const counts = recipeList.map((r) => {
+  const activeRecipeItems = recipeList.filter((r) => r.is_active !== false)
+  if (activeRecipeItems.length === 0) return 0
+  const counts = activeRecipeItems.map((r) => {
     const qty = Number(r.quantity) || 0
     if (qty <= 0) return 9999
     return Math.max(0, Math.floor((Number(r.current_stock) || 0) / qty))
@@ -602,11 +647,13 @@ const openRecipeBuilderModal = (variant) => {
   builderItems.value = (variant.recipe || []).map((r) => ({
     ingredient_id: r.ingredient_id,
     quantity: Number(r.quantity),
+    scale_by_sugar: Boolean(r.scale_by_sugar),
   }))
   if (builderItems.value.length === 0 && activeIngredients.value.length > 0) {
     builderItems.value.push({
       ingredient_id: activeIngredients.value[0].id,
       quantity: 1,
+      scale_by_sugar: false,
     })
   }
   showBuilderModal.value = true
@@ -618,6 +665,7 @@ const addBuilderRow = () => {
   builderItems.value.push({
     ingredient_id: nextAvailable ? nextAvailable.id : null,
     quantity: 1,
+    scale_by_sugar: false,
   })
 }
 
@@ -640,6 +688,7 @@ const copyFromSiblingVariant = (sibling) => {
   builderItems.value = (sibling.recipe || []).map((r) => ({
     ingredient_id: r.ingredient_id,
     quantity: Number(r.quantity),
+    scale_by_sugar: Boolean(r.scale_by_sugar),
   }))
   toast.info(`Copied recipe from ${sibling.variant_name}`)
 }
@@ -663,6 +712,7 @@ const handleSaveRecipe = async () => {
       items: builderItems.value.map((r) => ({
         ingredient_id: Number(r.ingredient_id),
         quantity: Number(r.quantity),
+        scale_by_sugar: Boolean(r.scale_by_sugar),
       })),
     }
 
@@ -718,8 +768,8 @@ onMounted(async () => {
 
 .recipes-layout {
   display: grid;
-  grid-template-columns: 315px 1fr;
-  gap: 1.25rem;
+  grid-template-columns: 300px 1fr;
+  gap: 1.15rem;
   align-items: start;
 }
 
@@ -729,27 +779,27 @@ onMounted(async () => {
   }
 }
 
-/* ================= LEFT SIDEBAR: PRODUCT NAVIGATOR ================= */
+/* ================= LEFT SIDEBAR: PRODUCT DIRECTORY ================= */
 .products-sidebar-card {
   background: #ffffff;
   border: 1px solid var(--ledger-border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 120px);
-  box-shadow: 0 2px 10px rgba(22, 36, 28, 0.03);
+  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
   position: sticky;
   top: 1rem;
 }
 
 .sidebar-header {
-  padding: 1rem;
+  padding: 0.95rem 1rem;
   border-bottom: 1px solid var(--ledger-border-soft);
-  background: #fcfefd;
+  background: #f9fcfb;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.55rem;
 }
 
 .sidebar-top-row {
@@ -760,21 +810,10 @@ onMounted(async () => {
 }
 
 .sidebar-title {
-  font-size: 0.78rem;
-  font-weight: 800;
-  color: var(--text-strong);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.catalog-badge {
-  font-size: 0.7rem;
+  margin: 0;
+  font-size: 0.85rem;
   font-weight: 700;
-  color: var(--botanical-primary);
-  background: var(--botanical-surface);
-  border: 1px solid var(--ledger-border);
-  padding: 0.14rem 0.5rem;
-  border-radius: 999px;
+  color: var(--text-strong);
 }
 
 .search-wrap {
@@ -787,7 +826,7 @@ onMounted(async () => {
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   pointer-events: none;
 }
 
@@ -795,12 +834,12 @@ onMounted(async () => {
   width: 100%;
   height: 36px;
   padding: 0 28px 0 32px;
-  border-radius: 9px;
+  border-radius: 8px;
   border: 1px solid var(--ledger-border);
   background: #ffffff;
-  font-size: 0.83rem;
+  font-size: 0.82rem;
   color: var(--text-strong);
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .search-input::placeholder {
@@ -810,7 +849,7 @@ onMounted(async () => {
 .search-input:focus {
   outline: none;
   border-color: var(--botanical-primary);
-  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.1);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
 .btn-search-clear {
@@ -835,9 +874,9 @@ onMounted(async () => {
   width: 100%;
   height: 36px;
   padding: 0 2rem 0 0.75rem;
-  border-radius: 9px;
+  border-radius: 8px;
   border: 1px solid var(--ledger-border);
-  font-size: 0.82rem;
+  font-size: 0.81rem;
   font-weight: 600;
   color: var(--text-body);
   background-color: #ffffff;
@@ -847,53 +886,51 @@ onMounted(async () => {
   background-size: 11px 9px;
   appearance: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .category-select:focus {
   outline: none;
   border-color: var(--botanical-primary);
-  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.1);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
 }
 
 /* Product Select List */
 .product-select-list {
   overflow-y: auto;
-  padding: 0.65rem;
+  padding: 0.55rem;
   display: flex;
   flex-direction: column;
-  gap: 0.38rem;
+  gap: 0.28rem;
 }
 
 .product-select-item {
   border: 1px solid transparent;
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 0.58rem 0.7rem;
+  background: transparent;
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  transition: all 0.16s ease;
+  gap: 0.68rem;
+  transition: background-color 0.14s ease, border-color 0.14s ease;
   width: 100%;
   cursor: pointer;
   outline: none !important;
 }
 
 .product-select-item:hover {
-  background: var(--botanical-surface);
-  border-color: var(--ledger-border-soft);
+  background: #f4f9f6;
 }
 
 .product-select-item.active {
-  background: #f0f7f3;
-  border-color: var(--botanical-primary);
-  box-shadow: 0 2px 6px rgba(45, 90, 67, 0.08);
+  background: #eef6f1;
+  border-color: #c3dbd0;
 }
 
 .prod-thumb-sm {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
   background: var(--botanical-surface);
   color: var(--botanical-primary);
   display: flex;
@@ -901,8 +938,8 @@ onMounted(async () => {
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  font-size: 1.05rem;
-  border: 1px solid var(--ledger-border);
+  font-size: 1rem;
+  border: 1px solid var(--ledger-border-soft);
 }
 
 .prod-thumb-sm img {
@@ -919,7 +956,7 @@ onMounted(async () => {
 
 .prod-name-sm {
   font-weight: 700;
-  font-size: 0.87rem;
+  font-size: 0.85rem;
   color: var(--text-strong);
   line-height: 1.25;
 }
@@ -929,18 +966,18 @@ onMounted(async () => {
 }
 
 .prod-meta-sm {
-  font-size: 0.73rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   margin-top: 2px;
 }
 
 .variant-pill-sm {
-  font-size: 0.71rem;
-  font-weight: 700;
-  background: var(--botanical-surface);
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #f4f8f5;
   color: var(--text-body);
-  border: 1px solid var(--ledger-border);
-  padding: 0.18rem 0.52rem;
+  border: 1px solid var(--ledger-border-soft);
+  padding: 0.15rem 0.5rem;
   border-radius: 999px;
   white-space: nowrap;
   flex-shrink: 0;
@@ -950,6 +987,7 @@ onMounted(async () => {
   background: #ffffff;
   color: var(--botanical-deep);
   border-color: #bdd6c7;
+  font-weight: 700;
 }
 
 .empty-side {
@@ -962,27 +1000,23 @@ onMounted(async () => {
   color: var(--text-muted);
 }
 
-/* ================= RIGHT PANEL: PRODUCT BANNER & TABLE ================= */
+/* ================= RIGHT PANEL: UNIFIED RECIPE SHEET ================= */
 .variants-recipe-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
   min-width: 0;
 }
 
 .surface-card {
   background: #ffffff;
   border: 1px solid var(--ledger-border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(22, 36, 28, 0.03);
+  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
 }
 
-.product-banner {
-  padding: 1rem 1.25rem;
-}
-
-.banner-inner {
+.sheet-header {
+  padding: 1.05rem 1.25rem;
+  background: #ffffff;
+  border-bottom: 1px solid var(--ledger-border-soft);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -993,20 +1027,20 @@ onMounted(async () => {
 .banner-product-info {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 0.88rem;
   min-width: 0;
 }
 
 .prod-thumb-lg {
-  width: 54px;
-  height: 54px;
-  border-radius: 13px;
+  width: 50px;
+  height: 50px;
+  border-radius: 11px;
   background: var(--botanical-surface);
   color: var(--botanical-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   overflow: hidden;
   border: 1px solid var(--ledger-border);
   flex-shrink: 0;
@@ -1029,56 +1063,64 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .banner-product-title {
   margin: 0;
-  font-size: 1.08rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--text-strong);
   line-height: 1.25;
+}
+
+.product-cat-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.14rem 0.55rem;
+  border-radius: 6px;
+  background: #f2f7f4;
+  color: var(--botanical-deep);
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .banner-meta-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.45rem;
-  font-size: 0.81rem;
+  gap: 0.65rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
+  font-weight: 500;
 }
 
-.banner-meta-item {
+.configured-stat {
+  color: var(--botanical-primary);
   font-weight: 600;
-  color: var(--text-body);
-}
-
-.meta-dot {
-  color: #b5c4bc;
 }
 
 .banner-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .btn-toolbar {
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
-  height: 36px;
-  padding: 0 0.85rem;
-  border-radius: 9px;
+  height: 35px;
+  padding: 0 0.82rem;
+  border-radius: 8px;
   border: 1px solid var(--ledger-border);
   background: #ffffff;
   color: var(--text-body);
-  font-size: 0.81rem;
+  font-size: 0.8rem;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .btn-toolbar:hover {
@@ -1088,18 +1130,18 @@ onMounted(async () => {
 }
 
 .btn-toolbar-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+  width: 35px;
+  height: 35px;
+  border-radius: 8px;
   border: 1px solid var(--ledger-border);
   background: #ffffff;
   color: var(--text-body);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .btn-toolbar-icon:hover:not(:disabled) {
@@ -1108,19 +1150,35 @@ onMounted(async () => {
   border-color: #bdd1c5;
 }
 
+/* Ledger Table Tweaks */
+.recipe-ledger-table th {
+  padding: 0.7rem 1.15rem;
+  background: #f7faf8;
+  border-bottom: 1px solid var(--ledger-border-soft);
+}
+
+.recipe-ledger-table td {
+  padding: 0.88rem 1.15rem;
+}
+
+.variant-cell {
+  display: flex;
+  align-items: center;
+}
+
 .variant-name {
   font-weight: 700;
   color: var(--text-strong);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .price-val {
-  font-weight: 800;
-  color: var(--botanical-deep);
-  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-strong);
+  font-size: 0.88rem;
 }
 
-/* Recipe Ingredients Cell */
+/* Recipe Ingredients Cell — Empty & Quick Copy */
 .no-recipe-wrap {
   display: flex;
   align-items: center;
@@ -1131,12 +1189,12 @@ onMounted(async () => {
 .no-recipe-pill {
   display: inline-flex;
   align-items: center;
-  padding: 0.22rem 0.6rem;
-  border-radius: 7px;
-  background: #f4f7f5;
-  border: 1px solid var(--ledger-border);
+  padding: 0.22rem 0.58rem;
+  border-radius: 6px;
+  background: #f5f8f6;
+  border: 1px solid var(--ledger-border-soft);
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -1144,11 +1202,11 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.32rem;
 }
 
 .copy-label {
-  font-size: 0.74rem;
+  font-size: 0.73rem;
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -1156,16 +1214,16 @@ onMounted(async () => {
 .btn-copy-sibling {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 7px;
+  gap: 0.28rem;
+  padding: 0.18rem 0.52rem;
+  border-radius: 6px;
   border: 1px solid var(--ledger-border);
   background: #ffffff;
   color: var(--text-body);
-  font-size: 0.74rem;
+  font-size: 0.73rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
 }
 
 .btn-copy-sibling:hover {
@@ -1174,46 +1232,96 @@ onMounted(async () => {
   border-color: var(--botanical-primary);
 }
 
-/* Recipe Ingredients Dropdown */
-.recipe-dropdown-wrap {
-  display: inline-block;
-  min-width: 210px;
-  max-width: 280px;
-  width: 100%;
+/* Structured Non-Breaking Ingredient Chips */
+.recipe-chips-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.42rem;
 }
 
-.recipe-select {
-  height: 33px;
-  font-size: 0.81rem;
+.ing-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.24rem 0.58rem;
+  border-radius: 7px;
+  background: #f6faf8;
+  border: 1px solid #dfeae3;
+  font-size: 0.79rem;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.ing-chip__name {
   font-weight: 600;
-  border-radius: 8px;
-  border: 1px solid var(--ledger-border);
-  background-color: #fcfdfc;
   color: var(--text-strong);
-  padding-left: 0.7rem;
-  padding-right: 1.8rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
 }
 
-.recipe-select:focus {
-  background-color: #ffffff;
-  border-color: var(--botanical-primary);
-  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+.ing-chip__qty {
+  font-weight: 700;
+  color: var(--botanical-deep);
+  padding-left: 0.35rem;
+  border-left: 1px solid #d2e2d8;
 }
 
-/* Yield Text */
-.yield-text {
-  font-size: 0.85rem;
+.ing-chip__sugar {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0.08rem 0.32rem;
+  margin-left: 0.08rem;
+  border-radius: 4px;
+  background: #e3f2ea;
+  color: var(--botanical-deep);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: help;
+}
+
+.ing-chip.is-inactive {
+  background: #fcf6f6;
+  border-color: #f3d6d6;
+}
+
+.ing-chip.is-inactive .ing-chip__name,
+.ing-chip.is-inactive .ing-chip__qty {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.ing-chip__inactive {
+  padding: 0.06rem 0.35rem;
+  border-radius: 4px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+/* Yield Readout Badge */
+.yield-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
-.yield-text.is-ok {
+.yield-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.yield-badge.is-ok {
   color: #1e6b43;
 }
 
-.yield-text.is-low {
+.yield-badge.is-low {
   color: #b91c1c;
 }
 
@@ -1225,17 +1333,17 @@ onMounted(async () => {
 .btn-set-recipe {
   display: inline-flex;
   align-items: center;
-  gap: 0.38rem;
-  height: 32px;
-  padding: 0 0.75rem;
-  border-radius: 8px;
+  gap: 0.35rem;
+  height: 31px;
+  padding: 0 0.72rem;
+  border-radius: 7px;
   border: 1px solid var(--botanical-primary);
   background: var(--botanical-primary);
   color: #ffffff;
-  font-size: 0.78rem;
+  font-size: 0.77rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.14s ease, border-color 0.14s ease;
 }
 
 .btn-set-recipe:hover {
@@ -1250,35 +1358,35 @@ onMounted(async () => {
 }
 
 .empty-icon-circle {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   background: var(--botanical-surface);
   border: 1px solid var(--ledger-border);
   color: var(--botanical-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.35rem;
-  margin-bottom: 0.75rem;
+  font-size: 1.3rem;
+  margin-bottom: 0.7rem;
 }
 
 .empty-icon-circle--sm {
-  width: 42px;
-  height: 42px;
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
+  width: 40px;
+  height: 40px;
+  font-size: 1.05rem;
+  margin-bottom: 0.45rem;
 }
 
 .empty-main-title {
-  font-size: 0.96rem;
+  font-size: 0.94rem;
   font-weight: 700;
   color: var(--text-strong);
   margin-bottom: 0.25rem;
 }
 
 .empty-main-desc {
-  font-size: 0.82rem;
+  font-size: 0.81rem;
   color: var(--text-muted);
   max-width: 380px;
   margin: 0 auto;
@@ -1286,100 +1394,288 @@ onMounted(async () => {
 
 /* ================= BUILDER MODAL ================= */
 .modal-backdrop-custom {
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(2px);
 }
 
 .modal-card-custom {
-  border-radius: 18px;
+  border-radius: 14px;
   border-color: var(--ledger-border);
-  box-shadow: 0 22px 48px rgba(18, 30, 23, 0.16);
+  box-shadow: 0 20px 44px rgba(18, 30, 23, 0.14);
 }
 
 .modal-lg-custom {
-  max-width: 650px;
+  max-width: 660px;
 }
 
 .modal-header-custom {
-  padding: 1.1rem 1.35rem;
-  border-bottom-color: var(--ledger-border-soft);
-  background: #fcfefd;
+  padding: 1.15rem 1.4rem 0.9rem;
+  border-bottom: 1px solid var(--ledger-border-soft);
+  background: #ffffff;
+  align-items: flex-start;
 }
 
-.btn-close-custom {
-  background: #ffffff;
-  border-color: var(--ledger-border);
+.btn-close-plain {
+  border: none;
+  background: transparent;
   color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-close-plain:hover {
+  color: var(--text-strong);
+  background: #f3f7f4;
 }
 
 .modal-body-custom {
-  padding: 1.25rem 1.35rem;
+  padding: 1.05rem 1.4rem 1.2rem;
 }
 
 .modal-footer-custom {
-  padding: 0.95rem 1.35rem;
-  border-top-color: var(--ledger-border-soft);
-  background: #f9fcfa;
-  gap: 0.65rem;
+  padding: 0.85rem 1.4rem 1.1rem;
+  border-top: 1px solid var(--ledger-border-soft);
+  background: #ffffff;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
-.builder-toolbar {
+.builder-copy-bar {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
   align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 0.95rem;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--ledger-border-soft);
 }
 
-.empty-builder-box {
-  border: 1px dashed #c6d8ce;
-  border-radius: 12px;
-  padding: 2.25rem 1.5rem;
+.copy-links {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.btn-copy-link {
+  border: none;
+  background: #f2f7f4;
+  color: var(--botanical-deep);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.22rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.btn-copy-link:hover {
+  background: #e2efe7;
+  color: var(--botanical-primary);
+}
+
+.empty-builder-state {
+  padding: 1.75rem 1rem;
   text-align: center;
-  background: #f9fcfa;
+}
+
+.builder-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.builder-cols-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.builder-col-ing {
+  flex: 1;
+  min-width: 0;
+}
+
+.builder-col-qty {
+  width: 135px;
+  flex-shrink: 0;
+}
+
+.builder-col-sugar {
+  width: 118px;
+  flex-shrink: 0;
+}
+
+.builder-col-act {
+  width: 28px;
+  flex-shrink: 0;
 }
 
 .builder-rows {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.5rem;
 }
 
 .builder-row {
   display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-  background: #f9fcfa;
-  border: 1px solid var(--ledger-border);
-  border-radius: 12px;
-  padding: 0.75rem 0.9rem;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.builder-ing-col {
+  flex: 1;
+  min-width: 0;
 }
 
 .builder-qty-col {
-  width: 175px;
+  width: 135px;
   flex-shrink: 0;
 }
 
-.builder-remove-col {
-  padding-bottom: 2px;
+.builder-sugar-col {
+  width: 118px;
+  flex-shrink: 0;
 }
 
-.form-label-clean {
-  font-size: 0.75rem;
+.btn-sugar-toggle {
+  width: 100%;
+  height: 38px;
+  padding: 0 0.55rem;
+  border-radius: 8px;
+  border: 1px solid #d5e0d9;
+  background: #f9fbfa;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-sugar-toggle:hover {
+  border-color: #b7cec0;
   color: var(--text-body);
-  margin-bottom: 0.32rem;
+}
+
+.btn-sugar-toggle.is-active {
+  background: #edf7f1;
+  border-color: var(--botanical-primary);
+  color: var(--botanical-deep);
+  font-weight: 700;
 }
 
 .form-control-clean {
-  border: 1px solid var(--ledger-border);
+  border: 1px solid #d5e0d9;
+  border-radius: 8px;
+  background-color: #ffffff;
   font-size: 0.84rem;
   color: var(--text-strong);
-  min-height: 36px;
+  height: 38px;
+  min-height: 38px;
 }
 
 .form-control-clean:focus {
   border-color: var(--botanical-primary);
-  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.1);
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.08);
+}
+
+.qty-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.qty-field__input {
+  padding-right: 2.6rem;
+  -moz-appearance: textfield;
+}
+
+.qty-field__input::-webkit-outer-spin-button,
+.qty-field__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.qty-field__unit {
+  position: absolute;
+  right: 0.7rem;
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  pointer-events: none;
+  user-select: none;
+}
+
+.btn-remove-plain {
+  width: 28px;
+  height: 38px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #8c9c92;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.14s ease, background-color 0.14s ease;
+}
+
+.btn-remove-plain:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.btn-add-inline {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  background: transparent;
+  color: var(--botanical-primary);
+  font-size: 0.81rem;
+  font-weight: 700;
+  padding: 0.35rem 0.15rem;
+  cursor: pointer;
+  transition: color 0.14s ease;
+}
+
+.btn-add-inline:hover {
+  color: var(--botanical-deep);
+}
+
+.btn-cancel-plain {
+  height: 36px;
+  padding: 0 0.85rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-body);
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.btn-cancel-plain:hover {
+  background: #f3f7f4;
+  color: var(--text-strong);
 }
 
 .btn-action-icon {
@@ -1389,34 +1685,11 @@ onMounted(async () => {
 }
 
 .btn-primary-action {
-  border-radius: 10px;
-  font-size: 0.84rem;
+  height: 36px;
+  border-radius: 8px;
+  padding: 0 1.1rem;
+  font-size: 0.83rem;
   font-weight: 600;
   box-shadow: none;
-}
-
-.qty-input-group {
-  display: flex;
-  align-items: stretch;
-}
-
-.qty-input-group .form-control-clean {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.qty-unit-addon {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 0.65rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-body);
-  background: var(--botanical-surface);
-  border: 1px solid var(--ledger-border);
-  border-left: none;
-  border-top-right-radius: 9px;
-  border-bottom-right-radius: 9px;
-  white-space: nowrap;
 }
 </style>
