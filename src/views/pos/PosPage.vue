@@ -579,7 +579,7 @@
                     <input
                       type="number"
                       min="0"
-                      max="100"
+                      max="150"
                       class="sugar-stepper-input tabular"
                       :value="customForm.sugar_level ?? 0"
                       @input="onSugarInputChange"
@@ -590,7 +590,7 @@
                   <button
                     type="button"
                     class="sugar-stepper-btn"
-                    :disabled="(customForm.sugar_level ?? 0) >= 100"
+                    :disabled="(customForm.sugar_level ?? 0) >= 150"
                     title="+5%"
                     aria-label="Increase sweetness"
                     @click="stepSugar(5)"
@@ -604,11 +604,11 @@
                 <input
                   type="range"
                   min="0"
-                  max="100"
+                  max="125"
                   step="5"
                   class="sugar-range-slider"
-                  :value="customForm.sugar_level ?? 0"
-                  :style="{ '--sugar-pct': `${customForm.sugar_level ?? 0}%` }"
+                  :value="Math.min(125, customForm.sugar_level ?? 0)"
+                  :style="{ '--sugar-pct': `${Math.min(100, ((customForm.sugar_level ?? 0) / 125) * 100)}%` }"
                   @input="onSugarSliderChange"
                 />
                 <div class="sugar-ticks">
@@ -651,6 +651,14 @@
                     @click="setSugarLevel(100)"
                   >
                     100%
+                  </button>
+                  <button
+                    type="button"
+                    class="sugar-tick-btn tabular"
+                    :class="{ 'is-active': (customForm.sugar_level ?? 0) === 125 }"
+                    @click="setSugarLevel(125)"
+                  >
+                    125%
                   </button>
                 </div>
               </div>
@@ -721,7 +729,7 @@
                   type="button"
                   class="qty-control__btn"
                   :disabled="customForm.quantity <= 1"
-                  @click="customForm.quantity = Math.max(1, customForm.quantity - 1)"
+                  @click="changeCustomFormQty(-1)"
                 >
                   <i class="bi bi-dash-lg"></i>
                 </button>
@@ -729,7 +737,7 @@
                 <button
                   type="button"
                   class="qty-control__btn"
-                  @click="customForm.quantity++"
+                  @click="changeCustomFormQty(1)"
                 >
                   <i class="bi bi-plus-lg"></i>
                 </button>
@@ -1855,13 +1863,13 @@ const customForm = reactive({
 })
 
 const setSugarLevel = (val) => {
-  const n = Math.min(100, Math.max(0, Math.round(Number(val) || 0)))
+  const n = Math.min(150, Math.max(0, Math.round(Number(val) || 0)))
   customForm.sugar_level = n
 }
 
 const stepSugar = (delta) => {
   const current = customForm.sugar_level ?? 0
-  const next = Math.min(100, Math.max(0, current + delta))
+  const next = Math.min(150, Math.max(0, current + delta))
   customForm.sugar_level = next
 }
 
@@ -1878,7 +1886,7 @@ const onSugarInputChange = (e) => {
   }
   const val = parseInt(raw, 10)
   if (!isNaN(val)) {
-    customForm.sugar_level = Math.min(100, Math.max(0, val))
+    customForm.sugar_level = Math.min(150, Math.max(0, val))
   }
 }
 
@@ -1890,7 +1898,7 @@ const normalizeSugar = () => {
   ) {
     customForm.sugar_level = 0
   } else {
-    customForm.sugar_level = Math.min(100, Math.max(0, Math.round(customForm.sugar_level)))
+    customForm.sugar_level = Math.min(150, Math.max(0, Math.round(customForm.sugar_level)))
   }
 }
 
@@ -2367,13 +2375,41 @@ const confirmCustomizedItem = () => {
   closeCustomizeModal()
 }
 
+const changeCustomFormQty = (delta) => {
+  const prevQty = Math.max(1, Number(customForm.quantity) || 1)
+  const nextQty = Math.max(1, prevQty + delta)
+  if (nextQty === prevQty) return
+
+  if (
+    Array.isArray(customForm.addons) &&
+    customForm.addons.length > 0 &&
+    customForm.addons.every((a) => Number(a.quantity) > 0 && Number(a.quantity) % prevQty === 0)
+  ) {
+    customForm.addons.forEach((a) => {
+      a.quantity = (Number(a.quantity) / prevQty) * nextQty
+    })
+  }
+
+  customForm.quantity = nextQty
+}
+
 const changeCartItemQty = (index, delta) => {
   const item = cartItems.value[index]
   if (!item) return
-  const next = item.quantity + delta
+  const prevQty = Math.max(1, Number(item.quantity) || 1)
+  const next = prevQty + delta
   if (next <= 0) {
     cartItems.value.splice(index, 1)
   } else {
+    if (
+      Array.isArray(item.addons) &&
+      item.addons.length > 0 &&
+      item.addons.every((a) => Number(a.quantity) > 0 && Number(a.quantity) % prevQty === 0)
+    ) {
+      item.addons.forEach((a) => {
+        a.quantity = (Number(a.quantity) / prevQty) * next
+      })
+    }
     item.quantity = next
   }
 }

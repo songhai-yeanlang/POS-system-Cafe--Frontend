@@ -913,11 +913,11 @@
     </div>
 
     <!-- ================= MODAL 3: PROCESS REFUND ================= -->
-    <div v-if="showRefundModal && refundTargetPayment" class="modal-backdrop-custom" @click.self="showRefundModal = false">
+    <div v-if="showRefundModal && refundTargetPayment" class="modal-backdrop-custom" @click.self="closeRefundModal">
       <div class="modal-card-custom modal-sm-custom">
         <div class="modal-header-custom">
           <h6 class="mb-0 fw-bold">{{ $t('orders.processRefundTitle') }}</h6>
-          <button type="button" class="btn-close-custom" @click="showRefundModal = false">
+          <button type="button" class="btn-close-custom" @click="closeRefundModal">
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
@@ -950,6 +950,8 @@
               v-model="refundForm.reason"
               rows="2"
               class="form-control form-control-clean"
+              name="refund_reason_text"
+              autocomplete="off"
               :placeholder="$t('orders.refundReasonPlaceholder')"
               maxlength="500"
             ></textarea>
@@ -959,10 +961,24 @@
             <label class="form-label-clean">{{ $t('pos.ownerPassword') }} <span class="text-danger">*</span></label>
             <input
               v-model="refundForm.owner_password"
-              type="password"
+              :type="supportsTextSecurity ? 'text' : 'password'"
               class="form-control form-control-clean"
+              :class="{ 'masked-secret-input': supportsTextSecurity && Boolean(refundForm.owner_password) }"
+              name="refund_approval_code"
               :placeholder="$t('pos.ownerPasswordPlaceholder')"
-              autocomplete="off"
+              :autocomplete="supportsTextSecurity ? 'off' : 'new-password'"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              data-form-type="other"
+              :readonly="!refundPasswordUnlocked"
+              @focus="refundPasswordUnlocked = true"
+              @mousedown="refundPasswordUnlocked = true"
+              @copy.prevent
+              @cut.prevent
             />
           </div>
 
@@ -972,6 +988,8 @@
               v-model="refundForm.reference"
               type="text"
               class="form-control form-control-clean"
+              name="refund_reference_note"
+              autocomplete="off"
               placeholder="..."
               maxlength="150"
             />
@@ -979,7 +997,7 @@
         </div>
 
         <div class="modal-footer-custom">
-          <button type="button" class="btn btn-light-coffee" @click="showRefundModal = false">
+          <button type="button" class="btn btn-light-coffee" @click="closeRefundModal">
             {{ $t('common.cancel') }}
           </button>
           <button
@@ -1289,6 +1307,18 @@ const openRefundModalFromOrder = async (orderId) => {
   }
 }
 
+const supportsTextSecurity =
+  typeof window !== 'undefined' &&
+  typeof window.CSS?.supports === 'function' &&
+  window.CSS.supports('-webkit-text-security', 'disc')
+const refundPasswordUnlocked = ref(false)
+
+const closeRefundModal = () => {
+  showRefundModal.value = false
+  refundForm.owner_password = ''
+  refundPasswordUnlocked.value = false
+}
+
 const openRefundModalWithPayment = (payment) => {
   if (!appStore.hasOpenShift) {
     toast.warning('You must have an active open shift to process a refund.')
@@ -1299,6 +1329,7 @@ const openRefundModalWithPayment = (payment) => {
   refundForm.reference = ''
   refundForm.approved_by = authStore.isOwner ? authStore.user?.id : 1
   refundForm.owner_password = ''
+  refundPasswordUnlocked.value = false
   showRefundModal.value = true
 }
 
@@ -1326,7 +1357,7 @@ const handleConfirmRefund = async () => {
 
     await api.post('/refunds', payload)
     toast.success(`Refund processed for ${refundTargetPayment.value.receipt_no}`)
-    showRefundModal.value = false
+    closeRefundModal()
 
     await Promise.all([
       fetchOrders(orderPagination.page),
@@ -1586,5 +1617,13 @@ onMounted(async () => {
   border: 1px solid #dce6e0;
   border-radius: 10px;
   padding: 0.85rem;
+}
+
+.masked-secret-input {
+  -webkit-text-security: disc;
+}
+
+.masked-secret-input::placeholder {
+  -webkit-text-security: none;
 }
 </style>
