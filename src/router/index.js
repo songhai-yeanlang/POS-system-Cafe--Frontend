@@ -1,5 +1,7 @@
+import { watch } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { t, locale } from '@/i18n'
 import AppLayout from '@/layouts/AppLayout.vue'
 import LoginPage from '@/views/auth/LoginPage.vue'
 import ForgotPassword from '@/views/auth/ForgotPassword.vue'
@@ -216,11 +218,26 @@ const router = createRouter({
   ],
 })
 
+const updateDocumentTitle = (route) => {
+  if (typeof document === 'undefined' || !route) return
+  const shopName = localStorage.getItem('brewpos_shop_name') || 'BrewPOS'
+  const routeKey = route.name ? `routeTitles.${String(route.name)}` : ''
+  const translatedTitle = routeKey ? t(routeKey) : ''
+  const pageTitle =
+    translatedTitle && translatedTitle !== routeKey
+      ? translatedTitle
+      : route.meta?.title || ''
+  document.title = pageTitle ? `${pageTitle} • ${shopName}` : shopName
+}
+
+watch(locale, () => {
+  updateDocumentTitle(router.currentRoute.value)
+})
+
 router.beforeEach((to) => {
   const authStore = useAuthStore()
-  const shopName = localStorage.getItem('brewpos_shop_name') || 'BrewPOS'
 
-  document.title = to.meta?.title ? `${to.meta.title} • ${shopName}` : shopName
+  updateDocumentTitle(to)
 
   const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth)
   const isGuestOnly = to.matched.some((record) => record.meta?.guestOnly)

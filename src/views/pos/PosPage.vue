@@ -1415,7 +1415,11 @@
 
         <div class="pos-dialog__body">
           <!-- Printable Thermal Receipt -->
-          <div id="printable-receipt" class="thermal-receipt">
+          <div
+            id="printable-receipt"
+            class="thermal-receipt"
+            :class="{ 'is-58mm': String(appStore.settings?.receipt_width) === '58' }"
+          >
             <div class="text-center mb-2">
               <img
                 v-if="appStore.shopLogoUrl"
@@ -1836,6 +1840,7 @@ const orderForm = reactive({
   discount_code: '',
   discount_type: 'NONE',
   discount_value: 0,
+  discount_min_order_amount: 0,
   discount_reason: '',
   discount_approved_by: null,
 })
@@ -2303,12 +2308,13 @@ const getAddonQty = (addonVariantId) => {
 
 const changeAddonQty = (addon, delta) => {
   const idx = customForm.addons.findIndex((a) => a.addon_variant_id === addon.variant_id)
+  const itemQty = Math.max(1, Number(customForm.quantity) || 1)
   if (idx === -1 && delta > 0) {
     customForm.addons.push({
       addon_variant_id: addon.variant_id,
       name: addon.display_name,
       unit_price: addon.price,
-      quantity: 1,
+      quantity: itemQty,
     })
   } else if (idx !== -1) {
     const nextQty = customForm.addons[idx].quantity + delta
@@ -2326,11 +2332,18 @@ const closeCustomizeModal = () => {
   editingCartIndex.value = null
 }
 
+const hasUniformPerCupAddons = (item) => {
+  const itemQty = Math.max(1, Number(item.quantity) || 1)
+  const addons = item.addons || []
+  return addons.every((a) => Number(a.quantity) > 0 && Number(a.quantity) % itemQty === 0)
+}
+
 const buildItemSignature = (item) => {
+  const itemQty = Math.max(1, Number(item.quantity) || 1)
   const addonsKey = (item.addons || [])
     .slice()
     .sort((a, b) => a.addon_variant_id - b.addon_variant_id)
-    .map((a) => `${a.addon_variant_id}:${a.quantity}`)
+    .map((a) => `${a.addon_variant_id}:${Number(a.quantity) / itemQty}`)
     .join(',')
   return `${item.variant_id}|${item.sugar_level ?? ''}|${item.ice_level ?? ''}|${(item.note || '').trim()}|${addonsKey}`
 }
@@ -2359,14 +2372,26 @@ const confirmCustomizedItem = () => {
     cartItems.value.splice(editingCartIndex.value, 1, newItem)
   } else {
     const newSig = buildItemSignature(newItem)
-    const existingIdx = cartItems.value.findIndex(
-      (existing) =>
-        (existing.addons || []).length === 0 &&
-        newItem.addons.length === 0 &&
-        buildItemSignature(existing) === newSig
-    )
+    const canMergeNew = hasUniformPerCupAddons(newItem)
+    const existingIdx = canMergeNew
+      ? cartItems.value.findIndex(
+          (existing) =>
+            hasUniformPerCupAddons(existing) && buildItemSignature(existing) === newSig
+        )
+      : -1
     if (existingIdx !== -1) {
-      cartItems.value[existingIdx].quantity += newItem.quantity
+      const existingItem = cartItems.value[existingIdx]
+      existingItem.quantity += newItem.quantity
+      if (Array.isArray(existingItem.addons) && existingItem.addons.length > 0) {
+        for (const exAddon of existingItem.addons) {
+          const matchNew = newItem.addons.find(
+            (na) => na.addon_variant_id === exAddon.addon_variant_id
+          )
+          if (matchNew) {
+            exAddon.quantity += matchNew.quantity
+          }
+        }
+      }
     } else {
       cartItems.value.push(newItem)
     }
@@ -2380,13 +2405,12 @@ const changeCustomFormQty = (delta) => {
   const nextQty = Math.max(1, prevQty + delta)
   if (nextQty === prevQty) return
 
-  if (
-    Array.isArray(customForm.addons) &&
-    customForm.addons.length > 0 &&
-    customForm.addons.every((a) => Number(a.quantity) > 0 && Number(a.quantity) % prevQty === 0)
-  ) {
+  if (Array.isArray(customForm.addons) && customForm.addons.length > 0) {
     customForm.addons.forEach((a) => {
-      a.quantity = (Number(a.quantity) / prevQty) * nextQty
+      const aQty = Number(a.quantity) || 0
+      if (aQty > 0 && aQty % prevQty === 0) {
+        a.quantity = (aQty / prevQty) * nextQty
+      }
     })
   }
 
@@ -2401,13 +2425,12 @@ const changeCartItemQty = (index, delta) => {
   if (next <= 0) {
     cartItems.value.splice(index, 1)
   } else {
-    if (
-      Array.isArray(item.addons) &&
-      item.addons.length > 0 &&
-      item.addons.every((a) => Number(a.quantity) > 0 && Number(a.quantity) % prevQty === 0)
-    ) {
+    if (Array.isArray(item.addons) && item.addons.length > 0) {
       item.addons.forEach((a) => {
-        a.quantity = (Number(a.quantity) / prevQty) * next
+        const aQty = Number(a.quantity) || 0
+        if (aQty > 0 && aQty % prevQty === 0) {
+          a.quantity = (aQty / prevQty) * next
+        }
       })
     }
     item.quantity = next
@@ -2485,7 +2508,7 @@ const verifyPromoCode = async (overrideCode = null) => {
   }
 }
 
-// Keep applied discount consistent if cart items are removed or subtotal drops below a FIXED discount
+// Keep applied discount consistent if cart items are removed or subtotal drops below a FIXED discount or Promo min_order_amount
 watch(cartSubtotal, (newSub) => {
   if (newSub <= 0) {
     if (orderForm.discount_type !== 'NONE' || orderForm.discount_code) {
@@ -2493,9 +2516,30 @@ watch(cartSubtotal, (newSub) => {
       orderForm.discount_code = ''
       orderForm.discount_type = 'NONE'
       orderForm.discount_value = 0
+      orderForm.discount_min_order_amount = 0
       orderForm.discount_reason = ''
       orderForm.discount_approved_by = null
+      verifiedPromo.value = null
     }
+    return
+  }
+
+  const minOrderAmount = Number(
+    orderForm.discount_min_order_amount || verifiedPromo.value?.min_order_amount || 0
+  )
+  if (orderForm.discount_code && minOrderAmount > 0 && newSub < minOrderAmount) {
+    const removedCode = orderForm.discount_code
+    orderForm.discount_code_id = null
+    orderForm.discount_code = ''
+    orderForm.discount_type = 'NONE'
+    orderForm.discount_value = 0
+    orderForm.discount_min_order_amount = 0
+    orderForm.discount_reason = ''
+    orderForm.discount_approved_by = null
+    verifiedPromo.value = null
+    toast.warning(
+      `Discount code '${removedCode}' was removed because the order subtotal ($${newSub.toFixed(2)}) is below the minimum required amount ($${minOrderAmount.toFixed(2)})`
+    )
     return
   }
 
@@ -2505,8 +2549,10 @@ watch(cartSubtotal, (newSub) => {
     orderForm.discount_code = ''
     orderForm.discount_type = 'NONE'
     orderForm.discount_value = 0
+    orderForm.discount_min_order_amount = 0
     orderForm.discount_reason = ''
     orderForm.discount_approved_by = null
+    verifiedPromo.value = null
     toast.warning(
       removedCode
         ? `Discount code '${removedCode}' was removed because the order subtotal is lower than the discount amount`
@@ -2546,6 +2592,7 @@ const clearDiscount = () => {
   orderForm.discount_code = ''
   orderForm.discount_type = 'NONE'
   orderForm.discount_value = 0
+  orderForm.discount_min_order_amount = 0
   orderForm.discount_reason = ''
   orderForm.discount_approved_by = null
   verifiedPromo.value = null
@@ -2573,6 +2620,7 @@ const applyDiscountDraft = async () => {
     orderForm.discount_code = promo.code
     orderForm.discount_type = promo.discount_type
     orderForm.discount_value = Number(promo.discount_value)
+    orderForm.discount_min_order_amount = Number(promo.min_order_amount) || 0
     orderForm.discount_reason = `${promo.code} - ${promo.name}`
     orderForm.discount_approved_by = promo.created_by?.id || null
     showDiscountModal.value = false
@@ -2601,6 +2649,7 @@ const applyDiscountDraft = async () => {
   orderForm.discount_code = ''
   orderForm.discount_type = discountDraft.type
   orderForm.discount_value = Number(discountDraft.value)
+  orderForm.discount_min_order_amount = 0
   orderForm.discount_reason = discountDraft.reason.trim()
   orderForm.discount_approved_by = authStore.user?.id || null
   showDiscountModal.value = false
@@ -2646,6 +2695,8 @@ const buildOrderPayload = () => {
       payload.discount_reason = orderForm.discount_reason
     }
   } else if (orderForm.discount_type !== 'NONE' && orderForm.discount_value > 0) {
+    payload.discount_code = null
+    payload.discount_code_id = null
     payload.discount_reason = orderForm.discount_reason
     if (authStore.isOwner) {
       payload.discount_approved_by = authStore.user?.id
@@ -2669,8 +2720,10 @@ const resetCart = () => {
   orderForm.discount_code = ''
   orderForm.discount_type = 'NONE'
   orderForm.discount_value = 0
+  orderForm.discount_min_order_amount = 0
   orderForm.discount_reason = ''
   orderForm.discount_approved_by = null
+  verifiedPromo.value = null
 
   if (route.query.orderId) {
     router.replace({ path: '/pos', query: {} })
@@ -2739,6 +2792,7 @@ const selectPaymentCurrency = (currency) => {
 const closePaymentModal = () => {
   if (isProcessingPayment.value) return
   showPaymentModal.value = false
+  activeCheckoutOrder.value = null
 }
 
 const handleConfirmPayment = async () => {
@@ -2748,11 +2802,13 @@ const handleConfirmPayment = async () => {
   }
 
   isProcessingPayment.value = true
+  let orderSavedDuringCheckout = false
   try {
     let orderRecord = activeCheckoutOrder.value
     if (!orderRecord) {
       orderRecord = await saveOrUpdateOrderRecord()
       editingOrder.value = orderRecord
+      orderSavedDuringCheckout = true
     }
 
     const payPayload = {
@@ -2788,6 +2844,7 @@ const handleConfirmPayment = async () => {
     }
 
     showPaymentModal.value = false
+    activeCheckoutOrder.value = null
     showReceiptModal.value = true
     toast.success(`Payment completed for ${finalOrder.receipt_no}`)
 
@@ -2795,6 +2852,9 @@ const handleConfirmPayment = async () => {
     await Promise.all([fetchOpenOrders(), appStore.fetchCurrentShift()])
   } catch (err) {
     toast.error(err.response?.data?.message || 'Payment failed')
+    if (orderSavedDuringCheckout) {
+      await Promise.all([fetchOpenOrders(), appStore.fetchCurrentShift()])
+    }
   } finally {
     isProcessingPayment.value = false
   }
@@ -2820,6 +2880,7 @@ const loadOrderIntoCart = async (orderId) => {
     orderForm.discount_code = ord.discount?.code || ''
     orderForm.discount_type = ord.discount?.type || 'NONE'
     orderForm.discount_value = Number(ord.discount?.value) || 0
+    orderForm.discount_min_order_amount = Number(ord.discount?.min_order_amount) || 0
     orderForm.discount_reason = ord.discount?.reason || ''
     orderForm.discount_approved_by = ord.discount?.approved_by?.id || null
 

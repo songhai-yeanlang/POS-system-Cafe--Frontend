@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/api'
+import { tToast } from '@/i18n'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 
@@ -20,7 +21,7 @@ watch(email, () => {
 const handleSendCode = async () => {
   errorMessage.value = ''
   if (!email.value) {
-    errorMessage.value = 'Please enter your work email'
+    errorMessage.value = tToast('Please enter your work email')
     return
   }
 
@@ -31,8 +32,9 @@ const handleSendCode = async () => {
     localStorage.setItem('resetEmail', email.value)
     router.push({ path: '/verify-otp', query: { email: email.value } })
   } catch (err) {
-    errorMessage.value =
+    errorMessage.value = tToast(
       err.response?.data?.message || err.message || 'Failed to send verification code'
+    )
   } finally {
     isLoading.value = false
   }

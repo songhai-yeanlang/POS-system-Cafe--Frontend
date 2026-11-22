@@ -226,7 +226,25 @@
                     {{ exp.currency === 'USD' ? formatUsd(exp.amount) : formatKhr(exp.amount) }}
                   </strong>
                   <span v-if="exp.currency === 'USD'" class="amount-cell__sub">
-                    {{ formatKhr(usdToKhr(exp.amount)) }}
+                    {{
+                      formatKhr(
+                        usdToKhr(
+                          exp.amount,
+                          Number(exp.exchange_rate) > 1 ? Number(exp.exchange_rate) : undefined
+                        )
+                      )
+                    }}
+                  </span>
+                  <span v-else class="amount-cell__sub">
+                    ≈ {{
+                      formatUsd(
+                        exp.amount_usd ??
+                          Number(exp.amount) /
+                            (Number(exp.exchange_rate) > 1
+                              ? Number(exp.exchange_rate)
+                              : appStore.exchangeRate)
+                      )
+                    }}
                   </span>
                 </div>
               </td>
@@ -525,7 +543,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import api from '@/api/api'
 import { useAppStore } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -533,6 +551,7 @@ import { useToast } from '@/composables/useToast'
 import { useCurrency } from '@/composables/useCurrency'
 import { useFormatDate } from '@/composables/useFormatDate'
 import { useI18n } from '@/i18n'
+import { useDebounce } from '@/composables/useDebounce'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
@@ -714,6 +733,15 @@ const applyFilters = () => {
   fetchExpenses(1)
   fetchSummary()
 }
+
+const debouncedFetchExpenses = useDebounce(() => fetchExpenses(1), 300)
+
+watch(
+  () => filters.search,
+  () => {
+    debouncedFetchExpenses()
+  }
+)
 
 const toggleCurrentShiftOnly = () => {
   filters.currentShiftOnly = !filters.currentShiftOnly

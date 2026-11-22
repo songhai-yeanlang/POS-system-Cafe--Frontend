@@ -211,10 +211,10 @@
           <div class="trend-readout__left">
             <span class="trend-readout__period tabular">{{ activeTrendPoint.period }}</span>
             <span
-              v-if="activeTrendPoint.orders_count !== undefined"
+              v-if="activeTrendPoint.orders_count !== undefined || activeTrendPoint.total_orders !== undefined"
               class="trend-readout__orders tabular"
             >
-              · {{ $t('dashboard.ordersCount', { count: activeTrendPoint.orders_count }) }}
+              · {{ $t('dashboard.ordersCount', { count: activeTrendPoint.orders_count ?? activeTrendPoint.total_orders }) }}
             </span>
           </div>
           <div class="trend-readout__right">

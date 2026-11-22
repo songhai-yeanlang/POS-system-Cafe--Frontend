@@ -12,7 +12,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 const authStore = useAuthStore()
 const toast = useToast()
 const { formatUsd } = useCurrency()
-const { t } = useI18n()
+const { t, tToast } = useI18n()
 
 const getProductTypeLabel = (type) => {
   if (type === 'DRINK') return t('common.drink')
@@ -127,7 +127,7 @@ const handleSaveCategory = async () => {
   categoryError.value = ''
   const cleanName = categoryForm.name.trim()
   if (!cleanName) {
-    categoryError.value = 'Category name is required'
+    categoryError.value = tToast('Category name is required')
     return
   }
 
@@ -331,17 +331,17 @@ const validateProductForm = () => {
   let valid = true
 
   if (!productForm.name.trim()) {
-    productErrors.name = 'Product name is required'
+    productErrors.name = tToast('Product name is required')
     valid = false
   }
 
   if (!productForm.category_id) {
-    productErrors.category_id = 'Please select a category'
+    productErrors.category_id = tToast('Please select a category')
     valid = false
   }
 
   if (!productForm.variants.length) {
-    productErrors.variants = 'At least one variant is required'
+    productErrors.variants = tToast('At least one variant is required')
     return false
   }
 
@@ -350,20 +350,20 @@ const validateProductForm = () => {
     const v = productForm.variants[i]
     const vName = (v.name || '').trim()
     if (!vName) {
-      productErrors.variants = `Variant #${i + 1}: Name is required`
+      productErrors.variants = tToast(`Variant #${i + 1}: Name is required`)
       valid = false
       break
     }
     const lower = vName.toLowerCase()
     if (seenNames.has(lower)) {
-      productErrors.variants = `Duplicate variant name "${vName}"`
+      productErrors.variants = tToast(`Duplicate variant name "${vName}"`)
       valid = false
       break
     }
     seenNames.add(lower)
 
     if (v.price === '' || v.price === null || isNaN(Number(v.price)) || Number(v.price) < 0) {
-      productErrors.variants = `Variant "${vName}": Valid price is required`
+      productErrors.variants = tToast(`Variant "${vName}": Valid price is required`)
       valid = false
       break
     }

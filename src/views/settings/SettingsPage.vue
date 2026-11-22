@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/api/api'
-import { t } from '@/i18n'
+import { t, tToast } from '@/i18n'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useToast } from '@/composables/useToast'
@@ -97,17 +97,17 @@ const validateShopForm = () => {
     shopErrors.shop_name = t('settings.valShopNameRequired')
     valid = false
   } else if (cleanName.length > 150) {
-    shopErrors.shop_name = 'Shop name cannot exceed 150 characters'
+    shopErrors.shop_name = tToast('Shop name cannot exceed 150 characters')
     valid = false
   }
 
   if (shopForm.phone && shopForm.phone.trim().length > 30) {
-    shopErrors.phone = 'Phone cannot exceed 30 characters'
+    shopErrors.phone = tToast('Phone cannot exceed 30 characters')
     valid = false
   }
 
   if (shopForm.address && shopForm.address.trim().length > 500) {
-    shopErrors.address = 'Address cannot exceed 500 characters'
+    shopErrors.address = tToast('Address cannot exceed 500 characters')
     valid = false
   }
 
@@ -118,7 +118,7 @@ const validateShopForm = () => {
   }
 
   if (shopForm.receipt_footer && shopForm.receipt_footer.trim().length > 500) {
-    shopErrors.receipt_footer = 'Receipt footer cannot exceed 500 characters'
+    shopErrors.receipt_footer = tToast('Receipt footer cannot exceed 500 characters')
     valid = false
   }
 

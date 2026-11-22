@@ -805,16 +805,23 @@
       "CREATE_ORDER": "Created Order",
       "UPDATE_ORDER": "Updated Order",
       "CANCEL_ORDER": "Cancelled Order",
+      "DELETE_ORDER": "Deleted Order",
       "PROCESS_PAYMENT": "Processed Payment",
       "PROCESS_REFUND": "Issued Refund",
+      "DISCOUNT_APPROVAL_FAILED": "Failed Discount Approval",
+      "REFUND_APPROVAL_FAILED": "Failed Refund Approval",
       "OPEN_SHIFT": "Opened Shift",
       "CLOSE_SHIFT": "Closed Shift",
+      "DELETE_SHIFT": "Deleted Shift",
       "CREATE_INGREDIENT": "Added Ingredient",
       "UPDATE_INGREDIENT": "Updated Ingredient",
       "DELETE_INGREDIENT": "Deleted Ingredient",
+      "STOCK_PURCHASE": "Stock In (Purchase)",
       "STOCK_IN": "Stock In",
       "STOCK_WASTE": "Stock Waste",
+      "STOCK_ADJUSTMENT": "Adjusted Stock",
       "STOCK_ADJUST": "Adjusted Stock",
+      "DELETE_STOCK_MOVEMENT": "Deleted Stock Movement",
       "UPDATE_RECIPE": "Updated Recipe",
       "DELETE_RECIPE": "Deleted Recipe",
       "CREATE_PRODUCT": "Added Product",
@@ -848,7 +855,8 @@
       "UPDATE_PROFILE": "Updated Profile",
       "UPDATE_SETTINGS": "Updated Shop Settings",
       "UPLOAD_LOGO": "Uploaded Shop Logo",
-      "DELETE_LOGO": "Deleted Shop Logo"
+      "DELETE_LOGO": "Deleted Shop Logo",
+      "CLEAR_SYSTEM_DATA": "Cleared System Data"
     }
   },
   "settings": {

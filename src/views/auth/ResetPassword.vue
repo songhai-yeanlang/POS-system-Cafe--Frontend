@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/api/api'
+import { tToast } from '@/i18n'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
@@ -19,21 +20,16 @@ const resetToken = ref(
 
 const isLoading = ref(false)
 const errorMessage = ref('')
+const errorField = ref('confirm')
 
 const newPasswordError = computed(() => {
-  if (!errorMessage.value) return ''
-  if (errorMessage.value.toLowerCase().includes('6 characters')) {
-    return errorMessage.value
-  }
-  return ''
+  if (!errorMessage.value || errorField.value !== 'new') return ''
+  return tToast(errorMessage.value)
 })
 
 const confirmPasswordError = computed(() => {
-  if (!errorMessage.value) return ''
-  if (errorMessage.value.toLowerCase().includes('match') || !newPasswordError.value) {
-    return errorMessage.value
-  }
-  return ''
+  if (!errorMessage.value || errorField.value === 'new') return ''
+  return tToast(errorMessage.value)
 })
 
 watch([newPassword, confirmPassword], () => {
@@ -52,6 +48,7 @@ const isReady = computed(() => {
 
 const handleUpdatePassword = async () => {
   errorMessage.value = ''
+  errorField.value = 'confirm'
 
   if (!resetToken.value) {
     errorMessage.value = 'Missing or invalid reset session. Please restart from Forgot Password.'
@@ -59,11 +56,13 @@ const handleUpdatePassword = async () => {
   }
 
   if (newPassword.value.length < 6) {
+    errorField.value = 'new'
     errorMessage.value = 'Password must be at least 6 characters long'
     return
   }
 
   if (newPassword.value !== confirmPassword.value) {
+    errorField.value = 'confirm'
     errorMessage.value = 'Passwords do not match'
     return
   }
@@ -82,6 +81,7 @@ const handleUpdatePassword = async () => {
     localStorage.removeItem('resetEmail')
     router.push('/login')
   } catch (err) {
+    errorField.value = 'confirm'
     errorMessage.value =
       err.response?.data?.errors?.[0]?.message ||
       err.response?.data?.message ||

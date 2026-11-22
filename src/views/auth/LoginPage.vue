@@ -10,7 +10,7 @@ import LanguageSwitcher from '@/components/base/LanguageSwitcher.vue'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const { t } = useI18n()
+const { t, tToast } = useI18n()
 
 const form = reactive({
   email: '',
@@ -66,7 +66,7 @@ const handleLogin = async () => {
 
     router.push(redirectPath)
   } catch (err) {
-    errorMessage.value = err.message || t('auth.invalidCredentials')
+    errorMessage.value = tToast(err.message || t('auth.invalidCredentials'))
   } finally {
     isLoading.value = false
   }

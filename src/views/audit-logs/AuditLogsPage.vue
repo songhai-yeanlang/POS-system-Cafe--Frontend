@@ -1,11 +1,12 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import api from '@/api/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useI18n } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useFormatDate } from '@/composables/useFormatDate'
 import { useCurrency } from '@/composables/useCurrency'
+import { useDebounce } from '@/composables/useDebounce'
 
 const authStore = useAuthStore()
 const isOwner = computed(() => authStore.isOwner)
@@ -73,13 +74,16 @@ const actionGroups = [
       'CREATE_ORDER',
       'UPDATE_ORDER',
       'CANCEL_ORDER',
+      'DELETE_ORDER',
       'PROCESS_PAYMENT',
       'PROCESS_REFUND',
+      'DISCOUNT_APPROVAL_FAILED',
+      'REFUND_APPROVAL_FAILED',
     ],
   },
   {
     key: 'shifts',
-    actions: ['OPEN_SHIFT', 'CLOSE_SHIFT'],
+    actions: ['OPEN_SHIFT', 'CLOSE_SHIFT', 'DELETE_SHIFT'],
   },
   {
     key: 'inventory',
@@ -87,9 +91,10 @@ const actionGroups = [
       'CREATE_INGREDIENT',
       'UPDATE_INGREDIENT',
       'DELETE_INGREDIENT',
-      'STOCK_IN',
+      'STOCK_PURCHASE',
       'STOCK_WASTE',
-      'STOCK_ADJUST',
+      'STOCK_ADJUSTMENT',
+      'DELETE_STOCK_MOVEMENT',
       'UPDATE_RECIPE',
       'DELETE_RECIPE',
     ],
@@ -140,6 +145,7 @@ const actionGroups = [
       'UPDATE_SETTINGS',
       'UPLOAD_LOGO',
       'DELETE_LOGO',
+      'CLEAR_SYSTEM_DATA',
     ],
   },
 ]
@@ -190,7 +196,8 @@ const isCriticalAction = (action = '') => {
     action.includes('CANCEL') ||
     action.includes('VOID') ||
     action.includes('REFUND') ||
-    action === 'STOCK_WASTE'
+    action === 'STOCK_WASTE' ||
+    action === 'CLEAR_SYSTEM_DATA'
   )
 }
 
@@ -201,6 +208,7 @@ const getActionToneClass = (action = '') => {
     action === 'OPEN_SHIFT' ||
     action === 'PROCESS_PAYMENT' ||
     action === 'LOGIN' ||
+    action === 'STOCK_PURCHASE' ||
     action === 'STOCK_IN' ||
     action === 'VERIFY_OTP_SUCCESS'
   ) {
@@ -212,6 +220,7 @@ const getActionToneClass = (action = '') => {
     action === 'CLOSE_SHIFT' ||
     action === 'CHANGE_PASSWORD' ||
     action === 'RESET_PASSWORD' ||
+    action === 'STOCK_ADJUSTMENT' ||
     action === 'STOCK_ADJUST'
   ) {
     return 'tone-warning'
@@ -233,6 +242,11 @@ const DETAIL_KEY_LABELS_KM = {
   current_stock: 'ស្តុកបច្ចុប្បន្ន',
   minimum_stock: 'ស្តុកអប្បបរមា',
   quantity: 'បរិមាណ',
+  quantity_change: 'បម្រែបម្រួលបរិមាណ',
+  ingredient_name: 'ឈ្មោះគ្រឿងផ្សំ',
+  variant_name: 'ឈ្មោះជម្រើស',
+  movement_type: 'ប្រភេទចលនាស្តុក',
+  unit_cost: 'តម្លៃដើមក្នុងមួយឯកតា',
   opening_cash_usd: 'ប្រាក់ដើមគ្រា (USD)',
   opening_cash_khr: 'ប្រាក់ដើមគ្រា (KHR)',
   expected_cash_usd: 'ប្រាក់រំពឹងទុក (USD)',
@@ -295,7 +309,16 @@ const formatReadableSummary = (log) => {
   const parts = []
 
   // Common human-first identifiers
-  const titleVal = obj.receipt_no || obj.receipt_number || obj.order_number || obj.code || obj.name || obj.product_name || obj.category_name
+  const titleVal =
+    obj.receipt_no ||
+    obj.receipt_number ||
+    obj.order_number ||
+    obj.code ||
+    obj.name ||
+    obj.product_name ||
+    obj.ingredient_name ||
+    obj.variant_name ||
+    obj.category_name
   if (titleVal) parts.push(String(titleVal))
   if (obj.code && obj.name && String(obj.code) !== String(obj.name)) parts.push(String(obj.name))
   if (obj.email && !parts.includes(obj.email)) parts.push(obj.email)
@@ -343,6 +366,11 @@ const formatReadableSummary = (log) => {
   if (obj.current_stock !== undefined) {
     const unitStr = obj.unit ? ` ${obj.unit}` : ''
     parts.push(`${isKhmer.value ? 'ស្តុក' : 'Stock'}: ${obj.current_stock}${unitStr}`)
+  } else if (obj.quantity_change !== undefined) {
+    const num = Number(obj.quantity_change)
+    const sign = num > 0 ? '+' : ''
+    const unitStr = obj.unit ? ` ${obj.unit}` : ''
+    parts.push(`${isKhmer.value ? 'បរិមាណ' : 'Qty'}: ${sign}${obj.quantity_change}${unitStr}`)
   } else if (obj.quantity !== undefined) {
     const unitStr = obj.unit ? ` ${obj.unit}` : ''
     parts.push(`${isKhmer.value ? 'បរិមាណ' : 'Qty'}: ${obj.quantity}${unitStr}`)
@@ -374,30 +402,7 @@ const activeFilterCount = computed(() => {
   return count
 })
 
-const filteredLogs = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return logs.value
-
-  return logs.value.filter((log) => {
-    const detailsStr =
-      typeof log.details === 'string'
-        ? log.details.toLowerCase()
-        : JSON.stringify(log.details || {}).toLowerCase()
-
-    return (
-      String(log.id).includes(q) ||
-      String(log.record_id || '').includes(q) ||
-      (log.user_name && log.user_name.toLowerCase().includes(q)) ||
-      (log.user_email && log.user_email.toLowerCase().includes(q)) ||
-      (log.action && log.action.toLowerCase().includes(q)) ||
-      getActionLabel(log.action).toLowerCase().includes(q) ||
-      (log.table_name && log.table_name.toLowerCase().includes(q)) ||
-      getModuleLabel(log.table_name).toLowerCase().includes(q) ||
-      (log.ip_address && log.ip_address.toLowerCase().includes(q)) ||
-      detailsStr.includes(q)
-    )
-  })
-})
+const filteredLogs = computed(() => logs.value)
 
 const visiblePages = computed(() => {
   const total = pagination.totalPages || 1
@@ -421,7 +426,7 @@ const parsedModalDetailsEntries = computed(() => {
 // ================= API CALLS =================
 const fetchUsersList = async () => {
   try {
-    const res = await api.get('/users')
+    const res = await api.get('/users', { params: { limit: 100 } })
     usersList.value = res.data?.data || []
   } catch {
     usersList.value = []
@@ -439,6 +444,7 @@ const fetchAuditLogs = async (targetPage = 1) => {
     if (filters.table_name) params.table_name = filters.table_name
     if (filters.action) params.action = filters.action
     if (filters.user_id) params.user_id = Number(filters.user_id)
+    if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
     if (filters.start_date) params.start_date = `${filters.start_date}T00:00:00`
     if (filters.end_date) params.end_date = `${filters.end_date}T23:59:59`
 
@@ -457,14 +463,25 @@ const fetchAuditLogs = async (targetPage = 1) => {
   }
 }
 
+const debouncedFetchAuditLogs = useDebounce(() => {
+  fetchAuditLogs(1)
+}, 300)
+
+watch(searchQuery, () => {
+  debouncedFetchAuditLogs()
+})
+
 const resetFilters = () => {
   filters.table_name = ''
   filters.action = ''
   filters.user_id = ''
   filters.start_date = ''
   filters.end_date = ''
-  searchQuery.value = ''
-  fetchAuditLogs(1)
+  if (searchQuery.value !== '') {
+    searchQuery.value = ''
+  } else {
+    fetchAuditLogs(1)
+  }
 }
 
 const openDetailModal = async (log) => {

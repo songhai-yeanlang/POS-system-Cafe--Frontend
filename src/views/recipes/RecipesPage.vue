@@ -360,16 +360,19 @@
                   <select
                     v-model.number="row.ingredient_id"
                     class="form-select form-control-clean"
+                    :class="{ 'border-danger text-danger': isIngredientInactive(row.ingredient_id) }"
                     required
                   >
                     <option :value="null" disabled>{{ $t('recipes.chooseActiveIngredient') }}</option>
                     <option
-                      v-for="ing in activeIngredients"
+                      v-for="ing in getOptionsForRow(row)"
                       :key="ing.id"
                       :value="ing.id"
-                      :disabled="isIngredientUsedInOtherRow(ing.id, idx)"
+                      :disabled="isIngredientUsedInOtherRow(ing.id, idx) || !ing.is_active"
                     >
-                      {{ ing.name }} ({{ ing.unit }} — {{ formatQty(ing.current_stock) }})
+                      {{ ing.name }} ({{ ing.unit }} — {{ formatQty(ing.current_stock) }}){{
+                        !ing.is_active ? ` [${$t('common.inactive')}]` : ''
+                      }}
                     </option>
                   </select>
                 </div>
@@ -568,6 +571,19 @@ const getSiblingsWithRecipes = (currentVariant) => {
 
 const quickCopyRecipe = async (sibling, targetVariant) => {
   if (!sibling.recipe || sibling.recipe.length === 0) return
+
+  const inactiveItem = sibling.recipe.find(
+    (r) => r.is_active === false || isIngredientInactive(r.ingredient_id)
+  )
+  if (inactiveItem) {
+    openRecipeBuilderModal(targetVariant)
+    copyFromSiblingVariant(sibling)
+    toast.warning(
+      `Cannot add inactive ingredient(s) to recipe: '${inactiveItem.ingredient_name || inactiveItem.ingredient_id}'`
+    )
+    return
+  }
+
   try {
     const payload = {
       items: sibling.recipe.map((r) => ({
@@ -608,7 +624,7 @@ const fetchInitialData = async () => {
     const [catRes, prodRes, ingRes] = await Promise.all([
       api.get('/categories'),
       api.get('/products', { params: { limit: 200 } }),
-      api.get('/inventory/ingredients', { params: { limit: 200 } }),
+      api.get('/inventory/ingredients'),
     ])
     categories.value = catRes.data?.data || []
     products.value = prodRes.data?.data || []
@@ -646,6 +662,10 @@ const openRecipeBuilderModal = (variant) => {
   editingVariant.value = variant
   builderItems.value = (variant.recipe || []).map((r) => ({
     ingredient_id: r.ingredient_id,
+    ingredient_name: r.ingredient_name || '',
+    unit: r.unit || '',
+    current_stock: r.current_stock ?? 0,
+    is_active: r.is_active !== false,
     quantity: Number(r.quantity),
     scale_by_sugar: Boolean(r.scale_by_sugar),
   }))
@@ -657,6 +677,33 @@ const openRecipeBuilderModal = (variant) => {
     })
   }
   showBuilderModal.value = true
+}
+
+const isIngredientInactive = (ingId) => {
+  if (!ingId) return false
+  const found = ingredients.value.find((i) => i.id === ingId)
+  if (found) return !found.is_active
+  const row = builderItems.value.find((r) => r.ingredient_id === ingId)
+  return row ? row.is_active === false : false
+}
+
+const getOptionsForRow = (row) => {
+  const list = [...activeIngredients.value]
+  if (row?.ingredient_id && !list.some((i) => i.id === row.ingredient_id)) {
+    const inactiveFromList = ingredients.value.find((i) => i.id === row.ingredient_id)
+    if (inactiveFromList) {
+      list.unshift(inactiveFromList)
+    } else if (row.ingredient_name) {
+      list.unshift({
+        id: row.ingredient_id,
+        name: row.ingredient_name,
+        unit: row.unit || '',
+        current_stock: row.current_stock ?? 0,
+        is_active: false,
+      })
+    }
+  }
+  return list
 }
 
 const addBuilderRow = () => {
@@ -681,12 +728,18 @@ const isIngredientUsedInOtherRow = (ingId, currentIndex) => {
 
 const getIngredientUnit = (ingId) => {
   const found = ingredients.value.find((i) => i.id === ingId)
-  return found ? found.unit : ''
+  if (found) return found.unit
+  const row = builderItems.value.find((r) => r.ingredient_id === ingId)
+  return row ? row.unit || '' : ''
 }
 
 const copyFromSiblingVariant = (sibling) => {
   builderItems.value = (sibling.recipe || []).map((r) => ({
     ingredient_id: r.ingredient_id,
+    ingredient_name: r.ingredient_name || '',
+    unit: r.unit || '',
+    current_stock: r.current_stock ?? 0,
+    is_active: r.is_active !== false,
     quantity: Number(r.quantity),
     scale_by_sugar: Boolean(r.scale_by_sugar),
   }))
@@ -698,6 +751,12 @@ const handleSaveRecipe = async () => {
   for (const row of builderItems.value) {
     if (!row.ingredient_id) {
       toast.warning('Please select an ingredient for every row')
+      return
+    }
+    if (isIngredientInactive(row.ingredient_id)) {
+      const ingObj = ingredients.value.find((i) => i.id === row.ingredient_id)
+      const ingName = ingObj?.name || row.ingredient_name || `#${row.ingredient_id}`
+      toast.warning(`Cannot add inactive ingredient(s) to recipe: '${ingName}'`)
       return
     }
     if (!row.quantity || Number(row.quantity) <= 0) {
