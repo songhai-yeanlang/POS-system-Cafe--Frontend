@@ -729,13 +729,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import api from '@/api/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useCurrency } from '@/composables/useCurrency'
 import { useFormatDate } from '@/composables/useFormatDate'
 import { useI18n } from '@/i18n'
+import { useDebounce } from '@/composables/useDebounce'
 
 const authStore = useAuthStore()
 const toast = useToast()
@@ -847,7 +848,7 @@ const switchTab = (tab) => {
 // ================= METHODS: FETCH INGREDIENTS =================
 const fetchAllIngredientsSummary = async () => {
   try {
-    const res = await api.get('/inventory/ingredients', { params: { limit: 200 } })
+    const res = await api.get('/inventory/ingredients')
     allIngredientsDropdown.value = res.data?.data || []
     lowStockCount.value = allIngredientsDropdown.value.filter(
       (i) => i.is_active && i.is_low_stock
@@ -894,6 +895,15 @@ const resetIngredientFilters = () => {
   ingredientFilters.low_stock = false
   fetchIngredients(1)
 }
+
+const debouncedFetchIngredients = useDebounce(() => fetchIngredients(1), 300)
+
+watch(
+  () => ingredientFilters.search,
+  () => {
+    debouncedFetchIngredients()
+  }
+)
 
 // ================= METHODS: FETCH MOVEMENTS =================
 const fetchMovements = async (page = 1) => {

@@ -805,16 +805,23 @@
       "CREATE_ORDER": "បង្កើតការកម្មង់ថ្មី",
       "UPDATE_ORDER": "កែប្រែការកម្មង់",
       "CANCEL_ORDER": "បោះបង់ការកម្មង់",
+      "DELETE_ORDER": "លុបការកម្មង់",
       "PROCESS_PAYMENT": "ទូទាត់ប្រាក់",
       "PROCESS_REFUND": "សងប្រាក់វិញ",
+      "DISCOUNT_APPROVAL_FAILED": "អនុម័តបញ្ចុះតម្លៃបរាជ័យ",
+      "REFUND_APPROVAL_FAILED": "អនុម័តសងប្រាក់វិញបរាជ័យ",
       "OPEN_SHIFT": "បើកវេនលក់",
       "CLOSE_SHIFT": "បិទវេនលក់",
+      "DELETE_SHIFT": "លុបវេនលក់",
       "CREATE_INGREDIENT": "បន្ថែមគ្រឿងផ្សំ",
       "UPDATE_INGREDIENT": "កែប្រែគ្រឿងផ្សំ",
       "DELETE_INGREDIENT": "លុបគ្រឿងផ្សំ",
+      "STOCK_PURCHASE": "នាំចូលស្តុក",
       "STOCK_IN": "នាំចូលស្តុក",
       "STOCK_WASTE": "កាត់ស្តុកខូច/បាត់បង់",
+      "STOCK_ADJUSTMENT": "កែតម្រូវស្តុក",
       "STOCK_ADJUST": "កែតម្រូវស្តុក",
+      "DELETE_STOCK_MOVEMENT": "លុបចលនាស្តុក",
       "UPDATE_RECIPE": "កែប្រែរូបមន្ត",
       "DELETE_RECIPE": "លុបរូបមន្ត",
       "CREATE_PRODUCT": "បន្ថែមទំនិញថ្មី",
@@ -848,7 +855,8 @@
       "UPDATE_PROFILE": "កែប្រែព័ត៌មានផ្ទាល់ខ្លួន",
       "UPDATE_SETTINGS": "កែប្រែការកំណត់ហាង",
       "UPLOAD_LOGO": "ប្ដូរ Logo ហាង",
-      "DELETE_LOGO": "លុប Logo ហាង"
+      "DELETE_LOGO": "លុប Logo ហាង",
+      "CLEAR_SYSTEM_DATA": "សម្អាតទិន្នន័យប្រព័ន្ធ"
     }
   },
   "settings": {

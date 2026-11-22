@@ -709,7 +709,11 @@
 
             <!-- Right: Printable Thermal Receipt -->
             <div class="col-md-6">
-              <div id="printable-order-receipt" class="thermal-receipt">
+              <div
+                id="printable-order-receipt"
+                class="thermal-receipt"
+                :class="{ 'is-58mm': String(appStore.settings?.receipt_width) === '58' }"
+              >
                 <div class="text-center mb-2">
                   <img
                     v-if="appStore.shopLogoUrl"
@@ -1016,7 +1020,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/api'
 import { useAppStore } from '@/stores/appStore'
@@ -1025,6 +1029,7 @@ import { useToast } from '@/composables/useToast'
 import { useCurrency } from '@/composables/useCurrency'
 import { useFormatDate } from '@/composables/useFormatDate'
 import { useI18n } from '@/i18n'
+import { useDebounce } from '@/composables/useDebounce'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -1146,7 +1151,6 @@ const refundTargetPayment = ref(null)
 const isSubmittingRefund = ref(false)
 const refundForm = reactive({
   reason: '',
-  approved_by: 1,
   owner_password: '',
   reference: '',
 })
@@ -1252,6 +1256,31 @@ const fetchRefunds = async (page = 1) => {
   }
 }
 
+const debouncedFetchOrders = useDebounce(() => fetchOrders(1), 300)
+const debouncedFetchPayments = useDebounce(() => fetchPayments(1), 300)
+const debouncedFetchRefunds = useDebounce(() => fetchRefunds(1), 300)
+
+watch(
+  () => orderFilters.search,
+  () => {
+    debouncedFetchOrders()
+  }
+)
+
+watch(
+  () => paymentFilters.search,
+  () => {
+    debouncedFetchPayments()
+  }
+)
+
+watch(
+  () => refundFilters.search,
+  () => {
+    debouncedFetchRefunds()
+  }
+)
+
 // ================= METHODS: ACTIONS =================
 const openOrderDetails = async (orderId) => {
   try {
@@ -1327,7 +1356,6 @@ const openRefundModalWithPayment = (payment) => {
   refundTargetPayment.value = payment
   refundForm.reason = ''
   refundForm.reference = ''
-  refundForm.approved_by = authStore.isOwner ? authStore.user?.id : 1
   refundForm.owner_password = ''
   refundPasswordUnlocked.value = false
   showRefundModal.value = true

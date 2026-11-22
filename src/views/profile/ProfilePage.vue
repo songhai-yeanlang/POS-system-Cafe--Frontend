@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/api'
+import { t } from '@/i18n'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useToast } from '@/composables/useToast'
@@ -65,11 +66,11 @@ const handleUpdateProfile = async () => {
   const cleanName = name.value.trim()
 
   if (!cleanName) {
-    nameError.value = 'Name is required'
+    nameError.value = t('settings.valProfileNameRequired')
     return
   }
   if (cleanName.length < 2) {
-    nameError.value = 'Name must be at least 2 characters'
+    nameError.value = t('users.validationNameMin')
     return
   }
 
@@ -102,26 +103,26 @@ const handleChangePassword = async () => {
   let valid = true
 
   if (!passwordForm.currentPassword) {
-    passwordErrors.currentPassword = 'Current password is required'
+    passwordErrors.currentPassword = t('settings.valCurrentPasswordRequired')
     valid = false
   }
 
   if (!passwordForm.newPassword) {
-    passwordErrors.newPassword = 'New password is required'
+    passwordErrors.newPassword = t('settings.valNewPasswordRequired')
     valid = false
   } else if (passwordForm.newPassword.length < 6) {
-    passwordErrors.newPassword = 'New password must be at least 6 characters'
+    passwordErrors.newPassword = t('settings.valNewPasswordMin')
     valid = false
   } else if (passwordForm.newPassword === passwordForm.currentPassword) {
-    passwordErrors.newPassword = 'New password must be different from current password'
+    passwordErrors.newPassword = t('settings.valNewPasswordDiff')
     valid = false
   }
 
   if (!passwordForm.confirmPassword) {
-    passwordErrors.confirmPassword = 'Confirm password is required'
+    passwordErrors.confirmPassword = t('settings.valConfirmPasswordRequired')
     valid = false
   } else if (passwordForm.confirmPassword !== passwordForm.newPassword) {
-    passwordErrors.confirmPassword = 'Passwords do not match'
+    passwordErrors.confirmPassword = t('settings.valPasswordMismatch')
     valid = false
   }
 

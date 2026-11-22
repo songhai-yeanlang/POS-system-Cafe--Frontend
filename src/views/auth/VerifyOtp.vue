@@ -2,6 +2,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/api/api'
+import { tToast } from '@/i18n'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const router = useRouter()
@@ -84,12 +85,12 @@ const handleVerify = async () => {
   errorMessage.value = ''
 
   if (!email.value) {
-    errorMessage.value = 'Email is missing. Please restart from Forgot Password.'
+    errorMessage.value = tToast('Email is missing. Please restart from Forgot Password.')
     return
   }
 
   if (!isComplete.value) {
-    errorMessage.value = 'Please enter all 6 digits of the passcode'
+    errorMessage.value = tToast('Please enter all 6 digits of the passcode')
     return
   }
 
@@ -113,13 +114,14 @@ const handleVerify = async () => {
       localStorage.setItem('resetToken', resetToken)
       router.push({ path: '/reset-password', query: { token: resetToken } })
     } else {
-      errorMessage.value = res.data?.message || 'Verification failed. Please try again.'
+      errorMessage.value = tToast(res.data?.message || 'Verification failed. Please try again.')
     }
   } catch (err) {
-    errorMessage.value =
+    errorMessage.value = tToast(
       err.response?.data?.message ||
       err.message ||
       'Invalid or expired passcode'
+    )
   } finally {
     isLoading.value = false
   }
@@ -129,7 +131,7 @@ const handleResend = async () => {
   if (isResending.value || countdown.value > 0) return
 
   if (!email.value) {
-    errorMessage.value = 'Email is missing. Please restart from Forgot Password.'
+    errorMessage.value = tToast('Email is missing. Please restart from Forgot Password.')
     return
   }
 
@@ -140,7 +142,7 @@ const handleResend = async () => {
     await api.post('/auth/forgot-password', { email: email.value })
     startCountdown(60)
   } catch (err) {
-    errorMessage.value = err.response?.data?.message || 'Failed to resend code'
+    errorMessage.value = tToast(err.response?.data?.message || 'Failed to resend code')
   } finally {
     isResending.value = false
   }
