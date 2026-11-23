@@ -169,7 +169,7 @@
                   <th style="width: 110px;">{{ $t('recipes.colPrice') }}</th>
                   <th>{{ $t('recipes.colRecipeIngredients') }}</th>
                   <th style="width: 145px;">{{ $t('recipes.colEstYield') }}</th>
-                  <th style="width: 115px;" class="text-end">{{ $t('common.actions') }}</th>
+                  <th style="min-width: 155px; width: 1%; white-space: nowrap;" class="text-end">{{ $t('common.actions') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -251,7 +251,7 @@
                   </td>
 
                   <!-- Actions -->
-                  <td class="text-end">
+                  <td class="text-end text-nowrap">
                     <div v-if="authStore.isOwner" class="action-group">
                       <template v-if="v.recipe && v.recipe.length > 0">
                         <button
@@ -1169,14 +1169,16 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
-  height: 35px;
-  padding: 0 0.82rem;
+  min-height: 35px;
+  padding: 0.35rem 0.82rem;
   border-radius: 8px;
   border: 1px solid var(--ledger-border);
   background: #ffffff;
   color: var(--text-body);
   font-size: 0.8rem;
   font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -1392,15 +1394,19 @@ onMounted(async () => {
 .btn-set-recipe {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
-  height: 31px;
-  padding: 0 0.72rem;
+  min-height: 33px;
+  padding: 0.32rem 0.82rem;
   border-radius: 7px;
   border: 1px solid var(--botanical-primary);
   background: var(--botanical-primary);
   color: #ffffff;
-  font-size: 0.77rem;
+  font-size: 0.78rem;
   font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   transition: background-color 0.14s ease, border-color 0.14s ease;
 }
