@@ -119,7 +119,6 @@
 
   /* Horizontal Swipeable Segmented Tabs */
   .segmented-tabs,
-  .orders-segmented-tabs,
   .expenses-segmented-tabs,
   .products-segmented-tabs,
   .discounts-segmented-tabs,
@@ -141,7 +140,6 @@
   }
 
   .segmented-tabs::-webkit-scrollbar,
-  .orders-segmented-tabs::-webkit-scrollbar,
   .expenses-segmented-tabs::-webkit-scrollbar,
   .products-segmented-tabs::-webkit-scrollbar,
   .discounts-segmented-tabs::-webkit-scrollbar,
@@ -152,7 +150,6 @@
   }
 
   .segmented-tabs .seg-tab-btn,
-  .orders-segmented-tabs .seg-tab-btn,
   .expenses-segmented-tabs .seg-tab-btn,
   .products-segmented-tabs .seg-tab-btn,
   .discounts-segmented-tabs .seg-tab-btn,
@@ -305,6 +302,8 @@
   /* Card Header Row (td:first-child spans full width) */
   table.mobile-card-table tbody td:first-child {
     grid-column: 1 / -1;
+    width: 100% !important;
+    max-width: 100% !important;
     display: flex;
     flex-direction: row !important;
     align-items: center !important;
@@ -316,12 +315,17 @@
     font-weight: 700;
   }
 
+  table.mobile-card-table tbody td:first-child > * {
+    min-width: 0;
+  }
+
   table.mobile-card-table tbody td:first-child::before {
     display: none !important;
   }
 
   /* Middle Data Cells: Clean Left-Aligned 2-Col Blocks (No Dashed Clutter) */
   table.mobile-card-table tbody td:not(:first-child):not(.mobile-card-actions) {
+    width: auto !important;
     display: flex;
     flex-direction: column;
     align-items: flex-start !important;
