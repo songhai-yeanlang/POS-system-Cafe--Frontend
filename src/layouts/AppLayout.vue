@@ -13,7 +13,7 @@ const appStore = useAppStore()
 const { t } = useI18n()
 
 const isSidebarCollapsed = ref(false)
-const isMobileSidebarOpen = ref(false)
+const isMoreSheetOpen = ref(false)
 const isLoggingOut = ref(false)
 const showLogoutModal = ref(false)
 
@@ -26,7 +26,7 @@ onMounted(() => {
 watch(
   () => route.fullPath,
   () => {
-    isMobileSidebarOpen.value = false
+    isMoreSheetOpen.value = false
   },
 )
 
@@ -42,6 +42,18 @@ const pageTitle = computed(() => {
 const roleLabel = computed(() => {
   const role = authStore.user?.role || 'STAFF'
   return role === 'OWNER' ? t('common.owner') : t('common.staff')
+})
+
+const userInitials = computed(() => {
+  const name = authStore.user?.name || 'U'
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
 })
 
 const navGroups = computed(() => {
@@ -147,6 +159,79 @@ const navGroups = computed(() => {
     .filter((group) => group.items.length > 0)
 })
 
+const mobilePrimaryTabs = computed(() => {
+  if (authStore.isOwner) {
+    return [
+      {
+        key: 'pos',
+        label: t('nav.tabPos'),
+        path: '/pos',
+        icon: 'bi-calculator',
+        activeIcon: 'bi-calculator-fill',
+      },
+      {
+        key: 'orders',
+        label: t('nav.tabOrders'),
+        path: '/orders',
+        icon: 'bi-receipt',
+        activeIcon: 'bi-receipt-cutoff',
+      },
+      {
+        key: 'shifts',
+        label: t('nav.tabShifts'),
+        path: '/shifts',
+        icon: 'bi-safe2',
+        activeIcon: 'bi-safe2-fill',
+        dot: appStore.hasOpenShift ? 'open' : 'closed',
+      },
+      {
+        key: 'dashboard',
+        label: t('nav.tabDashboard'),
+        path: '/dashboard',
+        icon: 'bi-grid-1x2',
+        activeIcon: 'bi-grid-1x2-fill',
+      },
+    ]
+  }
+
+  return [
+    {
+      key: 'pos',
+      label: t('nav.tabPos'),
+      path: '/pos',
+      icon: 'bi-calculator',
+      activeIcon: 'bi-calculator-fill',
+    },
+    {
+      key: 'orders',
+      label: t('nav.tabOrders'),
+      path: '/orders',
+      icon: 'bi-receipt',
+      activeIcon: 'bi-receipt-cutoff',
+    },
+    {
+      key: 'shifts',
+      label: t('nav.tabShifts'),
+      path: '/shifts',
+      icon: 'bi-safe2',
+      activeIcon: 'bi-safe2-fill',
+      dot: appStore.hasOpenShift ? 'open' : 'closed',
+    },
+    {
+      key: 'expenses',
+      label: t('nav.tabExpenses'),
+      path: '/expenses',
+      icon: 'bi-wallet2',
+      activeIcon: 'bi-wallet-fill',
+    },
+  ]
+})
+
+const isSecondaryMobileRoute = computed(() => {
+  const primaryPaths = mobilePrimaryTabs.value.map((tab) => tab.path)
+  return !primaryPaths.some((p) => route.path === p || route.path.startsWith(`${p}/`))
+})
+
 const formattedRate = computed(() => {
   return Number(appStore.exchangeRate || 4100).toLocaleString('en-US')
 })
@@ -156,14 +241,11 @@ const isActiveRoute = (path) => {
 }
 
 const toggleSidebar = () => {
-  if (window.innerWidth < 992) {
-    isMobileSidebarOpen.value = !isMobileSidebarOpen.value
-  } else {
-    isSidebarCollapsed.value = !isSidebarCollapsed.value
-  }
+  isSidebarCollapsed.value = !isSidebarCollapsed.value
 }
 
 const openLogoutModal = () => {
+  isMoreSheetOpen.value = false
   showLogoutModal.value = true
 }
 
@@ -183,19 +265,11 @@ const handleLogout = async () => {
 
 <template>
   <div class="app-shell d-flex min-vh-100">
-    <!-- Mobile Backdrop -->
-    <div
-      v-if="isMobileSidebarOpen"
-      class="sidebar-backdrop d-lg-none"
-      @click="isMobileSidebarOpen = false"
-    ></div>
-
-    <!-- Sidebar -->
+    <!-- Desktop Sidebar (lg and up) -->
     <aside
-      class="app-sidebar d-flex flex-column"
+      class="app-sidebar d-none d-lg-flex flex-column"
       :class="{
         'sidebar-collapsed': isSidebarCollapsed,
-        'sidebar-mobile-open': isMobileSidebarOpen,
       }"
     >
       <!-- Brand Header -->
@@ -221,14 +295,6 @@ const handleLogout = async () => {
             </div>
           </div>
         </router-link>
-
-        <button
-          type="button"
-          class="btn btn-sm btn-link text-muted d-lg-none p-1"
-          @click="isMobileSidebarOpen = false"
-        >
-          <i class="bi bi-x-lg"></i>
-        </button>
       </div>
 
       <!-- Navigation Menu -->
@@ -293,8 +359,8 @@ const handleLogout = async () => {
 
     <!-- Main Content Area -->
     <div class="app-main d-flex flex-column flex-grow-1 min-w-0">
-      <!-- Top Header -->
-      <header class="app-topbar d-flex align-items-center justify-content-between px-3 px-md-4">
+      <!-- Desktop Top Header -->
+      <header class="app-topbar d-none d-lg-flex align-items-center justify-content-between px-4">
         <div class="d-flex align-items-center gap-3 min-w-0">
           <button
             type="button"
@@ -330,24 +396,21 @@ const handleLogout = async () => {
         </div>
 
         <!-- Topbar Right Indicators & Quick Actions -->
-        <div class="d-flex align-items-center gap-2 gap-md-3">
-          <!-- Language Switcher -->
+        <div class="d-flex align-items-center gap-3">
           <LanguageSwitcher />
 
-          <span class="topbar-divider d-none d-sm-inline"></span>
+          <span class="topbar-divider"></span>
 
-          <!-- Exchange Rate -->
           <div
-            class="topbar-rate d-none d-sm-inline-flex align-items-center gap-2"
+            class="topbar-rate d-inline-flex align-items-center gap-2"
             :title="t('nav.exchangeRateTitle')"
           >
             <i class="bi bi-currency-exchange text-muted"></i>
             <span class="numeric-tabular fw-semibold text-dark">$1 = {{ formattedRate }} ៛</span>
           </div>
 
-          <span class="topbar-divider d-none d-sm-inline"></span>
+          <span class="topbar-divider"></span>
 
-          <!-- Active Shift Status Link -->
           <router-link
             to="/shifts"
             class="topbar-shift-link d-inline-flex align-items-center gap-2 text-decoration-none"
@@ -363,7 +426,6 @@ const handleLogout = async () => {
 
           <span class="topbar-divider"></span>
 
-          <!-- Topbar Logout Button -->
           <button
             type="button"
             class="btn-topbar-logout d-inline-flex align-items-center gap-2"
@@ -378,11 +440,202 @@ const handleLogout = async () => {
         </div>
       </header>
 
+      <!-- Native Mobile App Top Bar (< 992px) -->
+      <header class="mobile-app-header d-lg-none">
+        <div class="mobile-app-header__inner">
+          <div class="mobile-app-header__left">
+            <router-link
+              :to="authStore.defaultRoute"
+              class="mobile-brand-badge"
+              aria-label="Home"
+            >
+              <img
+                v-if="appStore.shopLogoUrl"
+                :src="appStore.shopLogoUrl"
+                alt="Shop logo"
+                class="w-100 h-100 object-fit-cover"
+              />
+              <i v-else class="bi bi-cup-hot-fill"></i>
+            </router-link>
+
+            <div class="mobile-app-header__titles">
+              <h1 class="mobile-screen-title text-truncate">{{ pageTitle }}</h1>
+              <div class="mobile-screen-sub text-truncate">
+                {{ appStore.shopName }}
+              </div>
+            </div>
+          </div>
+
+          <div class="mobile-app-header__right">
+            <router-link
+              to="/shifts"
+              class="mobile-shift-pill numeric-tabular"
+              :class="appStore.hasOpenShift ? 'is-open' : 'is-closed'"
+              :title="t('nav.manageShiftTitle')"
+            >
+              <span class="mobile-shift-pill__dot"></span>
+              <span v-if="appStore.hasOpenShift">#{{ appStore.currentShift?.id }}</span>
+              <i v-else class="bi bi-lock-fill"></i>
+            </router-link>
+
+            <LanguageSwitcher />
+
+            <button
+              type="button"
+              class="mobile-avatar-btn"
+              :aria-label="t('nav.moreMenuTitle')"
+              @click="isMoreSheetOpen = true"
+            >
+              {{ userInitials }}
+            </button>
+          </div>
+        </div>
+      </header>
+
       <!-- Page View Container -->
-      <main class="app-content flex-grow-1 p-3 p-md-4">
+      <main
+        class="app-content flex-grow-1 p-3 p-md-4"
+        :class="{ 'is-pos-mobile-view': route.path.startsWith('/pos') }"
+      >
         <router-view />
       </main>
     </div>
+
+    <!-- Native Mobile Bottom Tab Bar (< 992px) -->
+    <nav class="mobile-bottom-nav d-lg-none" aria-label="Primary mobile navigation">
+      <router-link
+        v-for="tab in mobilePrimaryTabs"
+        :key="tab.key"
+        :to="tab.path"
+        class="mobile-tab-item"
+        :class="{ 'is-active': isActiveRoute(tab.path) && !isMoreSheetOpen }"
+        @click="isMoreSheetOpen = false"
+      >
+        <span class="mobile-tab-item__pill">
+          <i
+            class="bi"
+            :class="isActiveRoute(tab.path) && !isMoreSheetOpen ? tab.activeIcon : tab.icon"
+          ></i>
+          <span
+            v-if="tab.dot"
+            class="mobile-tab-item__dot"
+            :class="`is-${tab.dot}`"
+          ></span>
+        </span>
+        <span class="mobile-tab-item__label">{{ tab.label }}</span>
+      </router-link>
+
+      <button
+        type="button"
+        class="mobile-tab-item"
+        :class="{ 'is-active': isMoreSheetOpen || isSecondaryMobileRoute }"
+        @click="isMoreSheetOpen = !isMoreSheetOpen"
+      >
+        <span class="mobile-tab-item__pill">
+          <i
+            class="bi"
+            :class="
+              isMoreSheetOpen || isSecondaryMobileRoute
+                ? 'bi-grid-3x3-gap-fill'
+                : 'bi-grid-3x3-gap'
+            "
+          ></i>
+        </span>
+        <span class="mobile-tab-item__label">{{ t('nav.tabMore') }}</span>
+      </button>
+    </nav>
+
+    <!-- Native Mobile App Launcher ("More") Bottom Sheet -->
+    <Teleport to="body">
+      <Transition name="mobile-sheet-fade">
+        <div
+          v-if="isMoreSheetOpen"
+          class="mobile-more-backdrop d-lg-none"
+          @click.self="isMoreSheetOpen = false"
+        >
+          <div class="mobile-more-sheet" role="dialog" aria-modal="true">
+            <div class="mobile-more-sheet__handle" aria-hidden="true"></div>
+
+            <!-- User Profile & Shop Quick Banner -->
+            <div class="mobile-more-profile">
+              <router-link
+                :to="authStore.isOwner ? '/settings' : '/profile'"
+                class="mobile-more-profile__card"
+                @click="isMoreSheetOpen = false"
+              >
+                <div class="mobile-more-profile__avatar">
+                  {{ userInitials }}
+                </div>
+                <div class="mobile-more-profile__info">
+                  <div class="mobile-more-profile__name-row">
+                    <span class="mobile-more-profile__name text-truncate">
+                      {{ authStore.user?.name || roleLabel }}
+                    </span>
+                    <span class="mobile-more-profile__role">{{ roleLabel }}</span>
+                  </div>
+                  <div class="mobile-more-profile__meta text-truncate numeric-tabular">
+                    {{ authStore.user?.email || appStore.shopName }} · $1 = {{ formattedRate }} ៛
+                  </div>
+                </div>
+                <i class="bi bi-chevron-right mobile-more-profile__chevron"></i>
+              </router-link>
+            </div>
+
+            <!-- Categorized App Icon Grid -->
+            <div class="mobile-more-body">
+              <div
+                v-for="group in navGroups"
+                :key="group.label"
+                class="mobile-more-group"
+              >
+                <div class="mobile-more-group__title">{{ group.label }}</div>
+                <div class="mobile-more-grid">
+                  <router-link
+                    v-for="item in group.items"
+                    :key="item.path"
+                    :to="item.path"
+                    class="mobile-app-tile"
+                    :class="{ 'is-active': isActiveRoute(item.path) }"
+                    @click="isMoreSheetOpen = false"
+                  >
+                    <div class="mobile-app-tile__icon">
+                      <i :class="['bi', item.icon]"></i>
+                      <span v-if="item.badge" class="mobile-app-tile__dot"></span>
+                    </div>
+                    <span class="mobile-app-tile__label">{{ item.name }}</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <!-- Settings / Profile + Sign Out Footer -->
+              <div class="mobile-more-footer">
+                <router-link
+                  :to="authStore.isOwner ? '/settings' : '/profile'"
+                  class="mobile-more-action-btn"
+                  :class="{
+                    'is-active': isActiveRoute(authStore.isOwner ? '/settings' : '/profile'),
+                  }"
+                  @click="isMoreSheetOpen = false"
+                >
+                  <i :class="['bi', authStore.isOwner ? 'bi-gear-fill' : 'bi-person-badge-fill']"></i>
+                  <span>{{ authStore.isOwner ? t('nav.settings') : t('nav.profile') }}</span>
+                </router-link>
+
+                <button
+                  type="button"
+                  class="mobile-more-action-btn is-danger"
+                  :disabled="isLoggingOut"
+                  @click="openLogoutModal"
+                >
+                  <i class="bi bi-box-arrow-right"></i>
+                  <span>{{ t('nav.logout') }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Logout Confirmation Modal -->
     <Teleport to="body">
@@ -434,7 +687,7 @@ const handleLogout = async () => {
   color: var(--on-surface, #1c1b1b);
 }
 
-/* Sidebar */
+/* Desktop Sidebar */
 .app-sidebar {
   width: 260px;
   flex-shrink: 0;
@@ -582,7 +835,7 @@ const handleLogout = async () => {
   color: var(--on-secondary-fixed, #2b1707);
 }
 
-/* Topbar Logout Text Link */
+/* Desktop Topbar */
 .btn-topbar-logout {
   border: none;
   background: transparent;
@@ -599,7 +852,6 @@ const handleLogout = async () => {
   color: var(--error, #ba1a1a);
 }
 
-/* Topbar */
 .app-topbar {
   height: 64px;
   background-color: var(--surface-container-lowest, #ffffff);
@@ -701,28 +953,505 @@ const handleLogout = async () => {
   background-color: #d97706;
 }
 
-/* Responsive Mobile Drawer */
+/* ==========================================================================
+   Native Mobile App Shell (< 992px)
+   ========================================================================== */
 @media (max-width: 991.98px) {
-  .app-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    transform: translateX(-100%);
-    width: 260px !important;
+  .app-shell {
+    background-color: #f4f7f5;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: clip;
   }
 
-  .app-sidebar.sidebar-mobile-open {
-    transform: translateX(0);
+  .app-main {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
-  .sidebar-backdrop {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(28, 27, 27, 0.45);
-    backdrop-filter: blur(2px);
-    z-index: 1035;
+  .app-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.65rem 0.75rem calc(var(--mobile-bottom-offset) + 0.9rem) !important;
   }
+
+  .app-content.is-pos-mobile-view {
+    padding-bottom: calc(var(--mobile-bottom-offset) + 4.75rem) !important;
+  }
+}
+
+.mobile-app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1025;
+  padding-top: var(--safe-top);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(220, 230, 224, 0.9);
+}
+
+.mobile-app-header__inner {
+  height: var(--mobile-header-h);
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mobile-app-header__left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.mobile-brand-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #35694e 0%, #1e3f2f 100%);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.98rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(30, 63, 47, 0.18);
+}
+
+.mobile-app-header__titles {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.18;
+}
+
+.mobile-screen-title {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #16241c;
+  letter-spacing: -0.015em;
+}
+
+.mobile-screen-sub {
+  font-size: 0.69rem;
+  font-weight: 600;
+  color: #64786c;
+  margin-top: 1px;
+}
+
+.mobile-sub-dot {
+  margin: 0 3px;
+}
+
+.mobile-app-header__right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.mobile-shift-pill {
+  height: 30px;
+  padding: 0 0.52rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.mobile-shift-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.mobile-shift-pill.is-open {
+  background: #eaf7ef;
+  border-color: #c2e5cf;
+  color: #15803d;
+}
+
+.mobile-shift-pill.is-open .mobile-shift-pill__dot {
+  background: #16a34a;
+}
+
+.mobile-shift-pill.is-closed {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.mobile-shift-pill.is-closed .mobile-shift-pill__dot {
+  background: #d97706;
+}
+
+.mobile-avatar-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid #cde2d5;
+  background: #eaf5ee;
+  color: #1e3f2f;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Native Fixed Bottom Tab Bar */
+.mobile-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1035;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  height: calc(var(--mobile-tabbar-h) + var(--safe-bottom));
+  padding: 4px 6px calc(4px + var(--safe-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(216, 228, 220, 0.95);
+  box-shadow: 0 -4px 20px rgba(18, 32, 24, 0.06);
+}
+
+.mobile-tab-item {
+  border: none;
+  background: transparent;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 3px 2px;
+  color: #617468;
+  cursor: pointer;
+  min-width: 0;
+  transition: color 0.15s ease;
+}
+
+.mobile-tab-item__pill {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.08rem;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.14s ease;
+}
+
+.mobile-tab-item.is-active {
+  color: #1e3f2f;
+}
+
+.mobile-tab-item.is-active .mobile-tab-item__pill {
+  background: #e1f0e7;
+  color: #1e3f2f;
+}
+
+.mobile-tab-item__label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.42;
+  padding-bottom: 1px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-tab-item__dot {
+  position: absolute;
+  top: 4px;
+  right: 11px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+}
+
+.mobile-tab-item__dot.is-open {
+  background: #16a34a;
+}
+
+.mobile-tab-item__dot.is-closed {
+  background: #d97706;
+}
+
+/* Native App Launcher ("More") Sheet */
+.mobile-more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1065;
+  background: rgba(14, 24, 18, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.mobile-more-sheet {
+  width: 100%;
+  max-height: calc(88dvh - var(--safe-top));
+  background: #f5f9f6;
+  border-radius: 24px 24px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: calc(0.85rem + var(--safe-bottom));
+  box-shadow: 0 -14px 42px rgba(12, 22, 16, 0.24);
+}
+
+.mobile-more-sheet__handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: #c8d6ce;
+  margin: 10px auto 8px;
+  flex-shrink: 0;
+}
+
+.mobile-more-profile {
+  padding: 0 0.9rem 0.65rem;
+  flex-shrink: 0;
+}
+
+.mobile-more-profile__card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  background: #ffffff;
+  border: 1px solid #dfeae3;
+  border-radius: 16px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
+}
+
+.mobile-more-profile__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2d5a43, #1e3f2f);
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobile-more-profile__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-more-profile__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.mobile-more-profile__name {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #16241c;
+}
+
+.mobile-more-profile__role {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: #e6f2eb;
+  color: #2d5a43;
+  flex-shrink: 0;
+}
+
+.mobile-more-profile__meta {
+  font-size: 0.74rem;
+  color: #64786c;
+  margin-top: 2px;
+}
+
+.mobile-more-profile__chevron {
+  color: #84968b;
+  font-size: 0.88rem;
+}
+
+.mobile-more-body {
+  padding: 0 0.9rem 0.35rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.mobile-more-group__title {
+  font-size: 0.71rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #617468;
+  margin-bottom: 0.42rem;
+  padding-left: 0.2rem;
+}
+
+.mobile-more-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (max-width: 374.98px) {
+  .mobile-more-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.mobile-app-tile {
+  background: #ffffff;
+  border: 1px solid #e1ece5;
+  border-radius: 14px;
+  padding: 0.68rem 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.38rem;
+  text-decoration: none;
+  color: #26382e;
+  transition: transform 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
+}
+
+.mobile-app-tile:active {
+  transform: scale(0.95);
+}
+
+.mobile-app-tile__icon {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #eff6f2;
+  color: #2d5a43;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.mobile-app-tile.is-active {
+  background: #eaf5ee;
+  border-color: #2d5a43;
+  color: #193b29;
+}
+
+.mobile-app-tile.is-active .mobile-app-tile__icon {
+  background: #2d5a43;
+  color: #ffffff;
+}
+
+.mobile-app-tile__dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #16a34a;
+  border: 1.5px solid #ffffff;
+}
+
+.mobile-app-tile__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mobile-more-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  padding-top: 0.25rem;
+}
+
+.mobile-more-action-btn {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #dbe6df;
+  background: #ffffff;
+  color: #26382e;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mobile-more-action-btn.is-active {
+  background: #2d5a43;
+  border-color: #2d5a43;
+  color: #ffffff;
+}
+
+.mobile-more-action-btn.is-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+/* Sheet Transition */
+.mobile-sheet-fade-enter-active,
+.mobile-sheet-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.mobile-sheet-fade-enter-active .mobile-more-sheet,
+.mobile-sheet-fade-leave-active .mobile-more-sheet {
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mobile-sheet-fade-enter-from,
+.mobile-sheet-fade-leave-to {
+  opacity: 0;
+}
+
+.mobile-sheet-fade-enter-from .mobile-more-sheet,
+.mobile-sheet-fade-leave-to .mobile-more-sheet {
+  transform: translateY(100%);
 }
 
 /* Logout Confirmation Modal */

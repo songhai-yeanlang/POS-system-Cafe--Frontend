@@ -349,7 +349,7 @@
         </div>
 
         <div v-else class="table-responsive">
-          <table class="clean-table">
+          <table class="clean-table mobile-card-table">
             <thead>
               <tr>
                 <th class="col-rank">#</th>
@@ -362,23 +362,29 @@
             <tbody>
               <tr v-for="item in topProducts" :key="item.variant_id">
                 <td class="col-rank">
-                  <span class="rank-text tabular" :class="{ 'is-top': item.rank === 1 }">
+                  <div class="d-md-none">
+                    <div class="product-name">#{{ item.rank }} · {{ item.product_name }}</div>
+                    <div class="product-variant">{{ item.variant_name }}</div>
+                  </div>
+                  <span class="rank-text tabular d-none d-md-inline" :class="{ 'is-top': item.rank === 1 }">
                     #{{ item.rank }}
                   </span>
                 </td>
-                <td>
+                <td class="d-none d-md-table-cell">
                   <div class="product-name">{{ item.product_name }}</div>
                   <div class="product-variant">{{ item.variant_name }}</div>
                 </td>
-                <td>
+                <td :data-label="$t('dashboard.colCategory')">
                   <span class="category-text">{{ $tCategory(item.category_name) }}</span>
                 </td>
-                <td class="text-end">
+                <td :data-label="$t('dashboard.colSold')" class="text-end">
                   <span class="sold-qty tabular">{{ item.total_quantity_sold }}</span>
                 </td>
-                <td class="text-end col-rev">
-                  <div class="rev-usd tabular">{{ formatUsd(item.total_revenue_usd) }}</div>
-                  <div class="rev-share tabular">{{ getProductShare(item) }}%</div>
+                <td :data-label="$t('dashboard.colRevenue')" class="text-end col-rev">
+                  <div>
+                    <div class="rev-usd tabular">{{ formatUsd(item.total_revenue_usd) }}</div>
+                    <div class="rev-share tabular">{{ getProductShare(item) }}%</div>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -410,7 +416,7 @@
         </div>
 
         <div v-else class="table-responsive">
-          <table class="clean-table">
+          <table class="clean-table mobile-card-table">
             <thead>
               <tr>
                 <th>{{ $t('inventory.colIngredient') }}</th>
@@ -423,12 +429,12 @@
                 <td>
                   <span class="ing-name">{{ ing.name }}</span>
                 </td>
-                <td class="text-end">
+                <td :data-label="$t('inventory.colMinAlert')" class="text-end">
                   <span class="ing-min tabular">
                     {{ formatQty(ing.minimum_stock) }} {{ ing.unit }}
                   </span>
                 </td>
-                <td class="text-end">
+                <td :data-label="$t('inventory.colCurrentStock')" class="text-end">
                   <span
                     class="ing-stock tabular"
                     :class="Number(ing.current_stock) <= 0 ? 'text-crimson' : 'text-amber'"
@@ -1264,18 +1270,106 @@ onMounted(() => {
 @media (max-width: 991.98px) {
   .dashboard-mid-grid,
   .dashboard-bottom-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-@media (max-width: 575.98px) {
-  .kpi-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 767.98px) {
+  .dashboard-page {
+    gap: 0.7rem;
+    padding-bottom: 0.5rem;
   }
 
-  .kpi-col + .kpi-col {
-    border-left: none;
-    border-top: 1px solid var(--ledger-line);
+  .dashboard-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .dashboard-top-bar__right {
+    width: 100%;
+    display: flex;
+    gap: 0.45rem;
+  }
+
+  .dashboard-top-bar__right .date-range-group {
+    flex: 1;
+    min-width: 0;
+    height: 40px;
+    border-radius: 10px;
+    justify-content: space-between;
+  }
+
+  .dashboard-top-bar__right .toolbar-btn {
+    height: 40px;
+    width: 40px;
+    padding: 0;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  /* Distinct 2x2 Ceramic KPI Bento Cards on Mobile */
+  .kpi-summary-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .kpi-col {
+    background: #ffffff;
+    border: 1px solid #e3ece6 !important;
+    border-radius: 16px;
+    padding: 0.85rem;
+    box-shadow: 0 1px 3px rgba(20, 35, 26, 0.04);
+  }
+
+  /* Focal Point: Net Operating Profit Card */
+  .kpi-col:nth-child(3) {
+    background: #f1f8f4;
+    border-color: #c5ded0 !important;
+  }
+
+  .kpi-col__main {
+    font-size: 1.22rem;
+  }
+
+  .kpi-col__sub {
+    font-size: 0.71rem;
+  }
+
+  .kpi-breakdown {
+    margin-top: 0.6rem;
+    padding-top: 0.5rem;
+    gap: 0.24rem;
+  }
+
+  .kpi-breakdown__row {
+    font-size: 0.7rem;
+  }
+
+  .panel-header {
+    padding: 0.75rem 0.9rem;
+  }
+
+  .panel-body {
+    padding: 0.85rem 0.9rem;
+  }
+
+  .trend-readout-strip {
+    padding: 0.5rem 0.9rem;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 359.98px) {
+  .kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

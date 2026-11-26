@@ -1,0 +1,19 @@
+{
+  "name": "BrewPOS Coffee System",
+  "short_name": "BrewPOS",
+  "description": "Point of Sale & Cafe Management Mobile App",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8faf8",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

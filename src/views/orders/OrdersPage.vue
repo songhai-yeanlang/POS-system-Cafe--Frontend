@@ -141,7 +141,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="table clean-table mobile-card-table align-middle mb-0">
           <thead>
             <tr>
               <th>{{ $t('orders.colReceiptQueue') }}</th>
@@ -169,7 +169,7 @@
                   </span>
                 </div>
               </td>
-              <td>
+              <td :data-label="$t('orders.colTypeTable')">
                 <span
                   class="type-badge"
                   :class="ord.order_type === 'DINE_IN' ? 'dine-in' : 'takeaway'"
@@ -181,29 +181,29 @@
                   </span>
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('orders.colCashier')">
                 <span class="cashier-name">{{ ord.cashier?.name || '—' }}</span>
               </td>
-              <td>
+              <td :data-label="$t('orders.colItems')">
                 <span class="items-text tabular">
                   {{ $t('orders.itemsCount', { count: ord.total_items }) }}
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('orders.colTotal')">
                 <div class="amount-cell tabular">
                   <strong class="amount-cell__usd">{{ formatUsd(ord.total) }}</strong>
                   <span class="amount-cell__khr">{{ formatKhr(usdToKhr(ord.total, ord.exchange_rate)) }}</span>
                 </div>
               </td>
-              <td>
+              <td :data-label="$t('orders.colStatus')">
                 <span class="status-text" :class="ord.status.toLowerCase()">
                   {{ getOrderStatusLabel(ord.status) }}
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('orders.colDateTime')">
                 <span class="datetime-text tabular">{{ formatDateTime(ord.created_at) }}</span>
               </td>
-              <td class="text-end" @click.stop>
+              <td class="text-end mobile-card-actions" @click.stop>
                 <div class="action-group">
                   <button
                     type="button"
@@ -352,7 +352,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="table clean-table mobile-card-table align-middle mb-0">
           <thead>
             <tr>
               <th>{{ $t('orders.colReceipt') }}</th>
@@ -375,19 +375,21 @@
               <td>
                 <span class="receipt-cell__no tabular">{{ pay.receipt_no }}</span>
               </td>
-              <td>
-                <span class="method-pill">
-                  <i :class="pay.method === 'CASH' ? 'bi bi-cash-stack' : 'bi bi-qr-code-scan'"></i>
-                  <span>{{ getMethodLabel(pay.method) }}</span>
+              <td :data-label="$t('orders.colMethod')">
+                <span>
+                  <span class="method-pill">
+                    <i :class="pay.method === 'CASH' ? 'bi bi-cash-stack' : 'bi bi-qr-code-scan'"></i>
+                    <span>{{ getMethodLabel(pay.method) }}</span>
+                  </span>
+                  <span v-if="pay.bank_name" class="small text-muted ms-1">({{ pay.bank_name }})</span>
                 </span>
-                <span v-if="pay.bank_name" class="small text-muted ms-1">({{ pay.bank_name }})</span>
               </td>
-              <td>
+              <td :data-label="$t('orders.colBillAmount')">
                 <strong class="amount-cell__usd tabular">
                   {{ pay.currency === 'USD' ? formatUsd(pay.amount) : formatKhr(pay.amount) }}
                 </strong>
               </td>
-              <td>
+              <td :data-label="$t('orders.colReceived')">
                 <span class="fw-semibold tabular">
                   {{
                     pay.currency === 'USD'
@@ -396,7 +398,7 @@
                   }}
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('orders.colChange')">
                 <div v-if="pay.change_usd > 0" class="small text-success fw-semibold tabular">
                   {{ formatUsd(pay.change_usd) }}
                 </div>
@@ -405,13 +407,13 @@
                 </div>
                 <span v-else class="small text-muted">—</span>
               </td>
-              <td>
+              <td :data-label="$t('orders.colCashier')">
                 <span class="cashier-name">{{ pay.receiver_name }}</span>
               </td>
-              <td>
+              <td :data-label="$t('orders.colPaidAt')">
                 <span class="datetime-text tabular">{{ formatDateTime(pay.paid_at) }}</span>
               </td>
-              <td class="text-end" @click.stop>
+              <td class="text-end mobile-card-actions" @click.stop>
                 <div class="action-group">
                   <span v-if="pay.is_refunded" class="status-text refunded me-1">
                     {{ $t('orders.statusRefunded') }}
@@ -515,7 +517,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="table clean-table mobile-card-table align-middle mb-0">
           <thead>
             <tr>
               <th>{{ $t('orders.colRefundIdReceipt') }}</th>
@@ -542,13 +544,13 @@
                   </span>
                 </div>
               </td>
-              <td>
+              <td :data-label="$t('orders.colMethod')">
                 <span class="method-pill">
                   <i :class="refItem.method === 'CASH' ? 'bi bi-cash-stack' : 'bi bi-qr-code-scan'"></i>
                   <span>{{ getMethodLabel(refItem.method) }}</span>
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('orders.colRefundedAmount')">
                 <div class="amount-cell tabular">
                   <strong class="text-danger fw-bold">
                     -{{
@@ -560,17 +562,19 @@
                   <span class="amount-cell__khr">{{ formatUsd(refItem.amount_usd) }} USD</span>
                 </div>
               </td>
-              <td>
-                <div class="small text-dark" style="max-width: 260px">{{ refItem.reason }}</div>
-                <div v-if="refItem.reference" class="small text-muted">Ref: {{ refItem.reference }}</div>
+              <td :data-label="$t('orders.colReason')">
+                <div>
+                  <div class="small text-dark" style="max-width: 260px">{{ refItem.reason }}</div>
+                  <div v-if="refItem.reference" class="small text-muted">Ref: {{ refItem.reference }}</div>
+                </div>
               </td>
-              <td>
+              <td :data-label="$t('orders.colApprovedBy')">
                 <span class="cashier-name">{{ refItem.approver_name }}</span>
               </td>
-              <td>
+              <td :data-label="$t('orders.colRefundedAt')">
                 <span class="datetime-text tabular">{{ formatDateTime(refItem.refunded_at) }}</span>
               </td>
-              <td class="text-end" @click.stop>
+              <td class="text-end mobile-card-actions" @click.stop>
                 <button
                   type="button"
                   class="btn-action-icon"
@@ -1653,5 +1657,33 @@ onMounted(async () => {
 
 .masked-secret-input::placeholder {
   -webkit-text-security: none;
+}
+
+@media (max-width: 767.98px) {
+  .orders-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .status-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .status-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .status-pill {
+    flex-shrink: 0;
+    border-radius: 999px;
+    padding: 0.38rem 0.85rem;
+  }
 }
 </style>

@@ -362,4 +362,22 @@ const handleResend = async () => {
   cursor: not-allowed;
   text-decoration: none !important;
 }
+
+@media (max-width: 575.98px) {
+  .verify-wrapper {
+    padding-top: calc(1rem + var(--safe-top, 0px)) !important;
+    padding-bottom: calc(1rem + var(--safe-bottom, 0px)) !important;
+    background: linear-gradient(180deg, #eaf4ee 0%, #f8faf8 42%);
+  }
+
+  .verify-card {
+    border-radius: 22px;
+    box-shadow: 0 12px 34px rgba(20, 35, 26, 0.08);
+  }
+
+  .otp-box {
+    height: 48px;
+    border-radius: 12px;
+  }
+}
 </style>

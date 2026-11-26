@@ -623,7 +623,7 @@ const clearFilters = () => {
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table align-middle mb-0 clean-table">
+        <table class="table align-middle mb-0 clean-table mobile-card-table">
           <thead>
             <tr>
               <th>{{ $t('products.colProduct') }}</th>
@@ -666,17 +666,17 @@ const clearFilters = () => {
                 </div>
               </td>
 
-              <td>
+              <td :data-label="$t('products.colCategory')">
                 <span class="cat-text">{{ $tCategory(prod.category_name) }}</span>
               </td>
 
-              <td>
+              <td :data-label="$t('products.colType')">
                 <span class="type-text" :class="`type-text--${prod.product_type.toLowerCase()}`">
                   {{ getProductTypeLabel(prod.product_type) }}
                 </span>
               </td>
 
-              <td>
+              <td :data-label="$t('products.colVariantsPrice')">
                 <div v-if="prod.variants && prod.variants.length > 0" class="variant-dropdown-wrap">
                   <select
                     class="form-select form-select-sm variant-select tabular"
@@ -694,7 +694,7 @@ const clearFilters = () => {
                 <span v-else class="text-muted small">—</span>
               </td>
 
-              <td>
+              <td :data-label="$t('common.status')">
                 <span
                   class="status-text"
                   :class="prod.is_active ? 'active' : 'inactive'"
@@ -703,7 +703,7 @@ const clearFilters = () => {
                 </span>
               </td>
 
-              <td v-if="isOwner" class="text-end">
+              <td v-if="isOwner" class="text-end mobile-card-actions">
                 <div class="action-group">
                   <button
                     type="button"
@@ -786,7 +786,7 @@ const clearFilters = () => {
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table align-middle mb-0 clean-table">
+        <table class="table align-middle mb-0 clean-table mobile-card-table">
           <thead>
             <tr>
               <th style="width: 100px">{{ $t('products.colOrder') }}</th>
@@ -799,17 +799,18 @@ const clearFilters = () => {
           <tbody>
             <tr v-for="cat in categories" :key="cat.id">
               <td>
+                <span class="product-cell__name d-md-none">{{ $tCategory(cat.name) }}</span>
                 <span class="order-text tabular">#{{ cat.sort_order }}</span>
               </td>
-              <td>
+              <td class="d-none d-md-table-cell">
                 <span class="product-cell__name">{{ $tCategory(cat.name) }}</span>
               </td>
-              <td>
+              <td :data-label="$t('products.colProducts')">
                 <span class="items-text tabular">
                   {{ $t('orders.itemsCount', { count: cat.total_products }) }}
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('common.status')">
                 <span
                   class="status-text"
                   :class="cat.is_active ? 'active' : 'inactive'"
@@ -817,7 +818,7 @@ const clearFilters = () => {
                   {{ cat.is_active ? $t('common.active') : $t('common.inactive') }}
                 </span>
               </td>
-              <td v-if="isOwner" class="text-end">
+              <td v-if="isOwner" class="text-end mobile-card-actions">
                 <div class="action-group">
                   <button
                     type="button"
@@ -1342,5 +1343,39 @@ const clearFilters = () => {
 .custom-check:checked {
   background-color: #2d5a43;
   border-color: #2d5a43;
+}
+
+@media (min-width: 768px) {
+  /* Keep desktop Categories col #1 showing only sort_order */
+  .clean-table tbody td:first-child > .product-cell__name + .order-text {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .products-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .products-top-bar__right,
+  .products-top-bar__right .btn-primary-action {
+    width: 100%;
+    justify-content: center;
+    height: 42px;
+    border-radius: 11px;
+  }
+
+  .variant-dropdown-wrap {
+    min-width: 0;
+    max-width: 205px;
+    width: 100%;
+  }
+
+  .variant-select {
+    height: 38px;
+  }
 }
 </style>

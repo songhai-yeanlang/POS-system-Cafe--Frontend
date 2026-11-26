@@ -129,7 +129,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="table clean-table mobile-card-table align-middle mb-0">
           <thead>
             <tr>
               <th>{{ $t('inventory.colIngredient') }}</th>
@@ -146,7 +146,7 @@
               <td>
                 <span class="ing-name-text">{{ ing.name }}</span>
               </td>
-              <td>
+              <td :data-label="$t('inventory.colCurrentStock')">
                 <div class="stock-qty-cell tabular">
                   <strong
                     class="stock-qty-val"
@@ -163,13 +163,13 @@
                   <span class="unit-tag">{{ ing.unit }}</span>
                 </div>
               </td>
-              <td>
+              <td :data-label="$t('inventory.colMinAlert')">
                 <div class="stock-qty-cell tabular">
                   <span class="min-stock-val">{{ formatStockQty(ing.minimum_stock) }}</span>
                   <span class="unit-tag">{{ ing.unit }}</span>
                 </div>
               </td>
-              <td>
+              <td :data-label="$t('inventory.colStockHealth')">
                 <span
                   class="stock-text"
                   :class="
@@ -189,12 +189,12 @@
                   }}
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('inventory.colRecipes')">
                 <span class="recipes-text tabular">
                   {{ ing.total_recipes || 0 }}
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('common.status')">
                 <span
                   class="status-text"
                   :class="ing.is_active ? 'active' : 'inactive'"
@@ -202,7 +202,7 @@
                   {{ ing.is_active ? $t('common.active') : $t('common.inactive') }}
                 </span>
               </td>
-              <td class="text-end">
+              <td class="text-end mobile-card-actions">
                 <div class="action-group">
                   <button
                     type="button"
@@ -347,7 +347,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="table clean-table mobile-card-table align-middle mb-0">
           <thead>
             <tr>
               <th>{{ $t('orders.colDateTime') }}</th>
@@ -362,15 +362,16 @@
           <tbody>
             <tr v-for="mov in movementsList" :key="mov.id">
               <td>
+                <span class="ing-name-text d-md-none">{{ mov.ingredient_name }}</span>
                 <div class="date-cell tabular">
                   <span class="date-cell__time">{{ formatDateTime(mov.created_at) }}</span>
                   <span class="date-cell__id">#{{ mov.id }}</span>
                 </div>
               </td>
-              <td>
+              <td class="d-none d-md-table-cell">
                 <span class="ing-name-text">{{ mov.ingredient_name }}</span>
               </td>
-              <td>
+              <td :data-label="$t('inventory.colMovementType')">
                 <span class="mov-badge" :class="mov.movement_type.toLowerCase()">
                   <i
                     class="bi"
@@ -389,7 +390,7 @@
                   <span>{{ getMovementTypeLabel(mov.movement_type) }}</span>
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('inventory.colQuantityChange')">
                 <span
                   class="qty-change-pill tabular"
                   :class="Number(mov.quantity_change) >= 0 ? 'is-plus' : 'is-minus'"
@@ -398,26 +399,28 @@
                   {{ mov.ingredient_unit }}
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('inventory.colUnitCostTotal')">
                 <div v-if="mov.unit_cost !== null && mov.unit_cost !== undefined" class="cost-cell tabular">
                   <strong class="cost-cell__total">{{ formatUsd(mov.total_cost) }}</strong>
                   <span class="cost-cell__unit">{{ formatUsd(mov.unit_cost) }} / {{ mov.ingredient_unit }}</span>
                 </div>
                 <span v-else class="small text-muted">—</span>
               </td>
-              <td>
-                <div v-if="mov.order_receipt_no" class="mb-1">
-                  <span class="order-ref-badge tabular">
-                    <i class="bi bi-receipt"></i>
-                    <span>{{ mov.order_receipt_no }}</span>
-                  </span>
+              <td :data-label="$t('inventory.colReasonOrder')">
+                <div>
+                  <div v-if="mov.order_receipt_no" class="mb-1">
+                    <span class="order-ref-badge tabular">
+                      <i class="bi bi-receipt"></i>
+                      <span>{{ mov.order_receipt_no }}</span>
+                    </span>
+                  </div>
+                  <div v-if="mov.reason" class="reason-text">
+                    {{ mov.reason }}
+                  </div>
+                  <span v-if="!mov.order_receipt_no && !mov.reason" class="small text-muted">—</span>
                 </div>
-                <div v-if="mov.reason" class="reason-text">
-                  {{ mov.reason }}
-                </div>
-                <span v-if="!mov.order_receipt_no && !mov.reason" class="small text-muted">—</span>
               </td>
-              <td>
+              <td :data-label="$t('inventory.colRecordedBy')">
                 <span class="recorder-name">{{ mov.created_by_name || $t('common.system') }}</span>
               </td>
             </tr>
@@ -1315,5 +1318,28 @@ onMounted(async () => {
   background: var(--botanical-primary);
   border-color: var(--botanical-primary);
   color: #ffffff;
+}
+
+@media (max-width: 767.98px) {
+  .inventory-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .inventory-top-bar__right {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .inventory-top-bar__right > button {
+    width: 100%;
+    justify-content: center;
+    height: 42px;
+    border-radius: 11px;
+  }
 }
 </style>

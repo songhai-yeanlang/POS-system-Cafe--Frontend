@@ -1363,7 +1363,7 @@ const handleLogoutAllDevices = async () => {
    ========================================================================== */
 @media (max-width: 991.98px) {
   .profile-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
 
@@ -1373,22 +1373,47 @@ const handleLogoutAllDevices = async () => {
 }
 
 @media (max-width: 639.98px) {
+  .staff-dossier,
+  .profile-ledger {
+    border-radius: 16px;
+  }
+
   .ledger-band,
   .ledger-band--sessions {
-    padding: 1.15rem 1.1rem;
+    padding: 1.05rem 1rem;
   }
 
   .field-grid {
     grid-template-columns: 1fr;
   }
 
+  .band-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .band-footer > button {
+    width: 100%;
+    height: 42px;
+    border-radius: 10px;
+  }
+
   .footer-btn-group {
     width: 100%;
-    justify-content: flex-end;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .footer-btn-group > button {
+    flex: 1;
+    height: 42px;
+    border-radius: 10px;
   }
 
   .btn-ledger-danger {
     width: 100%;
+    height: 42px;
+    border-radius: 10px;
   }
 }
 

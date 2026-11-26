@@ -20,6 +20,7 @@ const logs = ref([])
 const usersList = ref([])
 const isLoading = ref(false)
 const searchQuery = ref('')
+const showMobileFilters = ref(false)
 
 const pagination = reactive({
   page: 1,
@@ -571,7 +572,7 @@ onMounted(async () => {
     <div class="clean-card">
       <!-- Clean Filter Toolbar -->
       <div class="filter-bar">
-        <div class="filter-bar__controls">
+        <div class="filter-bar__controls" :class="{ 'is-mobile-expanded': showMobileFilters }">
           <div class="search-wrap">
             <i class="bi bi-search search-icon"></i>
             <input
@@ -592,7 +593,7 @@ onMounted(async () => {
 
           <select
             v-model="filters.table_name"
-            class="filter-input filter-select"
+            class="filter-input filter-select audit-extra-filter"
             @change="fetchAuditLogs(1)"
           >
             <option value="">{{ $t('auditLogs.allModules') }}</option>
@@ -603,7 +604,7 @@ onMounted(async () => {
 
           <select
             v-model="filters.action"
-            class="filter-input filter-select filter-select--wide"
+            class="filter-input filter-select filter-select--wide audit-extra-filter"
             @change="fetchAuditLogs(1)"
           >
             <option value="">{{ $t('auditLogs.allActions') }}</option>
@@ -620,7 +621,7 @@ onMounted(async () => {
 
           <select
             v-model="filters.user_id"
-            class="filter-input filter-select"
+            class="filter-input filter-select audit-extra-filter"
             @change="fetchAuditLogs(1)"
           >
             <option value="">{{ $t('auditLogs.allUsers') }}</option>
@@ -629,7 +630,7 @@ onMounted(async () => {
             </option>
           </select>
 
-          <div class="date-range-group">
+          <div class="date-range-group audit-extra-filter">
             <input
               v-model="filters.start_date"
               type="date"
@@ -649,6 +650,18 @@ onMounted(async () => {
         </div>
 
         <div class="filter-bar__actions">
+          <button
+            type="button"
+            class="toolbar-btn d-md-none"
+            :class="{ 'is-filter-open': showMobileFilters || activeFilterCount > 0 }"
+            @click="showMobileFilters = !showMobileFilters"
+          >
+            <i class="bi bi-sliders"></i>
+            <span>{{ $t('nav.filters') }}</span>
+            <span v-if="activeFilterCount > 0" class="badge rounded-pill bg-success ms-1">
+              {{ activeFilterCount }}
+            </span>
+          </button>
           <button
             v-if="activeFilterCount > 0"
             type="button"
@@ -708,7 +721,7 @@ onMounted(async () => {
 
       <!-- Clean 6-Column Ledger Table -->
       <div v-else class="table-responsive">
-        <table class="table align-middle mb-0 clean-table">
+        <table class="table align-middle mb-0 clean-table mobile-card-table">
           <thead>
             <tr>
               <th>{{ $t('auditLogs.colTime') }}</th>
@@ -727,12 +740,15 @@ onMounted(async () => {
               @click="openDetailModal(log)"
             >
               <td>
+                <span class="action-text d-md-none" :class="getActionToneClass(log.action)">
+                  {{ getActionLabel(log.action) }}
+                </span>
                 <span class="datetime-text tabular">
                   {{ formatDateTime(log.created_at) }}
                 </span>
               </td>
 
-              <td>
+              <td :data-label="$t('auditLogs.colUser')">
                 <div class="actor-cell">
                   <span class="actor-name">
                     {{ log.user_name || $t('common.system') }}
@@ -743,26 +759,26 @@ onMounted(async () => {
                 </div>
               </td>
 
-              <td>
+              <td class="d-none d-md-table-cell">
                 <span class="action-text" :class="getActionToneClass(log.action)">
                   {{ getActionLabel(log.action) }}
                 </span>
               </td>
 
-              <td>
+              <td :data-label="$t('auditLogs.colModule')">
                 <div class="module-cell">
                   <span class="module-name">{{ getModuleLabel(log.table_name) }}</span>
                   <span v-if="log.record_id" class="module-id tabular">#{{ log.record_id }}</span>
                 </div>
               </td>
 
-              <td>
+              <td :data-label="$t('auditLogs.colSummary')">
                 <div class="summary-text" :title="formatReadableSummary(log)">
                   {{ formatReadableSummary(log) }}
                 </div>
               </td>
 
-              <td class="text-end" @click.stop>
+              <td class="text-end mobile-card-actions" @click.stop>
                 <div class="action-group">
                   <button
                     type="button"
@@ -1404,18 +1420,33 @@ onMounted(async () => {
   border-color: #b91c1c;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .filter-bar {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .filter-bar__actions {
-    justify-content: flex-end;
+  .filter-bar__controls:not(.is-mobile-expanded) .audit-extra-filter {
+    display: none !important;
   }
 
-  .filter-bar__controls .search-wrap {
-    max-width: none;
+  .filter-select,
+  .filter-select--wide {
+    max-width: none !important;
+  }
+
+  .filter-bar__actions {
+    justify-content: space-between;
+  }
+
+  .toolbar-btn.is-filter-open {
+    background: #eaf5ee;
+    border-color: #2d5a43;
+    color: #1e3f2f;
+  }
+
+  .summary-text {
+    max-width: 200px;
   }
 }
 </style>

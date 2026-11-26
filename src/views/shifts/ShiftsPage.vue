@@ -515,7 +515,7 @@ const openShiftDetails = async (shiftId) => {
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table align-middle mb-0 clean-table">
+        <table class="table align-middle mb-0 clean-table mobile-card-table">
           <thead>
             <tr>
               <th>{{ $t('shifts.colShift') }}</th>
@@ -535,17 +535,17 @@ const openShiftDetails = async (shiftId) => {
               @click="openShiftDetails(s.id)"
             >
               <td>
-                <span class="shift-id-text tabular">#{{ s.id }}</span>
+                <span class="shift-id-text tabular">{{ $t('shifts.colShift') }} #{{ s.id }}</span>
               </td>
 
-              <td>
+              <td :data-label="$t('shifts.colCashier')">
                 <div class="cashier-cell">
                   <span class="cashier-cell__name">{{ s.user_name }}</span>
                   <span class="cashier-cell__role">{{ getRoleLabel(s.user_role) }}</span>
                 </div>
               </td>
 
-              <td>
+              <td :data-label="$t('shifts.colOpenedClosed')">
                 <div class="time-cell tabular">
                   <div class="time-cell__open">{{ formatDateTime(s.opened_at) }}</div>
                   <div class="time-cell__close">
@@ -554,14 +554,14 @@ const openShiftDetails = async (shiftId) => {
                 </div>
               </td>
 
-              <td>
+              <td :data-label="$t('shifts.colOpeningCash')">
                 <div class="amount-cell tabular">
                   <strong class="amount-cell__usd">{{ formatUsd(s.opening_cash_usd) }}</strong>
                   <span class="amount-cell__khr">{{ formatKhr(s.opening_cash_khr) }}</span>
                 </div>
               </td>
 
-              <td>
+              <td :data-label="$t('shifts.colClosingExpected')">
                 <div v-if="s.status === 'CLOSED'" class="amount-cell tabular">
                   <div>
                     <strong class="amount-cell__usd">{{ formatUsd(s.closing_cash_usd) }}</strong>
@@ -574,7 +574,7 @@ const openShiftDetails = async (shiftId) => {
                 <span v-else class="text-muted small">—</span>
               </td>
 
-              <td>
+              <td :data-label="$t('common.status')">
                 <span
                   class="status-text"
                   :class="s.status === 'OPEN' ? 'open' : 'closed'"
@@ -583,7 +583,7 @@ const openShiftDetails = async (shiftId) => {
                 </span>
               </td>
 
-              <td class="text-end" @click.stop>
+              <td class="text-end mobile-card-actions" @click.stop>
                 <div class="action-group">
                   <button
                     type="button"
@@ -945,13 +945,32 @@ const openShiftDetails = async (shiftId) => {
 
 @media (max-width: 991.98px) {
   .drawer-metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
   }
 }
 
-@media (max-width: 575.98px) {
-  .drawer-metrics-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 767.98px) {
+  .drawer-card__actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    gap: 0.45rem;
+  }
+
+  .drawer-card__actions .toolbar-btn {
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .metric-box {
+    padding: 0.8rem 0.85rem;
+    border-radius: 14px;
+    border-width: 1px;
+  }
+
+  .metric-box__usd {
+    font-size: 1.12rem;
   }
 }
 

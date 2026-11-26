@@ -78,9 +78,14 @@ const handleLogin = async () => {
     <div class="login-card row g-0 rounded-4 overflow-hidden bg-white">
       <div class="col-12 col-md-12 form-side d-flex flex-column justify-content-center p-4 p-md-5">
         <div class="d-flex align-items-start justify-content-between mb-4">
-          <div>
-            <h3 class="fw-semibold text-dark mb-1">{{ t('auth.welcomeBack') }}</h3>
-            <p class="text-secondary small mb-0">{{ t('auth.signInSubtitle') }}</p>
+          <div class="d-flex align-items-center gap-3">
+            <div class="mobile-auth-emblem d-flex align-items-center justify-content-center flex-shrink-0">
+              <i class="bi bi-cup-hot-fill"></i>
+            </div>
+            <div>
+              <h3 class="fw-semibold text-dark mb-1">{{ t('auth.welcomeBack') }}</h3>
+              <p class="text-secondary small mb-0">{{ t('auth.signInSubtitle') }}</p>
+            </div>
           </div>
           <LanguageSwitcher />
         </div>
@@ -222,5 +227,28 @@ const handleLogin = async () => {
   font-size: 11px;
   letter-spacing: 0.04em;
   color: var(--on-surface-variant, #504440);
+}
+
+.mobile-auth-emblem {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #35694e 0%, #1e3f2f 100%);
+  color: #ffffff;
+  font-size: 1.3rem;
+  box-shadow: 0 6px 16px rgba(30, 63, 47, 0.2);
+}
+
+@media (max-width: 575.98px) {
+  .login-wrapper {
+    padding-top: calc(1rem + var(--safe-top, 0px)) !important;
+    padding-bottom: calc(1rem + var(--safe-bottom, 0px)) !important;
+    background: linear-gradient(180deg, #eaf4ee 0%, #f8faf8 42%);
+  }
+
+  .login-card {
+    border-radius: 22px !important;
+    box-shadow: 0 12px 34px rgba(20, 35, 26, 0.08);
+  }
 }
 </style>
