@@ -1104,14 +1104,21 @@ const openShiftDetails = async (shiftId) => {
             </div>
           </div>
 
-          <div class="modal-footer-custom justify-content-end">
-            <button type="button" class="toolbar-btn" @click="detailModal.show = false">
+          <div
+            class="modal-footer-custom justify-content-end"
+            :class="{ 'd-none d-md-flex': detailModal.data?.status !== 'OPEN' }"
+          >
+            <button
+              type="button"
+              class="toolbar-btn d-none d-md-inline-flex"
+              @click="detailModal.show = false"
+            >
               {{ $t('common.close') }}
             </button>
             <button
               v-if="detailModal.data?.status === 'OPEN'"
               type="button"
-              class="toolbar-btn toolbar-btn--danger"
+              class="toolbar-btn toolbar-btn--danger flex-grow-1 flex-md-grow-0"
               @click="detailModal.show = false; openCloseShiftModal(detailModal.data)"
             >
               <i class="bi bi-lock"></i>

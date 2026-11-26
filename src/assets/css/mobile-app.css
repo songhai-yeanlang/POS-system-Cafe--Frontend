@@ -483,6 +483,18 @@
     padding-bottom: calc(1.1rem + var(--safe-bottom)) !important;
   }
 
+  .btn-close-custom,
+  .btn-close-quiet {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    background: #f1f5f2 !important;
+    color: #495d51 !important;
+    font-size: 0.76rem !important;
+    flex-shrink: 0;
+  }
+
   .modal-footer-custom,
   .pos-dialog__foot,
   .modal-actions {

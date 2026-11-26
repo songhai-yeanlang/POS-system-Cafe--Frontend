@@ -924,17 +924,21 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="modal-actions">
+          <div class="modal-actions" :class="{ 'd-none d-md-flex': !isOwner }">
             <button
               v-if="isOwner"
               type="button"
-              class="btn-modal-danger"
+              class="btn-modal-danger flex-grow-1 flex-md-grow-0 justify-content-center"
               @click="openDeleteSingleModal(selectedLog)"
             >
               <i class="bi bi-trash3"></i>
               <span>{{ $t('common.delete') }}</span>
             </button>
-            <button type="button" class="btn-modal-close" @click="closeDetailModal">
+            <button
+              type="button"
+              class="btn-modal-close d-none d-md-inline-flex"
+              @click="closeDetailModal"
+            >
               {{ $t('auditLogs.closeInspector') }}
             </button>
           </div>
