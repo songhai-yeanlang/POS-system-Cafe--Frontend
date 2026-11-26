@@ -348,47 +348,71 @@
           <p class="empty-text">{{ $t('dashboard.noProductSales') }}</p>
         </div>
 
-        <div v-else class="table-responsive">
-          <table class="clean-table mobile-card-table">
-            <thead>
-              <tr>
-                <th class="col-rank">#</th>
-                <th>{{ $t('dashboard.colProduct') }}</th>
-                <th>{{ $t('dashboard.colCategory') }}</th>
-                <th class="text-end">{{ $t('dashboard.colSold') }}</th>
-                <th class="text-end col-rev">{{ $t('dashboard.colRevenue') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in topProducts" :key="item.variant_id">
-                <td class="col-rank">
-                  <div class="d-md-none">
-                    <div class="product-name">#{{ item.rank }} · {{ item.product_name }}</div>
+        <div v-else>
+          <!-- Clean Native Mobile Leaderboard List (< 768px) -->
+          <div class="m-dash-list d-md-none">
+            <div v-for="item in topProducts" :key="`m-top-${item.variant_id}`" class="m-dash-row">
+              <span class="m-dash-rank tabular" :class="{ 'is-top': item.rank === 1 }">
+                {{ item.rank }}
+              </span>
+
+              <div class="m-dash-row__main min-w-0">
+                <div class="m-dash-row__title text-truncate">{{ item.product_name }}</div>
+                <div class="m-dash-row__sub text-truncate">
+                  <span>{{ item.variant_name }}</span>
+                  <span class="m-dash-sep">·</span>
+                  <span>{{ $tCategory(item.category_name) }}</span>
+                </div>
+              </div>
+
+              <div class="m-dash-row__right tabular">
+                <div class="m-dash-row__primary">{{ formatUsd(item.total_revenue_usd) }}</div>
+                <div class="m-dash-row__meta">
+                  {{ $t('dashboard.colSold') }} {{ item.total_quantity_sold }} · {{ getProductShare(item) }}%
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop Table (>= 768px) -->
+          <div class="table-responsive d-none d-md-block">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th class="col-rank">#</th>
+                  <th>{{ $t('dashboard.colProduct') }}</th>
+                  <th>{{ $t('dashboard.colCategory') }}</th>
+                  <th class="text-end">{{ $t('dashboard.colSold') }}</th>
+                  <th class="text-end col-rev">{{ $t('dashboard.colRevenue') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in topProducts" :key="item.variant_id">
+                  <td class="col-rank">
+                    <span class="rank-text tabular" :class="{ 'is-top': item.rank === 1 }">
+                      #{{ item.rank }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="product-name">{{ item.product_name }}</div>
                     <div class="product-variant">{{ item.variant_name }}</div>
-                  </div>
-                  <span class="rank-text tabular d-none d-md-inline" :class="{ 'is-top': item.rank === 1 }">
-                    #{{ item.rank }}
-                  </span>
-                </td>
-                <td class="d-none d-md-table-cell">
-                  <div class="product-name">{{ item.product_name }}</div>
-                  <div class="product-variant">{{ item.variant_name }}</div>
-                </td>
-                <td :data-label="$t('dashboard.colCategory')">
-                  <span class="category-text">{{ $tCategory(item.category_name) }}</span>
-                </td>
-                <td :data-label="$t('dashboard.colSold')" class="text-end">
-                  <span class="sold-qty tabular">{{ item.total_quantity_sold }}</span>
-                </td>
-                <td :data-label="$t('dashboard.colRevenue')" class="text-end col-rev">
-                  <div>
-                    <div class="rev-usd tabular">{{ formatUsd(item.total_revenue_usd) }}</div>
-                    <div class="rev-share tabular">{{ getProductShare(item) }}%</div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </td>
+                  <td>
+                    <span class="category-text">{{ $tCategory(item.category_name) }}</span>
+                  </td>
+                  <td class="text-end">
+                    <span class="sold-qty tabular">{{ item.total_quantity_sold }}</span>
+                  </td>
+                  <td class="text-end col-rev">
+                    <div>
+                      <div class="rev-usd tabular">{{ formatUsd(item.total_revenue_usd) }}</div>
+                      <div class="rev-share tabular">{{ getProductShare(item) }}%</div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -415,36 +439,60 @@
           <p class="empty-text">{{ $t('dashboard.allWellStockedDesc') }}</p>
         </div>
 
-        <div v-else class="table-responsive">
-          <table class="clean-table mobile-card-table">
-            <thead>
-              <tr>
-                <th>{{ $t('inventory.colIngredient') }}</th>
-                <th class="text-end">{{ $t('inventory.colMinAlert') }}</th>
-                <th class="text-end">{{ $t('inventory.colCurrentStock') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="ing in lowStockItems.slice(0, 6)" :key="ing.id">
-                <td>
-                  <span class="ing-name">{{ ing.name }}</span>
-                </td>
-                <td :data-label="$t('inventory.colMinAlert')" class="text-end">
-                  <span class="ing-min tabular">
-                    {{ formatQty(ing.minimum_stock) }} {{ ing.unit }}
-                  </span>
-                </td>
-                <td :data-label="$t('inventory.colCurrentStock')" class="text-end">
-                  <span
-                    class="ing-stock tabular"
-                    :class="Number(ing.current_stock) <= 0 ? 'text-crimson' : 'text-amber'"
-                  >
-                    {{ formatQty(ing.current_stock) }} {{ ing.unit }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-else>
+          <!-- Clean Native Mobile Low-Stock List (< 768px) -->
+          <div class="m-dash-list d-md-none">
+            <div v-for="ing in lowStockItems.slice(0, 6)" :key="`m-ing-${ing.id}`" class="m-dash-row">
+              <div class="m-dash-row__main min-w-0">
+                <div class="m-dash-row__title text-truncate">{{ ing.name }}</div>
+                <div class="m-dash-row__sub tabular">
+                  {{ $t('dashboard.minRequired', { qty: formatQty(ing.minimum_stock), unit: ing.unit }) }}
+                </div>
+              </div>
+
+              <div class="m-dash-row__right tabular">
+                <div
+                  class="m-dash-row__primary"
+                  :class="Number(ing.current_stock) <= 0 ? 'text-crimson' : 'text-amber'"
+                >
+                  {{ formatQty(ing.current_stock) }} {{ ing.unit }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop Table (>= 768px) -->
+          <div class="table-responsive d-none d-md-block">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>{{ $t('inventory.colIngredient') }}</th>
+                  <th class="text-end">{{ $t('inventory.colMinAlert') }}</th>
+                  <th class="text-end">{{ $t('inventory.colCurrentStock') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="ing in lowStockItems.slice(0, 6)" :key="ing.id">
+                  <td>
+                    <span class="ing-name">{{ ing.name }}</span>
+                  </td>
+                  <td class="text-end">
+                    <span class="ing-min tabular">
+                      {{ formatQty(ing.minimum_stock) }} {{ ing.unit }}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <span
+                      class="ing-stock tabular"
+                      :class="Number(ing.current_stock) <= 0 ? 'text-crimson' : 'text-amber'"
+                    >
+                      {{ formatQty(ing.current_stock) }} {{ ing.unit }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </div>
@@ -1323,16 +1371,10 @@ onMounted(() => {
 
   .kpi-col {
     background: #ffffff;
-    border: 1px solid #e3ece6 !important;
-    border-radius: 16px;
+    border: 1px solid #e3ebe6 !important;
+    border-radius: 14px;
     padding: 0.85rem;
-    box-shadow: 0 1px 3px rgba(20, 35, 26, 0.04);
-  }
-
-  /* Focal Point: Net Operating Profit Card */
-  .kpi-col:nth-child(3) {
-    background: #f1f8f4;
-    border-color: #c5ded0 !important;
+    box-shadow: 0 1px 2px rgba(16, 28, 21, 0.03);
   }
 
   .kpi-col__main {
@@ -1353,17 +1395,98 @@ onMounted(() => {
     font-size: 0.7rem;
   }
 
+  .panel-card {
+    border-radius: 14px !important;
+    border-color: #e3ebe6 !important;
+    box-shadow: 0 1px 2px rgba(16, 28, 21, 0.03) !important;
+  }
+
   .panel-header {
-    padding: 0.75rem 0.9rem;
+    padding: 0.78rem 0.95rem;
+    background: #ffffff;
+    border-bottom: 1px solid #eef3f0;
   }
 
   .panel-body {
-    padding: 0.85rem 0.9rem;
+    padding: 0.85rem 0.95rem;
   }
 
   .trend-readout-strip {
-    padding: 0.5rem 0.9rem;
+    padding: 0.5rem 0.95rem;
     flex-wrap: wrap;
+  }
+
+  /* Clean Native Inset Rows for Top Products & Low Stock */
+  .m-dash-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .m-dash-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    padding: 0.72rem 0.95rem;
+  }
+
+  .m-dash-row + .m-dash-row {
+    border-top: 1px solid #eef3f0;
+  }
+
+  .m-dash-rank {
+    width: 18px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #7d8f84;
+    flex-shrink: 0;
+  }
+
+  .m-dash-rank.is-top {
+    color: #1f4d36;
+    font-weight: 800;
+  }
+
+  .m-dash-row__main {
+    flex: 1;
+  }
+
+  .m-dash-row__title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #14211b;
+    line-height: 1.28;
+  }
+
+  .m-dash-row__sub {
+    margin-top: 2px;
+    font-size: 0.73rem;
+    font-weight: 400;
+    color: #728479;
+  }
+
+  .m-dash-sep {
+    margin: 0 0.28rem;
+    color: #b4c2ba;
+  }
+
+  .m-dash-row__right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .m-dash-row__primary {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #14211b;
+    line-height: 1.25;
+  }
+
+  .m-dash-row__meta {
+    margin-top: 2px;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: #728479;
   }
 }
 

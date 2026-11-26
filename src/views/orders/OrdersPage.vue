@@ -52,9 +52,88 @@
     </div>
 
     <!-- ================= TAB 1: ORDERS ================= -->
-    <div v-if="activeTab === 'ORDERS'" class="clean-card">
-      <!-- Single-Row Search & Filter Toolbar -->
-      <div class="filter-bar">
+    <div v-if="activeTab === 'ORDERS'" class="clean-card orders-surface">
+      <!-- Compact Mobile Search + Filter Sheet Trigger (< 768px) -->
+      <div class="m-search-strip d-md-none">
+        <div class="m-search-row">
+          <div class="search-wrap flex-grow-1">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              v-model="orderFilters.search"
+              type="text"
+              class="filter-input search-input"
+              :placeholder="$t('orders.searchOrdersPlaceholder')"
+              @keyup.enter="fetchOrders(1)"
+            />
+            <button
+              v-if="orderFilters.search"
+              type="button"
+              class="search-clear"
+              @click="orderFilters.search = ''; fetchOrders(1)"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="m-icon-btn"
+            :class="{ 'is-active': activeOrderFilterCount > 0 }"
+            :aria-label="$t('nav.filters')"
+            @click="showMobileFilterSheet = true"
+          >
+            <i class="bi bi-sliders"></i>
+            <span v-if="activeOrderFilterCount > 0" class="m-filter-dot tabular">
+              {{ activeOrderFilterCount }}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="m-icon-btn"
+            :title="$t('common.refresh')"
+            @click="fetchOrders(orderPagination.page)"
+          >
+            <i class="bi bi-arrow-clockwise" :class="{ 'spin-anim': isLoadingOrders }"></i>
+          </button>
+        </div>
+
+        <!-- Active Filter Chips (only shown when extra filters are applied) -->
+        <div v-if="activeOrderFilterCount > 0" class="m-active-chips">
+          <button
+            v-if="orderFilters.currentShiftOnly"
+            type="button"
+            class="m-active-chip"
+            @click="toggleCurrentShiftFilter"
+          >
+            <span>{{ $t('orders.currentShift') }}</span>
+            <i class="bi bi-x"></i>
+          </button>
+          <button
+            v-if="orderFilters.order_type"
+            type="button"
+            class="m-active-chip"
+            @click="orderFilters.order_type = ''; fetchOrders(1)"
+          >
+            <span>
+              {{ orderFilters.order_type === 'DINE_IN' ? $t('common.dineIn') : $t('common.takeaway') }}
+            </span>
+            <i class="bi bi-x"></i>
+          </button>
+          <button
+            v-if="orderFilters.start_date || orderFilters.end_date"
+            type="button"
+            class="m-active-chip tabular"
+            @click="orderFilters.start_date = ''; orderFilters.end_date = ''; fetchOrders(1)"
+          >
+            <span>{{ orderFilters.start_date || '…' }} → {{ orderFilters.end_date || '…' }}</span>
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Desktop Single-Row Search & Filter Toolbar (>= 768px) -->
+      <div class="filter-bar d-none d-md-flex">
         <div class="filter-bar__left">
           <div class="search-wrap">
             <i class="bi bi-search search-icon"></i>
@@ -140,8 +219,104 @@
         <div class="empty-box__desc">{{ $t('orders.noOrdersFoundDesc') }}</div>
       </div>
 
-      <div v-else class="table-responsive">
-        <table class="table clean-table mobile-card-table align-middle mb-0">
+      <div v-else>
+        <!-- Bespoke Mobile Docket Feed (< 768px) -->
+        <div class="m-docket-feed d-md-none">
+          <article
+            v-for="ord in ordersList"
+            :key="`m-ord-${ord.id}`"
+            class="m-docket-card"
+            :class="`is-${ord.status.toLowerCase()}`"
+            @click="openOrderDetails(ord.id)"
+          >
+            <div class="m-docket-card__top">
+              <div class="m-docket-card__identity">
+                <span class="m-queue-badge tabular" :class="`is-${ord.status.toLowerCase()}`">
+                  #{{ ord.queue_no }}
+                </span>
+                <div class="min-w-0">
+                  <div class="m-docket-card__receipt tabular text-truncate">{{ ord.receipt_no }}</div>
+                  <div class="m-docket-card__time tabular">
+                    {{ formatDateTime(ord.created_at) }}
+                    <template v-if="ord.cashier?.name"> · {{ ord.cashier.name }}</template>
+                  </div>
+                </div>
+              </div>
+
+              <div class="m-docket-card__amounts tabular">
+                <div class="m-docket-card__usd">{{ formatUsd(ord.total) }}</div>
+                <div class="m-docket-card__khr">
+                  {{ formatKhr(usdToKhr(ord.total, ord.exchange_rate)) }}
+                </div>
+              </div>
+            </div>
+
+            <div class="m-docket-card__bottom">
+              <div class="m-docket-card__meta">
+                <span class="m-status-chip" :class="`is-${ord.status.toLowerCase()}`">
+                  <span class="m-status-chip__dot"></span>
+                  <span>{{ getOrderStatusLabel(ord.status) }}</span>
+                </span>
+
+                <span class="m-service-meta">
+                  <i :class="ord.order_type === 'DINE_IN' ? 'bi bi-shop' : 'bi bi-bag'"></i>
+                  <span>
+                    {{ ord.order_type === 'DINE_IN' ? $t('common.dineIn') : $t('common.takeaway') }}
+                    <template v-if="ord.table_no"> #{{ ord.table_no }}</template>
+                  </span>
+                </span>
+
+                <span class="m-meta-sep">·</span>
+                <span class="m-items-meta tabular">
+                  {{ $t('orders.itemsCount', { count: ord.total_items }) }}
+                </span>
+              </div>
+
+              <div class="m-docket-card__actions" @click.stop>
+                <template v-if="ord.status === 'OPEN'">
+                  <button
+                    type="button"
+                    class="m-pill-btn is-pos"
+                    @click="resumeInPos(ord.id)"
+                  >
+                    <i class="bi bi-calculator"></i>
+                    <span>POS</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="m-sq-btn is-danger"
+                    :title="$t('common.cancel')"
+                    @click="openCancelModal(ord)"
+                  >
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </template>
+
+                <template v-else-if="ord.status === 'PAID'">
+                  <button
+                    type="button"
+                    class="m-sq-btn is-refund"
+                    :title="$t('orders.refundOrder')"
+                    @click="openRefundModalFromOrder(ord.id)"
+                  >
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                  <i class="bi bi-chevron-right m-card-chevron" @click="openOrderDetails(ord.id)"></i>
+                </template>
+
+                <i
+                  v-else
+                  class="bi bi-chevron-right m-card-chevron"
+                  @click="openOrderDetails(ord.id)"
+                ></i>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- Desktop Ledger Table (>= 768px) -->
+        <div class="table-responsive d-none d-md-block">
+          <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
               <th>{{ $t('orders.colReceiptQueue') }}</th>
@@ -250,6 +425,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <!-- Pagination -->
@@ -282,8 +458,75 @@
     </div>
 
     <!-- ================= TAB 2: PAYMENTS ================= -->
-    <div v-if="activeTab === 'PAYMENTS'" class="clean-card">
-      <div class="filter-bar">
+    <div v-if="activeTab === 'PAYMENTS'" class="clean-card orders-surface">
+      <!-- Compact Mobile Search + Filter Strip (< 768px) -->
+      <div class="m-search-strip d-md-none">
+        <div class="m-search-row">
+          <div class="search-wrap flex-grow-1">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              v-model="paymentFilters.search"
+              type="text"
+              class="filter-input search-input"
+              :placeholder="$t('orders.searchPaymentsPlaceholder')"
+              @keyup.enter="fetchPayments(1)"
+            />
+            <button
+              v-if="paymentFilters.search"
+              type="button"
+              class="search-clear"
+              @click="paymentFilters.search = ''; fetchPayments(1)"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="m-icon-btn"
+            :class="{ 'is-active': activePaymentFilterCount > 0 }"
+            :aria-label="$t('nav.filters')"
+            @click="showMobileFilterSheet = true"
+          >
+            <i class="bi bi-sliders"></i>
+            <span v-if="activePaymentFilterCount > 0" class="m-filter-dot tabular">
+              {{ activePaymentFilterCount }}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="m-icon-btn"
+            :title="$t('common.refresh')"
+            @click="fetchPayments(paymentPagination.current_page)"
+          >
+            <i class="bi bi-arrow-clockwise" :class="{ 'spin-anim': isLoadingPayments }"></i>
+          </button>
+        </div>
+
+        <div v-if="activePaymentFilterCount > 0" class="m-active-chips">
+          <button
+            v-if="paymentFilters.method"
+            type="button"
+            class="m-active-chip"
+            @click="paymentFilters.method = ''; fetchPayments(1)"
+          >
+            <span>{{ getMethodLabel(paymentFilters.method) }}</span>
+            <i class="bi bi-x"></i>
+          </button>
+          <button
+            v-if="paymentFilters.currency"
+            type="button"
+            class="m-active-chip tabular"
+            @click="paymentFilters.currency = ''; fetchPayments(1)"
+          >
+            <span>{{ paymentFilters.currency }}</span>
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-bar d-none d-md-flex">
         <div class="filter-bar__left">
           <div class="search-wrap">
             <i class="bi bi-search search-icon"></i>
@@ -351,8 +594,85 @@
         <div class="empty-box__desc">{{ $t('orders.noPaymentsFoundDesc') }}</div>
       </div>
 
-      <div v-else class="table-responsive">
-        <table class="table clean-table mobile-card-table align-middle mb-0">
+      <div v-else>
+        <!-- Bespoke Mobile Payments Feed (< 768px) -->
+        <div class="m-docket-feed d-md-none">
+          <article
+            v-for="pay in paymentsList"
+            :key="`m-pay-${pay.id}`"
+            class="m-docket-card"
+            :class="{ 'is-refunded': pay.is_refunded }"
+            @click="openOrderDetails(pay.order_id)"
+          >
+            <div class="m-docket-card__top">
+              <div class="m-docket-card__identity">
+                <span class="m-method-icon">
+                  <i :class="pay.method === 'CASH' ? 'bi bi-cash-stack' : 'bi bi-qr-code-scan'"></i>
+                </span>
+                <div class="min-w-0">
+                  <div class="m-docket-card__receipt tabular text-truncate">{{ pay.receipt_no }}</div>
+                  <div class="m-docket-card__time tabular">
+                    {{ formatDateTime(pay.paid_at) }}
+                    <template v-if="pay.receiver_name"> · {{ pay.receiver_name }}</template>
+                  </div>
+                </div>
+              </div>
+
+              <div class="m-docket-card__amounts tabular">
+                <div class="m-docket-card__usd">
+                  {{ pay.currency === 'USD' ? formatUsd(pay.amount) : formatKhr(pay.amount) }}
+                </div>
+                <div v-if="pay.change_usd > 0" class="m-docket-card__change">
+                  {{ $t('orders.colChange') }} {{ formatUsd(pay.change_usd) }}
+                </div>
+                <div v-else-if="pay.change_khr > 0" class="m-docket-card__change">
+                  {{ $t('orders.colChange') }} {{ formatKhr(pay.change_khr) }}
+                </div>
+              </div>
+            </div>
+
+            <div class="m-docket-card__bottom">
+              <div class="m-docket-card__meta">
+                <span class="m-service-meta">
+                  {{ getMethodLabel(pay.method) }}
+                  <template v-if="pay.bank_name"> ({{ pay.bank_name }})</template>
+                </span>
+                <span class="m-meta-sep">·</span>
+                <span class="m-items-meta tabular">
+                  {{ $t('orders.colReceived') }}
+                  {{
+                    pay.currency === 'USD'
+                      ? formatUsd(pay.received_amount)
+                      : formatKhr(pay.received_amount)
+                  }}
+                </span>
+              </div>
+
+              <div class="m-docket-card__actions" @click.stop>
+                <span v-if="pay.is_refunded" class="m-status-chip is-refunded">
+                  <span class="m-status-chip__dot"></span>
+                  <span>{{ $t('orders.statusRefunded') }}</span>
+                </span>
+                <button
+                  v-else
+                  type="button"
+                  class="m-sq-btn is-refund"
+                  @click="openRefundModalWithPayment(pay)"
+                >
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+                <i
+                  class="bi bi-chevron-right m-card-chevron"
+                  @click="openOrderDetails(pay.order_id)"
+                ></i>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- Desktop Ledger Table (>= 768px) -->
+        <div class="table-responsive d-none d-md-block">
+          <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
               <th>{{ $t('orders.colReceipt') }}</th>
@@ -438,6 +758,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <div v-if="paymentPagination.total_pages > 1" class="pagination-bar">
@@ -468,8 +789,41 @@
     </div>
 
     <!-- ================= TAB 3: REFUNDS ================= -->
-    <div v-if="activeTab === 'REFUNDS'" class="clean-card">
-      <div class="filter-bar">
+    <div v-if="activeTab === 'REFUNDS'" class="clean-card orders-surface">
+      <!-- Compact Mobile Search + Refresh Row (< 768px) -->
+      <div class="m-search-strip d-md-none">
+        <div class="m-search-row">
+          <div class="search-wrap flex-grow-1">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              v-model="refundFilters.search"
+              type="text"
+              class="filter-input search-input"
+              :placeholder="$t('orders.searchRefundsPlaceholder')"
+              @keyup.enter="fetchRefunds(1)"
+            />
+            <button
+              v-if="refundFilters.search"
+              type="button"
+              class="search-clear"
+              @click="refundFilters.search = ''; fetchRefunds(1)"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="m-icon-btn"
+            :title="$t('common.refresh')"
+            @click="refundFilters.search = ''; fetchRefunds(1)"
+          >
+            <i class="bi bi-arrow-clockwise" :class="{ 'spin-anim': isLoadingRefunds }"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-bar d-none d-md-flex">
         <div class="filter-bar__left">
           <div class="search-wrap">
             <i class="bi bi-search search-icon"></i>
@@ -516,8 +870,60 @@
         <div class="empty-box__desc">{{ $t('orders.noRefundsRecordedDesc') }}</div>
       </div>
 
-      <div v-else class="table-responsive">
-        <table class="table clean-table mobile-card-table align-middle mb-0">
+      <div v-else>
+        <!-- Bespoke Mobile Refunds Feed (< 768px) -->
+        <div class="m-docket-feed d-md-none">
+          <article
+            v-for="refItem in refundsList"
+            :key="`m-ref-${refItem.id}`"
+            class="m-docket-card is-refunded"
+            @click="openOrderDetails(refItem.order_id)"
+          >
+            <div class="m-docket-card__top">
+              <div class="m-docket-card__identity">
+                <span class="m-queue-badge is-refunded tabular">#{{ refItem.id }}</span>
+                <div class="min-w-0">
+                  <div class="m-docket-card__receipt tabular text-truncate">{{ refItem.receipt_no }}</div>
+                  <div class="m-docket-card__time tabular">
+                    {{ formatDateTime(refItem.refunded_at) }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="m-docket-card__amounts tabular">
+                <div class="m-docket-card__usd text-danger">
+                  -{{
+                    refItem.currency === 'USD'
+                      ? formatUsd(refItem.amount)
+                      : formatKhr(refItem.amount)
+                  }}
+                </div>
+                <div class="m-docket-card__khr">{{ formatUsd(refItem.amount_usd) }} USD</div>
+              </div>
+            </div>
+
+            <div class="m-docket-card__bottom">
+              <div class="m-docket-card__meta flex-column align-items-start gap-1">
+                <div v-if="refItem.reason" class="m-refund-reason text-truncate w-100">
+                  {{ refItem.reason }}
+                </div>
+                <div class="d-flex align-items-center gap-1 flex-wrap">
+                  <span class="m-service-meta">{{ getMethodLabel(refItem.method) }}</span>
+                  <template v-if="refItem.approver_name">
+                    <span class="m-meta-sep">·</span>
+                    <span class="m-items-meta">{{ refItem.approver_name }}</span>
+                  </template>
+                </div>
+              </div>
+
+              <i class="bi bi-chevron-right m-card-chevron ms-2"></i>
+            </div>
+          </article>
+        </div>
+
+        <!-- Desktop Ledger Table (>= 768px) -->
+        <div class="table-responsive d-none d-md-block">
+          <table class="table clean-table align-middle mb-0">
           <thead>
             <tr>
               <th>{{ $t('orders.colRefundIdReceipt') }}</th>
@@ -586,6 +992,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <div v-if="refundPagination.total_pages > 1" class="pagination-bar">
@@ -1020,6 +1427,191 @@
         </div>
       </div>
     </div>
+
+    <!-- ================= MOBILE FILTER BOTTOM SHEET (< 768px) ================= -->
+    <Teleport to="body">
+      <div
+        v-if="showMobileFilterSheet"
+        class="modal-backdrop-custom d-md-none"
+        @click.self="showMobileFilterSheet = false"
+      >
+        <div class="modal-card-custom">
+          <div class="modal-header-custom">
+            <h6 class="mb-0 fw-bold">{{ $t('nav.filters') }}</h6>
+            <button type="button" class="btn-close-custom" @click="showMobileFilterSheet = false">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <div class="modal-body-custom">
+            <!-- Orders Tab Filters -->
+            <template v-if="activeTab === 'ORDERS'">
+              <div class="mb-3">
+                <label class="form-label-clean">{{ $t('orders.orderType') }}</label>
+                <div class="m-sheet-pills">
+                  <button
+                    type="button"
+                    class="m-sheet-pill"
+                    :class="{ active: orderFilters.order_type === '' }"
+                    @click="orderFilters.order_type = ''; fetchOrders(1)"
+                  >
+                    {{ $t('common.allTypes') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="m-sheet-pill"
+                    :class="{ active: orderFilters.order_type === 'TAKEAWAY' }"
+                    @click="orderFilters.order_type = 'TAKEAWAY'; fetchOrders(1)"
+                  >
+                    <i class="bi bi-bag"></i>
+                    <span>{{ $t('common.takeaway') }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="m-sheet-pill"
+                    :class="{ active: orderFilters.order_type === 'DINE_IN' }"
+                    @click="orderFilters.order_type = 'DINE_IN'; fetchOrders(1)"
+                  >
+                    <i class="bi bi-shop"></i>
+                    <span>{{ $t('common.dineIn') }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="appStore.currentShift?.id" class="mb-3">
+                <button
+                  type="button"
+                  class="m-shift-toggle-row"
+                  :class="{ active: orderFilters.currentShiftOnly }"
+                  @click="toggleCurrentShiftFilter"
+                >
+                  <span class="d-inline-flex align-items-center gap-2 fw-semibold">
+                    <i class="bi bi-clock-history"></i>
+                    <span>{{ $t('orders.currentShift') }} (#{{ appStore.currentShift.id }})</span>
+                  </span>
+                  <i
+                    class="bi"
+                    :class="orderFilters.currentShiftOnly ? 'bi-check-circle-fill' : 'bi-circle'"
+                  ></i>
+                </button>
+              </div>
+
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="form-label-clean">{{ $t('common.date') }} (Start)</label>
+                  <input
+                    v-model="orderFilters.start_date"
+                    type="date"
+                    class="form-control form-control-clean"
+                    @change="fetchOrders(1)"
+                  />
+                </div>
+                <div class="col-6">
+                  <label class="form-label-clean">{{ $t('common.date') }} (End)</label>
+                  <input
+                    v-model="orderFilters.end_date"
+                    type="date"
+                    class="form-control form-control-clean"
+                    @change="fetchOrders(1)"
+                  />
+                </div>
+              </div>
+            </template>
+
+            <!-- Payments Tab Filters -->
+            <template v-else-if="activeTab === 'PAYMENTS'">
+              <div class="mb-3">
+                <label class="form-label-clean">{{ $t('orders.colMethod') }}</label>
+                <div class="m-sheet-pills">
+                  <button
+                    type="button"
+                    class="m-sheet-pill"
+                    :class="{ active: paymentFilters.method === '' }"
+                    @click="paymentFilters.method = ''; fetchPayments(1)"
+                  >
+                    {{ $t('common.allMethods') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="m-sheet-pill"
+                    :class="{ active: paymentFilters.method === 'CASH' }"
+                    @click="paymentFilters.method = 'CASH'; fetchPayments(1)"
+                  >
+                    {{ $t('common.cash') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="m-sheet-pill"
+                    :class="{ active: paymentFilters.method === 'KHQR' }"
+                    @click="paymentFilters.method = 'KHQR'; fetchPayments(1)"
+                  >
+                    {{ $t('common.khqr') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="m-sheet-pill"
+                    :class="{ active: paymentFilters.method === 'BANK_TRANSFER' }"
+                    @click="paymentFilters.method = 'BANK_TRANSFER'; fetchPayments(1)"
+                  >
+                    {{ $t('common.bankTransfer') }}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label-clean">{{ $t('expenses.currencyLabel') }}</label>
+                <div class="m-sheet-pills">
+                  <button
+                    type="button"
+                    class="m-sheet-pill"
+                    :class="{ active: paymentFilters.currency === '' }"
+                    @click="paymentFilters.currency = ''; fetchPayments(1)"
+                  >
+                    {{ $t('common.allCurrencies') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="m-sheet-pill"
+                    :class="{ active: paymentFilters.currency === 'USD' }"
+                    @click="paymentFilters.currency = 'USD'; fetchPayments(1)"
+                  >
+                    USD ($)
+                  </button>
+                  <button
+                    type="button"
+                    class="m-sheet-pill"
+                    :class="{ active: paymentFilters.currency === 'KHR' }"
+                    @click="paymentFilters.currency = 'KHR'; fetchPayments(1)"
+                  >
+                    KHR (៛)
+                  </button>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <div class="modal-footer-custom">
+            <button
+              type="button"
+              class="btn btn-light-coffee"
+              @click="
+                activeTab === 'ORDERS' ? resetOrderFilters() : resetPaymentFilters();
+                showMobileFilterSheet = false
+              "
+            >
+              {{ $t('common.reset') }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-coffee flex-grow-1"
+              @click="showMobileFilterSheet = false"
+            >
+              {{ $t('common.confirm') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -1044,6 +1636,22 @@ const { formatDateTime } = useFormatDate()
 const { t } = useI18n()
 
 const activeTab = ref('ORDERS')
+const showMobileFilterSheet = ref(false)
+
+const activeOrderFilterCount = computed(() => {
+  let c = 0
+  if (orderFilters.order_type) c++
+  if (orderFilters.start_date || orderFilters.end_date) c++
+  if (orderFilters.currentShiftOnly) c++
+  return c
+})
+
+const activePaymentFilterCount = computed(() => {
+  let c = 0
+  if (paymentFilters.method) c++
+  if (paymentFilters.currency) c++
+  return c
+})
 
 // ================= STATE: ORDERS =================
 const ordersList = ref([])
@@ -1663,14 +2271,45 @@ onMounted(async () => {
   .orders-top-bar {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.55rem;
-    margin-bottom: 0.7rem;
+    gap: 0.5rem;
+    margin-bottom: 0.55rem;
+  }
+
+  /* Equal 3-column Segmented Switcher — Zero Truncated Tab Labels */
+  .orders-segmented-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    overflow: hidden !important;
+    padding: 3px !important;
+    border-radius: 12px !important;
+    background: #e7efea;
+    border-color: #dbe6df;
+  }
+
+  .orders-segmented-tabs .seg-tab-btn {
+    padding: 0.42rem 0.25rem !important;
+    font-size: 0.75rem !important;
+    min-height: 36px;
+    gap: 0.28rem;
+    min-width: 0;
+  }
+
+  .orders-segmented-tabs .seg-tab-btn i {
+    display: none;
+  }
+
+  .orders-segmented-tabs .seg-tab-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .status-pills {
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding-bottom: 2px;
+    padding-bottom: 1px;
+    gap: 0.35rem;
     scrollbar-width: none;
     -ms-overflow-style: none;
     -webkit-overflow-scrolling: touch;
@@ -1683,7 +2322,409 @@ onMounted(async () => {
   .status-pill {
     flex-shrink: 0;
     border-radius: 999px;
-    padding: 0.38rem 0.85rem;
+    padding: 0.34rem 0.78rem;
+    font-size: 0.76rem;
+    border-width: 1px;
+  }
+
+  /* Transparent wrapper so bespoke cards float cleanly on the Porcelain canvas */
+  .orders-surface {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .orders-surface > .empty-box,
+  .orders-surface > .pagination-bar {
+    background: #ffffff;
+    border: 1px solid #e2ece6;
+    border-radius: 16px;
+  }
+
+  .orders-surface > .pagination-bar {
+    margin-top: 0.65rem;
+  }
+
+  /* Compact Single-Row Search + Filter Trigger */
+  .m-search-strip {
+    margin-bottom: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .m-search-row {
+    display: flex;
+    align-items: center;
+    gap: 0.42rem;
+  }
+
+  .m-search-row .filter-input.search-input {
+    height: 41px !important;
+    border-radius: 12px !important;
+    border: 1px solid #dfeae3;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(20, 35, 26, 0.03);
+  }
+
+  .m-icon-btn {
+    position: relative;
+    width: 41px;
+    height: 41px;
+    border-radius: 12px;
+    border: 1px solid #dfeae3;
+    background: #ffffff;
+    color: #354a3e;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.94rem;
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(20, 35, 26, 0.03);
+  }
+
+  .m-icon-btn.is-active {
+    background: #eaf5ee;
+    border-color: #2d5a43;
+    color: #1e3f2f;
+  }
+
+  .m-filter-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #2d5a43;
+    color: #ffffff;
+    font-size: 0.66rem;
+    font-weight: 800;
+    border: 1.5px solid #f4f7f5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .m-active-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .m-active-chip {
+    border: 1px solid #c6dfd0;
+    background: #eaf5ee;
+    color: #1b432e;
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  /* Bespoke Native Docket Cards */
+  .m-docket-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .m-docket-card {
+    background: #ffffff;
+    border: 1px solid #e2ebe5;
+    border-radius: 16px;
+    padding: 0.78rem 0.88rem;
+    box-shadow: 0 1px 3px rgba(20, 35, 26, 0.035);
+    transition: transform 0.14s ease, border-color 0.14s ease;
+    cursor: pointer;
+  }
+
+  .m-docket-card:active {
+    transform: scale(0.985);
+    background: #fafcfb;
+  }
+
+  .m-docket-card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.65rem;
+  }
+
+  .m-docket-card__identity {
+    display: flex;
+    align-items: center;
+    gap: 0.62rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .m-queue-badge,
+  .m-method-icon {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 7px;
+    border-radius: 10px;
+    background: #edf5f0;
+    color: #1e3f2f;
+    font-size: 0.8rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .m-queue-badge.is-open {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  .m-queue-badge.is-cancelled {
+    background: #f1f5f9;
+    color: #64748b;
+  }
+
+  .m-queue-badge.is-refunded {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .m-docket-card__receipt {
+    font-size: 0.87rem;
+    font-weight: 800;
+    color: #15221b;
+    letter-spacing: -0.01em;
+    line-height: 1.22;
+  }
+
+  .m-docket-card__time {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #687b70;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .m-docket-card__amounts {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .m-docket-card__usd {
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: #183b29;
+    line-height: 1.2;
+  }
+
+  .m-docket-card__khr {
+    font-size: 0.71rem;
+    font-weight: 600;
+    color: #6b7f73;
+    margin-top: 1px;
+  }
+
+  .m-docket-card__change {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #15803d;
+    margin-top: 1px;
+  }
+
+  .m-docket-card__bottom {
+    margin-top: 0.58rem;
+    padding-top: 0.52rem;
+    border-top: 1px solid #eef3f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .m-docket-card__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.38rem;
+    min-width: 0;
+    flex: 1;
+    font-size: 0.75rem;
+    color: #4b5f53;
+  }
+
+  .m-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.14rem 0.52rem;
+    border-radius: 999px;
+    font-size: 0.71rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .m-status-chip__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .m-status-chip.is-paid {
+    background: #eaf7ef;
+    color: #15803d;
+  }
+
+  .m-status-chip.is-open {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  .m-status-chip.is-cancelled {
+    background: #f1f5f9;
+    color: #526358;
+  }
+
+  .m-status-chip.is-refunded {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .m-service-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    font-weight: 600;
+    color: #2f4438;
+  }
+
+  .m-meta-sep {
+    color: #b4c4bb;
+  }
+
+  .m-items-meta {
+    font-weight: 600;
+    color: #5d7165;
+  }
+
+  .m-refund-reason {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #26382e;
+  }
+
+  .m-docket-card__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    flex-shrink: 0;
+  }
+
+  .m-pill-btn {
+    height: 30px;
+    padding: 0 0.65rem;
+    border-radius: 8px;
+    border: none;
+    background: #2d5a43;
+    color: #ffffff;
+    font-size: 0.73rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .m-sq-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid #dfeae3;
+    background: #f8fbf9;
+    color: #465a4e;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+  }
+
+  .m-sq-btn.is-refund {
+    background: #fdf8f2;
+    border-color: #eedbc3;
+    color: #9a5b13;
+  }
+
+  .m-sq-btn.is-danger {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+  }
+
+  .m-card-chevron {
+    font-size: 0.78rem;
+    color: #9ab0a3;
+    margin-left: 2px;
+  }
+
+  /* Filter Bottom Sheet Controls */
+  .m-sheet-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .m-sheet-pill {
+    flex: 1 1 auto;
+    min-height: 40px;
+    padding: 0.4rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid #dce6e0;
+    background: #f8fbf9;
+    color: #3d5245;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+  }
+
+  .m-sheet-pill.active {
+    background: #2d5a43;
+    border-color: #2d5a43;
+    color: #ffffff;
+    font-weight: 700;
+  }
+
+  .m-shift-toggle-row {
+    width: 100%;
+    height: 44px;
+    padding: 0 0.9rem;
+    border-radius: 12px;
+    border: 1px solid #dce6e0;
+    background: #f8fbf9;
+    color: #2f4438;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .m-shift-toggle-row.active {
+    background: #eaf5ee;
+    border-color: #2d5a43;
+    color: #1b432e;
+  }
+
+  .modal-footer-custom {
+    flex-wrap: wrap;
   }
 }
 </style>

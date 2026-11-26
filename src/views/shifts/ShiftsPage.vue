@@ -50,6 +50,14 @@ const filterStatus = ref('')
 const filterUserId = ref('')
 const filterStartDate = ref('')
 const filterEndDate = ref('')
+const showMobileShiftFilterSheet = ref(false)
+
+const activeHistoryFilterCount = computed(() => {
+  let c = 0
+  if (isOwner.value && filterUserId.value) c++
+  if (filterStartDate.value || filterEndDate.value) c++
+  return c
+})
 
 // Open Shift Form
 const openForm = reactive({
@@ -68,6 +76,10 @@ const loadCurrentShift = async () => {
   } finally {
     isLoadingCurrent.value = false
   }
+}
+
+const refreshShiftsScreen = async () => {
+  await Promise.all([loadCurrentShift(), fetchShiftsHistory(pagination.value.page)])
 }
 
 // Fetch Shifts History
@@ -276,8 +288,8 @@ const openShiftDetails = async (shiftId) => {
         </div>
 
         <form @submit.prevent="handleOpenShift" class="open-shift-form">
-          <div class="row g-3 align-items-end">
-            <div class="col-12 col-sm-6 col-lg-3">
+          <div class="row g-2 g-sm-3 align-items-end">
+            <div class="col-6 col-sm-6 col-lg-3">
               <BaseInput
                 v-model="openForm.opening_cash_usd"
                 type="number"
@@ -291,7 +303,7 @@ const openShiftDetails = async (shiftId) => {
               </BaseInput>
             </div>
 
-            <div class="col-12 col-sm-6 col-lg-3">
+            <div class="col-6 col-sm-6 col-lg-3">
               <BaseInput
                 v-model="openForm.opening_cash_khr"
                 type="number"
@@ -334,8 +346,119 @@ const openShiftDetails = async (shiftId) => {
       </div>
 
       <!-- STATE B: ACTIVE OPEN SHIFT SUMMARY -->
-      <div v-else class="drawer-card__body">
-        <div class="drawer-card__head">
+      <div v-else>
+        <!-- Clean Native Mobile Cash Drawer Ledger (< 768px) -->
+        <div class="m-drawer-sheet d-md-none">
+          <div class="m-drawer-sheet__top">
+            <div class="m-drawer-sheet__meta min-w-0">
+              <div class="m-drawer-sheet__status">
+                <span class="m-open-dot"></span>
+                <span class="m-drawer-sheet__badge">
+                  {{ $t('shifts.shiftActiveBadge', { id: activeShift.id }) }}
+                </span>
+              </div>
+              <div class="m-drawer-sheet__time tabular text-truncate">
+                {{ $t('shifts.openedAt', { date: formatDateTime(activeShift.opened_at) }) }}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="m-plain-icon-btn"
+              :title="$t('common.refresh')"
+              @click="refreshShiftsScreen"
+            >
+              <i
+                class="bi bi-arrow-clockwise"
+                :class="{ 'spin-anim': isLoadingCurrent || isLoadingHistory }"
+              ></i>
+            </button>
+          </div>
+
+          <!-- Primary Balance Directly on Ceramic White Surface -->
+          <div class="m-drawer-balance tabular">
+            <div class="m-drawer-balance__label">{{ $t('shifts.expectedCashInDrawer') }}</div>
+            <div class="m-drawer-balance__values">
+              <strong class="m-drawer-balance__usd">
+                {{ formatUsd(activeShift.summary?.expected_drawer?.cash_usd) }}
+              </strong>
+              <span class="m-drawer-balance__sep"></span>
+              <span class="m-drawer-balance__khr">
+                {{ formatKhr(activeShift.summary?.expected_drawer?.cash_khr) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Clean Full-Width Ledger Rows (Zero Truncation, Zero Nested Boxes) -->
+          <div class="m-drawer-rows tabular">
+            <div class="m-drawer-row">
+              <span class="m-drawer-row__lbl">{{ $t('shifts.openingCash') }}</span>
+              <span class="m-drawer-row__val">
+                <strong>{{ formatUsd(activeShift.opening_cash_usd) }}</strong>
+                <span class="m-drawer-row__khr">/ {{ formatKhr(activeShift.opening_cash_khr) }}</span>
+              </span>
+            </div>
+
+            <div class="m-drawer-row">
+              <span class="m-drawer-row__lbl">
+                {{ $t('shifts.totalSalesPaid') }}
+                <span
+                  v-if="activeShift.summary?.open_orders_count > 0"
+                  class="m-drawer-row__alert"
+                >
+                  ({{ $t('shifts.openCount', { count: activeShift.summary?.open_orders_count }) }})
+                </span>
+              </span>
+              <span class="m-drawer-row__val">
+                <strong>{{ formatUsd(activeShift.summary?.total_sales_usd) }}</strong>
+                <span class="m-drawer-row__khr">
+                  ({{ $t('shifts.paidCount', { count: activeShift.summary?.total_orders || 0 }) }})
+                </span>
+              </span>
+            </div>
+
+            <div class="m-drawer-row">
+              <span class="m-drawer-row__lbl">{{ $t('shifts.khqrBankTransfers') }}</span>
+              <span class="m-drawer-row__val">
+                <strong>
+                  {{
+                    formatUsd(
+                      (activeShift.summary?.khqr?.usd || 0) +
+                        (activeShift.summary?.bank_transfer?.usd || 0),
+                    )
+                  }}
+                </strong>
+                <span class="m-drawer-row__khr">
+                  /
+                  {{
+                    formatKhr(
+                      (activeShift.summary?.khqr?.khr || 0) +
+                        (activeShift.summary?.bank_transfer?.khr || 0),
+                    )
+                  }}
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Calm, Architectural 50/50 Actions -->
+          <div class="m-drawer-actions">
+            <button type="button" class="m-drawer-btn is-primary" @click="router.push('/pos')">
+              <span>{{ $t('shifts.goToPos') }}</span>
+            </button>
+            <button
+              type="button"
+              class="m-drawer-btn is-close"
+              @click="openCloseShiftModal(activeShift)"
+            >
+              <span>{{ $t('shifts.closeShiftBtn') }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Desktop Active Shift Summary (>= 768px) -->
+        <div class="drawer-card__body d-none d-md-block">
+          <div class="drawer-card__head">
           <div>
             <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
               <span class="status-text open">
@@ -441,14 +564,91 @@ const openShiftDetails = async (shiftId) => {
             </div>
           </div>
         </div>
+        </div>
       </div>
     </div>
 
     <!-- ========================================== -->
-    <!-- 2. SHIFTS HISTORY TABLE                    -->
+    <!-- 2. SHIFTS HISTORY                          -->
     <!-- ========================================== -->
-    <div class="clean-card">
-      <div class="filter-bar">
+    <div class="clean-card shifts-history-surface">
+      <!-- Clean Mobile History Header + Segmented Control (< 768px) -->
+      <div class="m-history-header d-md-none">
+        <div class="m-history-header__top">
+          <div class="d-flex align-items-baseline gap-1 min-w-0">
+            <h6 class="m-history-title mb-0 text-truncate">{{ $t('shifts.shiftsHistory') }}</h6>
+            <span v-if="pagination.total > 0" class="m-history-count tabular">
+              ({{ pagination.total }})
+            </span>
+          </div>
+
+          <button
+            type="button"
+            class="m-filter-trigger"
+            :class="{ 'is-active': activeHistoryFilterCount > 0 }"
+            @click="showMobileShiftFilterSheet = true"
+          >
+            <i class="bi bi-sliders"></i>
+            <span>{{ $t('nav.filters') }}</span>
+            <span v-if="activeHistoryFilterCount > 0" class="m-filter-trigger__count tabular">
+              {{ activeHistoryFilterCount }}
+            </span>
+          </button>
+        </div>
+
+        <!-- Clean 3-Segment Status Control -->
+        <div class="m-seg-control">
+          <button
+            type="button"
+            class="m-seg-control__btn"
+            :class="{ active: filterStatus === '' }"
+            @click="filterStatus = ''"
+          >
+            {{ $t('common.all') }}
+          </button>
+          <button
+            type="button"
+            class="m-seg-control__btn"
+            :class="{ active: filterStatus === 'OPEN' }"
+            @click="filterStatus = 'OPEN'"
+          >
+            {{ $t('nav.openBadge') }}
+          </button>
+          <button
+            type="button"
+            class="m-seg-control__btn"
+            :class="{ active: filterStatus === 'CLOSED' }"
+            @click="filterStatus = 'CLOSED'"
+          >
+            {{ $t('nav.shiftClosed') }}
+          </button>
+        </div>
+
+        <!-- Active Filter Chips (Staff / Date Range) -->
+        <div v-if="activeHistoryFilterCount > 0" class="m-active-filter-row">
+          <button
+            v-if="filterUserId"
+            type="button"
+            class="m-active-chip"
+            @click="filterUserId = ''"
+          >
+            <span>{{ staffList.find((u) => u.id === filterUserId)?.name || 'Staff' }}</span>
+            <i class="bi bi-x"></i>
+          </button>
+          <button
+            v-if="filterStartDate || filterEndDate"
+            type="button"
+            class="m-active-chip tabular"
+            @click="filterStartDate = ''; filterEndDate = ''"
+          >
+            <span>{{ filterStartDate || '…' }} – {{ filterEndDate || '…' }}</span>
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Desktop Filter Toolbar (>= 768px) -->
+      <div class="filter-bar d-none d-md-flex">
         <div class="d-flex align-items-center gap-2">
           <h6 class="filter-bar__title mb-0">{{ $t('shifts.shiftsHistory') }}</h6>
           <span v-if="pagination.total > 0" class="count-pill tabular">{{ pagination.total }}</span>
@@ -514,8 +714,46 @@ const openShiftDetails = async (shiftId) => {
         <div class="empty-box__desc">{{ $t('shifts.noShiftsRecordedDesc') }}</div>
       </div>
 
-      <div v-else class="table-responsive">
-        <table class="table align-middle mb-0 clean-table mobile-card-table">
+      <div v-else>
+        <!-- Native Inset Grouped Shift List (< 768px) -->
+        <div class="m-shift-list d-md-none">
+          <div
+            v-for="s in shifts"
+            :key="`m-shift-${s.id}`"
+            class="m-shift-row"
+            @click="openShiftDetails(s.id)"
+          >
+            <div class="m-shift-row__left min-w-0">
+              <div class="m-shift-row__title text-truncate">
+                <span class="m-shift-row__id tabular">#{{ s.id }}</span>
+                <span class="m-shift-row__cashier">{{ s.user_name }}</span>
+              </div>
+              <div class="m-shift-row__time tabular text-truncate">
+                {{ formatDateTime(s.opened_at) }}
+              </div>
+            </div>
+
+            <div class="m-shift-row__right tabular">
+              <template v-if="s.status === 'OPEN'">
+                <div class="m-shift-row__open">
+                  <span class="m-open-dot"></span>
+                  <span>{{ $t('nav.openBadge') }}</span>
+                </div>
+                <div class="m-shift-row__sub">{{ formatUsd(s.opening_cash_usd) }}</div>
+              </template>
+              <template v-else>
+                <div class="m-shift-row__amt">{{ formatUsd(s.closing_cash_usd) }}</div>
+                <div class="m-shift-row__sub">{{ formatKhr(s.closing_cash_khr) }}</div>
+              </template>
+            </div>
+
+            <i class="bi bi-chevron-right m-shift-row__chev"></i>
+          </div>
+        </div>
+
+        <!-- Desktop Shifts History Table (>= 768px) -->
+        <div class="table-responsive d-none d-md-block">
+          <table class="table align-middle mb-0 clean-table">
           <thead>
             <tr>
               <th>{{ $t('shifts.colShift') }}</th>
@@ -607,6 +845,7 @@ const openShiftDetails = async (shiftId) => {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <!-- Pagination -->
@@ -669,8 +908,8 @@ const openShiftDetails = async (shiftId) => {
                 </div>
               </div>
 
-              <div class="row g-3">
-                <div class="col-12 col-sm-6">
+              <div class="row g-2 g-sm-3">
+                <div class="col-6 col-sm-6">
                   <BaseInput
                     v-model="closeModal.closing_cash_usd"
                     type="number"
@@ -682,7 +921,7 @@ const openShiftDetails = async (shiftId) => {
                   </BaseInput>
                 </div>
 
-                <div class="col-12 col-sm-6">
+                <div class="col-6 col-sm-6">
                   <BaseInput
                     v-model="closeModal.closing_cash_khr"
                     type="number"
@@ -869,6 +1108,86 @@ const openShiftDetails = async (shiftId) => {
             <button type="button" class="toolbar-btn" @click="detailModal.show = false">
               {{ $t('common.close') }}
             </button>
+            <button
+              v-if="detailModal.data?.status === 'OPEN'"
+              type="button"
+              class="toolbar-btn toolbar-btn--danger"
+              @click="detailModal.show = false; openCloseShiftModal(detailModal.data)"
+            >
+              <i class="bi bi-lock"></i>
+              <span>{{ $t('shifts.closeShiftBtn') }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ========================================== -->
+    <!-- MODAL 3: MOBILE HISTORY FILTER SHEET       -->
+    <!-- ========================================== -->
+    <Teleport to="body">
+      <div
+        v-if="showMobileShiftFilterSheet"
+        class="modal-backdrop-custom d-md-none"
+        @click.self="showMobileShiftFilterSheet = false"
+      >
+        <div class="modal-card-custom">
+          <div class="modal-header-custom">
+            <h6 class="mb-0 fw-bold">{{ $t('nav.filters') }}</h6>
+            <button
+              type="button"
+              class="btn-close-custom"
+              @click="showMobileShiftFilterSheet = false"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <div class="modal-body-custom">
+            <div v-if="isOwner" class="mb-3">
+              <label class="m-sheet-label">{{ $t('shifts.colCashier') }}</label>
+              <select v-model="filterUserId" class="form-select filter-input">
+                <option value="">{{ $t('shifts.allStaff') }}</option>
+                <option v-for="s in staffList" :key="s.id" :value="s.id">
+                  {{ s.name }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="m-sheet-label">{{ $t('common.date') }}</label>
+              <div class="d-flex align-items-center gap-2">
+                <input
+                  v-model="filterStartDate"
+                  type="date"
+                  class="form-control filter-input flex-grow-1"
+                />
+                <span class="text-muted small fw-semibold">→</span>
+                <input
+                  v-model="filterEndDate"
+                  type="date"
+                  class="form-control filter-input flex-grow-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer-custom">
+            <button
+              type="button"
+              class="toolbar-btn"
+              @click="resetHistoryFilters(); showMobileShiftFilterSheet = false"
+            >
+              {{ $t('common.reset') }}
+            </button>
+            <BaseButton
+              type="button"
+              variant="primary"
+              class="flex-grow-1"
+              @click="showMobileShiftFilterSheet = false"
+            >
+              {{ $t('common.confirm') }}
+            </BaseButton>
           </div>
         </div>
       </div>
@@ -1211,5 +1530,440 @@ const openShiftDetails = async (shiftId) => {
   border: 1px solid #dce6e0;
   border-radius: 10px;
   padding: 0.85rem;
+}
+
+/* ==========================================================================
+   CLEAN NATIVE MOBILE LEDGER UI (< 768px)
+   Single ceramic surfaces, hairline dividers, zero nested boxes, zero curved borders.
+   ========================================================================== */
+@media (max-width: 767.98px) {
+  .drawer-card {
+    border-radius: 14px !important;
+    border: 1px solid #e3ebe6 !important;
+    box-shadow: 0 1px 2px rgba(16, 28, 21, 0.03) !important;
+  }
+
+  .drawer-card__body {
+    padding: 0.95rem 1rem;
+  }
+
+  .m-drawer-sheet {
+    padding: 1rem 1.05rem;
+  }
+
+  .m-drawer-sheet__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .m-drawer-sheet__status {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .m-open-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #16a34a;
+    flex-shrink: 0;
+  }
+
+  .m-drawer-sheet__badge {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #14211b;
+  }
+
+  .m-drawer-sheet__time {
+    margin-top: 2px;
+    font-size: 0.74rem;
+    font-weight: 400;
+    color: #6c7e73;
+  }
+
+  .m-plain-icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #e4ece7;
+    background: #ffffff;
+    color: #495d51;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.88rem;
+    flex-shrink: 0;
+  }
+
+  /* Primary Balance on White */
+  .m-drawer-balance {
+    padding: 0.9rem 0 0.85rem;
+  }
+
+  .m-drawer-balance__label {
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: #64776c;
+    margin-bottom: 0.25rem;
+  }
+
+  .m-drawer-balance__values {
+    display: flex;
+    align-items: baseline;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+  }
+
+  .m-drawer-balance__usd {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    color: #111d17;
+  }
+
+  .m-drawer-balance__sep {
+    width: 1px;
+    height: 18px;
+    background: #d8e3dc;
+    align-self: center;
+  }
+
+  .m-drawer-balance__khr {
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: #264d39;
+  }
+
+  /* Clean Full-Width Ledger Rows */
+  .m-drawer-rows {
+    border-top: 1px solid #edf2ef;
+    border-bottom: 1px solid #edf2ef;
+    padding: 0.25rem 0;
+    margin-bottom: 0.9rem;
+  }
+
+  .m-drawer-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.44rem 0;
+  }
+
+  .m-drawer-row + .m-drawer-row {
+    border-top: 1px solid #f4f7f5;
+  }
+
+  .m-drawer-row__lbl {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #5b6e63;
+  }
+
+  .m-drawer-row__alert {
+    color: #b42318;
+    font-weight: 600;
+  }
+
+  .m-drawer-row__val {
+    font-size: 0.84rem;
+    color: #14211b;
+    text-align: right;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .m-drawer-row__val strong {
+    font-weight: 700;
+  }
+
+  .m-drawer-row__khr {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #74867b;
+    margin-left: 3px;
+  }
+
+  /* 50/50 Calm Actions */
+  .m-drawer-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .m-drawer-btn {
+    height: 40px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .m-drawer-btn.is-primary {
+    background: #1f4d36;
+    border: 1px solid #1f4d36;
+    color: #ffffff;
+  }
+
+  .m-drawer-btn.is-close {
+    background: #ffffff;
+    border: 1px solid #e3ceca;
+    color: #b42318;
+  }
+
+  /* History Section */
+  .shifts-history-surface {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .shifts-history-surface > .empty-box,
+  .shifts-history-surface > .pagination-bar {
+    background: #ffffff;
+    border: 1px solid #e3ebe6;
+    border-radius: 14px;
+  }
+
+  .shifts-history-surface > .pagination-bar {
+    margin-top: 0.6rem;
+  }
+
+  .m-history-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .m-history-header__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .m-history-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #14211b;
+  }
+
+  .m-history-count {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #74867b;
+  }
+
+  .m-filter-trigger {
+    height: 32px;
+    padding: 0 0.68rem;
+    border-radius: 8px;
+    border: 1px solid #e0e9e3;
+    background: #ffffff;
+    color: #3d5145;
+    font-size: 0.76rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .m-filter-trigger.is-active {
+    border-color: #1f4d36;
+    color: #1f4d36;
+    background: #f2f8f4;
+  }
+
+  .m-filter-trigger__count {
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #1f4d36;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 3-Segment Native Status Control */
+  .m-seg-control {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+    background: #e7eeea;
+  }
+
+  .m-seg-control__btn {
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #53665b;
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 0 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .m-seg-control__btn.active {
+    background: #ffffff;
+    color: #14211b;
+    font-weight: 700;
+    box-shadow: 0 1px 2px rgba(16, 28, 21, 0.07);
+  }
+
+  .m-active-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .m-active-chip {
+    border: 1px solid #d5e3db;
+    background: #ffffff;
+    color: #25382d;
+    border-radius: 8px;
+    padding: 0.16rem 0.52rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  /* Native Inset Grouped Shift List */
+  .m-shift-list {
+    background: #ffffff;
+    border: 1px solid #e3ebe6;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(16, 28, 21, 0.03);
+  }
+
+  .m-shift-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    padding: 0.78rem 0.95rem;
+    cursor: pointer;
+    background: #ffffff;
+    transition: background-color 0.12s ease;
+  }
+
+  .m-shift-row + .m-shift-row {
+    border-top: 1px solid #eef3f0;
+  }
+
+  .m-shift-row:active {
+    background: #f6f9f7;
+  }
+
+  .m-shift-row__left {
+    flex: 1;
+  }
+
+  .m-shift-row__title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.42rem;
+    line-height: 1.28;
+  }
+
+  .m-shift-row__id {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #14211b;
+    flex-shrink: 0;
+  }
+
+  .m-shift-row__cashier {
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: #36493e;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .m-shift-row__time {
+    margin-top: 2px;
+    font-size: 0.73rem;
+    font-weight: 400;
+    color: #74867b;
+  }
+
+  .m-shift-row__right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .m-shift-row__open {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.32rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #15803d;
+  }
+
+  .m-shift-row__amt {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #14211b;
+    line-height: 1.25;
+  }
+
+  .m-shift-row__sub {
+    margin-top: 1px;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: #74867b;
+  }
+
+  .m-shift-row__chev {
+    font-size: 0.72rem;
+    color: #b4c2ba;
+    flex-shrink: 0;
+    margin-left: 0.1rem;
+  }
+
+  .m-sheet-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #354a3e;
+    margin-bottom: 0.35rem;
+  }
+
+  .spin-anim {
+    animation: shiftSpin 0.65s linear infinite;
+  }
+}
+
+@keyframes shiftSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
