@@ -545,7 +545,7 @@ const handleLogout = async () => {
       </button>
     </nav>
 
-    <!-- Native Mobile App Launcher ("More") Bottom Sheet -->
+    <!-- Native Mobile Menu ("More") Bottom Sheet -->
     <Teleport to="body">
       <Transition name="mobile-sheet-fade">
         <div
@@ -556,80 +556,119 @@ const handleLogout = async () => {
           <div class="mobile-more-sheet" role="dialog" aria-modal="true">
             <div class="mobile-more-sheet__handle" aria-hidden="true"></div>
 
-            <!-- User Profile & Shop Quick Banner -->
-            <div class="mobile-more-profile">
-              <router-link
-                :to="authStore.isOwner ? '/settings' : '/profile'"
-                class="mobile-more-profile__card"
+            <!-- Sheet Header -->
+            <div class="mobile-more-header">
+              <span class="mobile-more-header__title">{{ t('nav.tabMore') }}</span>
+              <button
+                type="button"
+                class="mobile-more-close"
+                :aria-label="t('common.close')"
                 @click="isMoreSheetOpen = false"
               >
-                <div class="mobile-more-profile__avatar">
-                  {{ userInitials }}
-                </div>
-                <div class="mobile-more-profile__info">
-                  <div class="mobile-more-profile__name-row">
-                    <span class="mobile-more-profile__name text-truncate">
-                      {{ authStore.user?.name || roleLabel }}
-                    </span>
-                    <span class="mobile-more-profile__role">{{ roleLabel }}</span>
-                  </div>
-                  <div class="mobile-more-profile__meta text-truncate numeric-tabular">
-                    {{ authStore.user?.email || appStore.shopName }} · $1 = {{ formattedRate }} ៛
-                  </div>
-                </div>
-                <i class="bi bi-chevron-right mobile-more-profile__chevron"></i>
-              </router-link>
+                <i class="bi bi-x-lg"></i>
+              </button>
             </div>
 
-            <!-- Categorized App Icon Grid -->
             <div class="mobile-more-body">
+              <!-- 1. User Account Card (-> /profile) -->
+              <router-link
+                to="/profile"
+                class="mobile-account-card"
+                @click="isMoreSheetOpen = false"
+              >
+                <div class="mobile-account-card__avatar">
+                  {{ userInitials }}
+                </div>
+                <div class="mobile-account-card__info min-w-0">
+                  <div class="mobile-account-card__name text-truncate">
+                    {{ authStore.user?.name || roleLabel }}
+                  </div>
+                  <div class="mobile-account-card__sub text-truncate">
+                    <span>{{ roleLabel }}</span>
+                    <template v-if="authStore.user?.email">
+                      <span class="mobile-account-card__sep">·</span>
+                      <span>{{ authStore.user.email }}</span>
+                    </template>
+                  </div>
+                </div>
+                <i
+                  class="bi"
+                  :class="
+                    isActiveRoute('/profile')
+                      ? 'bi-check2 mobile-list-check'
+                      : 'bi-chevron-right mobile-list-chev'
+                  "
+                ></i>
+              </router-link>
+
+              <!-- 2. Categorized Native Inset Grouped Lists -->
               <div
                 v-for="group in navGroups"
                 :key="group.label"
-                class="mobile-more-group"
+                class="mobile-menu-section"
               >
-                <div class="mobile-more-group__title">{{ group.label }}</div>
-                <div class="mobile-more-grid">
+                <div class="mobile-menu-section__title">{{ group.label }}</div>
+                <div class="mobile-menu-list">
                   <router-link
                     v-for="item in group.items"
                     :key="item.path"
                     :to="item.path"
-                    class="mobile-app-tile"
+                    class="mobile-menu-row"
                     :class="{ 'is-active': isActiveRoute(item.path) }"
                     @click="isMoreSheetOpen = false"
                   >
-                    <div class="mobile-app-tile__icon">
-                      <i :class="['bi', item.icon]"></i>
-                      <span v-if="item.badge" class="mobile-app-tile__dot"></span>
-                    </div>
-                    <span class="mobile-app-tile__label">{{ item.name }}</span>
+                    <i :class="['bi', item.icon, 'mobile-menu-row__icon']"></i>
+                    <span class="mobile-menu-row__label text-truncate">{{ item.name }}</span>
+                    <span v-if="item.badge" class="mobile-menu-row__value is-open">
+                      {{ item.badge }}
+                    </span>
+                    <i
+                      class="bi"
+                      :class="
+                        isActiveRoute(item.path)
+                          ? 'bi-check2 mobile-list-check'
+                          : 'bi-chevron-right mobile-list-chev'
+                      "
+                    ></i>
                   </router-link>
                 </div>
               </div>
 
-              <!-- Settings / Profile + Sign Out Footer -->
-              <div class="mobile-more-footer">
-                <router-link
-                  :to="authStore.isOwner ? '/settings' : '/profile'"
-                  class="mobile-more-action-btn"
-                  :class="{
-                    'is-active': isActiveRoute(authStore.isOwner ? '/settings' : '/profile'),
-                  }"
-                  @click="isMoreSheetOpen = false"
-                >
-                  <i :class="['bi', authStore.isOwner ? 'bi-gear-fill' : 'bi-person-badge-fill']"></i>
-                  <span>{{ authStore.isOwner ? t('nav.settings') : t('nav.profile') }}</span>
-                </router-link>
+              <!-- 3. Store Settings & Sign Out Group -->
+              <div class="mobile-menu-section">
+                <div class="mobile-menu-list">
+                  <router-link
+                    v-if="authStore.isOwner"
+                    to="/settings"
+                    class="mobile-menu-row"
+                    :class="{ 'is-active': isActiveRoute('/settings') }"
+                    @click="isMoreSheetOpen = false"
+                  >
+                    <i class="bi bi-gear mobile-menu-row__icon"></i>
+                    <span class="mobile-menu-row__label text-truncate">{{ t('nav.settings') }}</span>
+                    <span class="mobile-menu-row__value numeric-tabular">
+                      $1 = {{ formattedRate }} ៛
+                    </span>
+                    <i
+                      class="bi"
+                      :class="
+                        isActiveRoute('/settings')
+                          ? 'bi-check2 mobile-list-check'
+                          : 'bi-chevron-right mobile-list-chev'
+                      "
+                    ></i>
+                  </router-link>
 
-                <button
-                  type="button"
-                  class="mobile-more-action-btn is-danger"
-                  :disabled="isLoggingOut"
-                  @click="openLogoutModal"
-                >
-                  <i class="bi bi-box-arrow-right"></i>
-                  <span>{{ t('nav.logout') }}</span>
-                </button>
+                  <button
+                    type="button"
+                    class="mobile-menu-row is-logout"
+                    :disabled="isLoggingOut"
+                    @click="openLogoutModal"
+                  >
+                    <i class="bi bi-box-arrow-right mobile-menu-row__icon"></i>
+                    <span class="mobile-menu-row__label text-truncate">{{ t('nav.logout') }}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1199,12 +1238,12 @@ const handleLogout = async () => {
   background: #d97706;
 }
 
-/* Native App Launcher ("More") Sheet */
+/* Native Grouped Menu ("More") Bottom Sheet */
 .mobile-more-backdrop {
   position: fixed;
   inset: 0;
   z-index: 1065;
-  background: rgba(14, 24, 18, 0.5);
+  background: rgba(14, 24, 18, 0.46);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
@@ -1215,222 +1254,220 @@ const handleLogout = async () => {
 .mobile-more-sheet {
   width: 100%;
   max-height: calc(88dvh - var(--safe-top));
-  background: #f5f9f6;
-  border-radius: 24px 24px 0 0;
+  background: #f3f6f4;
+  border-radius: 20px 20px 0 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-bottom: calc(0.85rem + var(--safe-bottom));
-  box-shadow: 0 -14px 42px rgba(12, 22, 16, 0.24);
+  box-shadow: 0 -12px 36px rgba(12, 22, 16, 0.2);
 }
 
 .mobile-more-sheet__handle {
-  width: 40px;
+  width: 36px;
   height: 4px;
   border-radius: 999px;
-  background: #c8d6ce;
-  margin: 10px auto 8px;
+  background: #cbd7d0;
+  margin: 8px auto 2px;
   flex-shrink: 0;
 }
 
-.mobile-more-profile {
-  padding: 0 0.9rem 0.65rem;
-  flex-shrink: 0;
-}
-
-.mobile-more-profile__card {
+.mobile-more-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.8rem 0.9rem;
-  background: #ffffff;
-  border: 1px solid #dfeae3;
-  border-radius: 16px;
-  text-decoration: none;
-  color: inherit;
-  box-shadow: 0 2px 8px rgba(20, 35, 26, 0.03);
-}
-
-.mobile-more-profile__avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #2d5a43, #1e3f2f);
-  color: #ffffff;
-  font-size: 0.92rem;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  padding: 0.35rem 1rem 0.6rem;
   flex-shrink: 0;
 }
 
-.mobile-more-profile__info {
-  flex: 1;
-  min-width: 0;
-}
-
-.mobile-more-profile__name-row {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.mobile-more-profile__name {
-  font-size: 0.92rem;
-  font-weight: 800;
-  color: #16241c;
-}
-
-.mobile-more-profile__role {
-  font-size: 0.66rem;
+.mobile-more-header__title {
+  font-size: 0.96rem;
   font-weight: 700;
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  background: #e6f2eb;
-  color: #2d5a43;
-  flex-shrink: 0;
+  color: #14211b;
 }
 
-.mobile-more-profile__meta {
-  font-size: 0.74rem;
-  color: #64786c;
-  margin-top: 2px;
-}
-
-.mobile-more-profile__chevron {
-  color: #84968b;
-  font-size: 0.88rem;
-}
-
-.mobile-more-body {
-  padding: 0 0.9rem 0.35rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.mobile-more-group__title {
-  font-size: 0.71rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #617468;
-  margin-bottom: 0.42rem;
-  padding-left: 0.2rem;
-}
-
-.mobile-more-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-@media (max-width: 374.98px) {
-  .mobile-more-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.mobile-app-tile {
-  background: #ffffff;
-  border: 1px solid #e1ece5;
-  border-radius: 14px;
-  padding: 0.68rem 0.35rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 0.38rem;
-  text-decoration: none;
-  color: #26382e;
-  transition: transform 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
-}
-
-.mobile-app-tile:active {
-  transform: scale(0.95);
-}
-
-.mobile-app-tile__icon {
-  position: relative;
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  background: #eff6f2;
-  color: #2d5a43;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-}
-
-.mobile-app-tile.is-active {
-  background: #eaf5ee;
-  border-color: #2d5a43;
-  color: #193b29;
-}
-
-.mobile-app-tile.is-active .mobile-app-tile__icon {
-  background: #2d5a43;
-  color: #ffffff;
-}
-
-.mobile-app-tile__dot {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 9px;
-  height: 9px;
+.mobile-more-close {
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: #16a34a;
-  border: 1.5px solid #ffffff;
-}
-
-.mobile-app-tile__label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 1.2;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.mobile-more-footer {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.55rem;
-  padding-top: 0.25rem;
-}
-
-.mobile-more-action-btn {
-  height: 44px;
-  border-radius: 12px;
-  border: 1px solid #dbe6df;
-  background: #ffffff;
-  color: #26382e;
-  font-size: 0.82rem;
-  font-weight: 700;
+  border: none;
+  background: #e4ebe7;
+  color: #42554a;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  text-decoration: none;
+  font-size: 0.76rem;
   cursor: pointer;
 }
 
-.mobile-more-action-btn.is-active {
-  background: #2d5a43;
-  border-color: #2d5a43;
-  color: #ffffff;
+.mobile-more-body {
+  padding: 0 0.9rem calc(1rem + var(--safe-bottom));
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
 }
 
-.mobile-more-action-btn.is-danger {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #dc2626;
+/* Account Row Card */
+.mobile-account-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.78rem 0.9rem;
+  background: #ffffff;
+  border: 1px solid #e3ebe6;
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.12s ease;
+}
+
+.mobile-account-card:active {
+  background: #f7faf8;
+}
+
+.mobile-account-card__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #1f4d36;
+  color: #ffffff;
+  font-size: 0.86rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobile-account-card__info {
+  flex: 1;
+}
+
+.mobile-account-card__name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #14211b;
+  line-height: 1.25;
+}
+
+.mobile-account-card__sub {
+  margin-top: 2px;
+  font-size: 0.74rem;
+  font-weight: 400;
+  color: #6d7f74;
+}
+
+.mobile-account-card__sep {
+  margin: 0 0.28rem;
+  color: #b7c5bd;
+}
+
+/* Inset Grouped Sections */
+.mobile-menu-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-menu-section__title {
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #6a7c71;
+  margin-bottom: 0.36rem;
+  padding: 0 0.35rem;
+}
+
+.mobile-menu-list {
+  background: #ffffff;
+  border: 1px solid #e3ebe6;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.mobile-menu-row {
+  position: relative;
+  width: 100%;
+  min-height: 46px;
+  padding: 0.62rem 0.9rem;
+  border: none;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.78rem;
+  text-decoration: none;
+  text-align: left;
+  color: #16241c;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.mobile-menu-row:active {
+  background: #f6f9f7;
+}
+
+/* Authentic iOS Inset Hairline Divider */
+.mobile-menu-row + .mobile-menu-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 2.85rem;
+  right: 0;
+  height: 1px;
+  background: #eef3f0;
+}
+
+.mobile-menu-row__icon {
+  width: 22px;
+  font-size: 1.05rem;
+  color: #495e52;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobile-menu-row__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.87rem;
+  font-weight: 500;
+  color: #16241c;
+  line-height: 1.3;
+}
+
+.mobile-menu-row.is-active .mobile-menu-row__icon,
+.mobile-menu-row.is-active .mobile-menu-row__label {
+  color: #1f4d36;
+  font-weight: 700;
+}
+
+.mobile-menu-row__value {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #728479;
+  flex-shrink: 0;
+}
+
+.mobile-menu-row__value.is-open {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.mobile-list-chev {
+  font-size: 0.74rem;
+  color: #b4c2ba;
+  flex-shrink: 0;
+}
+
+.mobile-list-check {
+  font-size: 0.98rem;
+  color: #1f4d36;
+  flex-shrink: 0;
+}
+
+.mobile-menu-row.is-logout .mobile-menu-row__icon,
+.mobile-menu-row.is-logout .mobile-menu-row__label {
+  color: #b42318;
+  font-weight: 600;
 }
 
 /* Sheet Transition */
@@ -1521,5 +1558,22 @@ const handleLogout = async () => {
 
 .btn-logout-confirm:hover:not(:disabled) {
   background: #b91c1c;
+}
+
+@media (max-width: 767.98px) {
+  .logout-modal-card {
+    padding: 0.75rem 1.05rem calc(1rem + var(--safe-bottom)) !important;
+  }
+
+  .btn-logout-cancel,
+  .btn-logout-confirm {
+    flex: 1;
+    height: 42px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+  }
 }
 </style>

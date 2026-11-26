@@ -35,8 +35,8 @@
         </button>
       </div>
 
-      <!-- Status Quick Filter Pills (Orders Tab) -->
-      <div v-if="activeTab === 'ORDERS'" class="status-pills">
+      <!-- Status Quick Filter Pills (Desktop >= 768px) -->
+      <div v-if="activeTab === 'ORDERS'" class="status-pills d-none d-md-flex">
         <button
           v-for="st in orderStatusOptions"
           :key="st.value"
@@ -53,7 +53,7 @@
 
     <!-- ================= TAB 1: ORDERS ================= -->
     <div v-if="activeTab === 'ORDERS'" class="clean-card orders-surface">
-      <!-- Compact Mobile Search + Filter Sheet Trigger (< 768px) -->
+      <!-- Clean Mobile Search + Dot-Free Status Chips (< 768px) -->
       <div class="m-search-strip d-md-none">
         <div class="m-search-row">
           <div class="search-wrap flex-grow-1">
@@ -83,7 +83,7 @@
             @click="showMobileFilterSheet = true"
           >
             <i class="bi bi-sliders"></i>
-            <span v-if="activeOrderFilterCount > 0" class="m-filter-dot tabular">
+            <span v-if="activeOrderFilterCount > 0" class="m-filter-count tabular">
               {{ activeOrderFilterCount }}
             </span>
           </button>
@@ -95,6 +95,20 @@
             @click="fetchOrders(orderPagination.page)"
           >
             <i class="bi bi-arrow-clockwise" :class="{ 'spin-anim': isLoadingOrders }"></i>
+          </button>
+        </div>
+
+        <!-- Clean Dot-Free Status Chips -->
+        <div class="m-status-chips">
+          <button
+            v-for="st in orderStatusOptions"
+            :key="`m-st-${st.value}`"
+            type="button"
+            class="m-status-filter-btn"
+            :class="{ active: orderFilters.status === st.value }"
+            @click="setOrderStatusFilter(st.value)"
+          >
+            {{ st.label }}
           </button>
         </div>
 
@@ -220,98 +234,46 @@
       </div>
 
       <div v-else>
-        <!-- Bespoke Mobile Docket Feed (< 768px) -->
-        <div class="m-docket-feed d-md-none">
-          <article
+        <!-- Clean Native Inset Grouped Orders List (< 768px) -->
+        <div class="m-order-list d-md-none">
+          <div
             v-for="ord in ordersList"
             :key="`m-ord-${ord.id}`"
-            class="m-docket-card"
-            :class="`is-${ord.status.toLowerCase()}`"
+            class="m-order-row"
             @click="openOrderDetails(ord.id)"
           >
-            <div class="m-docket-card__top">
-              <div class="m-docket-card__identity">
-                <span class="m-queue-badge tabular" :class="`is-${ord.status.toLowerCase()}`">
-                  #{{ ord.queue_no }}
-                </span>
-                <div class="min-w-0">
-                  <div class="m-docket-card__receipt tabular text-truncate">{{ ord.receipt_no }}</div>
-                  <div class="m-docket-card__time tabular">
-                    {{ formatDateTime(ord.created_at) }}
-                    <template v-if="ord.cashier?.name"> · {{ ord.cashier.name }}</template>
-                  </div>
-                </div>
+            <div class="m-order-row__left min-w-0">
+              <div class="m-order-row__title tabular text-truncate">
+                {{ ord.receipt_no }}
               </div>
-
-              <div class="m-docket-card__amounts tabular">
-                <div class="m-docket-card__usd">{{ formatUsd(ord.total) }}</div>
-                <div class="m-docket-card__khr">
-                  {{ formatKhr(usdToKhr(ord.total, ord.exchange_rate)) }}
-                </div>
+              <div class="m-order-row__sub text-truncate">
+                <span class="m-order-row__queue tabular">#{{ ord.queue_no }}</span>
+                <span class="m-order-row__sep">/</span>
+                <span>
+                  {{ ord.order_type === 'DINE_IN' ? $t('common.dineIn') : $t('common.takeaway') }}
+                  <template v-if="ord.table_no"> #{{ ord.table_no }}</template>
+                </span>
+                <span class="m-order-row__sep">/</span>
+                <span class="tabular">{{ $t('orders.itemsCount', { count: ord.total_items }) }}</span>
+              </div>
+              <div class="m-order-row__time tabular text-truncate">
+                {{ formatDateTime(ord.created_at).replace(' • ', ', ') }}
+                <template v-if="ord.cashier?.name"> — {{ ord.cashier.name }}</template>
               </div>
             </div>
 
-            <div class="m-docket-card__bottom">
-              <div class="m-docket-card__meta">
-                <span class="m-status-chip" :class="`is-${ord.status.toLowerCase()}`">
-                  <span class="m-status-chip__dot"></span>
-                  <span>{{ getOrderStatusLabel(ord.status) }}</span>
-                </span>
-
-                <span class="m-service-meta">
-                  <i :class="ord.order_type === 'DINE_IN' ? 'bi bi-shop' : 'bi bi-bag'"></i>
-                  <span>
-                    {{ ord.order_type === 'DINE_IN' ? $t('common.dineIn') : $t('common.takeaway') }}
-                    <template v-if="ord.table_no"> #{{ ord.table_no }}</template>
-                  </span>
-                </span>
-
-                <span class="m-meta-sep">·</span>
-                <span class="m-items-meta tabular">
-                  {{ $t('orders.itemsCount', { count: ord.total_items }) }}
-                </span>
+            <div class="m-order-row__right tabular">
+              <div class="m-order-row__usd">{{ formatUsd(ord.total) }}</div>
+              <div class="m-order-row__khr">
+                {{ formatKhr(usdToKhr(ord.total, ord.exchange_rate)) }}
               </div>
-
-              <div class="m-docket-card__actions" @click.stop>
-                <template v-if="ord.status === 'OPEN'">
-                  <button
-                    type="button"
-                    class="m-pill-btn is-pos"
-                    @click="resumeInPos(ord.id)"
-                  >
-                    <i class="bi bi-calculator"></i>
-                    <span>POS</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="m-sq-btn is-danger"
-                    :title="$t('common.cancel')"
-                    @click="openCancelModal(ord)"
-                  >
-                    <i class="bi bi-x-lg"></i>
-                  </button>
-                </template>
-
-                <template v-else-if="ord.status === 'PAID'">
-                  <button
-                    type="button"
-                    class="m-sq-btn is-refund"
-                    :title="$t('orders.refundOrder')"
-                    @click="openRefundModalFromOrder(ord.id)"
-                  >
-                    <i class="bi bi-arrow-counterclockwise"></i>
-                  </button>
-                  <i class="bi bi-chevron-right m-card-chevron" @click="openOrderDetails(ord.id)"></i>
-                </template>
-
-                <i
-                  v-else
-                  class="bi bi-chevron-right m-card-chevron"
-                  @click="openOrderDetails(ord.id)"
-                ></i>
+              <div class="m-order-row__status" :class="`is-${ord.status.toLowerCase()}`">
+                {{ getOrderStatusLabel(ord.status) }}
               </div>
             </div>
-          </article>
+
+            <i class="bi bi-chevron-right m-order-row__chev"></i>
+          </div>
         </div>
 
         <!-- Desktop Ledger Table (>= 768px) -->
@@ -489,7 +451,7 @@
             @click="showMobileFilterSheet = true"
           >
             <i class="bi bi-sliders"></i>
-            <span v-if="activePaymentFilterCount > 0" class="m-filter-dot tabular">
+            <span v-if="activePaymentFilterCount > 0" class="m-filter-count tabular">
               {{ activePaymentFilterCount }}
             </span>
           </button>
@@ -595,79 +557,54 @@
       </div>
 
       <div v-else>
-        <!-- Bespoke Mobile Payments Feed (< 768px) -->
-        <div class="m-docket-feed d-md-none">
-          <article
+        <!-- Clean Native Inset Grouped Payments List (< 768px) -->
+        <div class="m-order-list d-md-none">
+          <div
             v-for="pay in paymentsList"
             :key="`m-pay-${pay.id}`"
-            class="m-docket-card"
-            :class="{ 'is-refunded': pay.is_refunded }"
+            class="m-order-row"
             @click="openOrderDetails(pay.order_id)"
           >
-            <div class="m-docket-card__top">
-              <div class="m-docket-card__identity">
-                <span class="m-method-icon">
-                  <i :class="pay.method === 'CASH' ? 'bi bi-cash-stack' : 'bi bi-qr-code-scan'"></i>
-                </span>
-                <div class="min-w-0">
-                  <div class="m-docket-card__receipt tabular text-truncate">{{ pay.receipt_no }}</div>
-                  <div class="m-docket-card__time tabular">
-                    {{ formatDateTime(pay.paid_at) }}
-                    <template v-if="pay.receiver_name"> · {{ pay.receiver_name }}</template>
-                  </div>
-                </div>
-              </div>
-
-              <div class="m-docket-card__amounts tabular">
-                <div class="m-docket-card__usd">
-                  {{ pay.currency === 'USD' ? formatUsd(pay.amount) : formatKhr(pay.amount) }}
-                </div>
-                <div v-if="pay.change_usd > 0" class="m-docket-card__change">
-                  {{ $t('orders.colChange') }} {{ formatUsd(pay.change_usd) }}
-                </div>
-                <div v-else-if="pay.change_khr > 0" class="m-docket-card__change">
-                  {{ $t('orders.colChange') }} {{ formatKhr(pay.change_khr) }}
-                </div>
-              </div>
-            </div>
-
-            <div class="m-docket-card__bottom">
-              <div class="m-docket-card__meta">
-                <span class="m-service-meta">
+            <div class="m-order-row__left min-w-0">
+              <div class="m-order-row__title tabular text-truncate">{{ pay.receipt_no }}</div>
+              <div class="m-order-row__sub text-truncate">
+                <span>
                   {{ getMethodLabel(pay.method) }}
                   <template v-if="pay.bank_name"> ({{ pay.bank_name }})</template>
                 </span>
-                <span class="m-meta-sep">·</span>
-                <span class="m-items-meta tabular">
-                  {{ $t('orders.colReceived') }}
-                  {{
-                    pay.currency === 'USD'
-                      ? formatUsd(pay.received_amount)
-                      : formatKhr(pay.received_amount)
-                  }}
-                </span>
+                <template v-if="pay.receiver_name">
+                  <span class="m-order-row__sep">/</span>
+                  <span>{{ pay.receiver_name }}</span>
+                </template>
               </div>
-
-              <div class="m-docket-card__actions" @click.stop>
-                <span v-if="pay.is_refunded" class="m-status-chip is-refunded">
-                  <span class="m-status-chip__dot"></span>
-                  <span>{{ $t('orders.statusRefunded') }}</span>
-                </span>
-                <button
-                  v-else
-                  type="button"
-                  class="m-sq-btn is-refund"
-                  @click="openRefundModalWithPayment(pay)"
-                >
-                  <i class="bi bi-arrow-counterclockwise"></i>
-                </button>
-                <i
-                  class="bi bi-chevron-right m-card-chevron"
-                  @click="openOrderDetails(pay.order_id)"
-                ></i>
+              <div class="m-order-row__time tabular text-truncate">
+                {{ formatDateTime(pay.paid_at).replace(' • ', ', ') }}
               </div>
             </div>
-          </article>
+
+            <div class="m-order-row__right tabular">
+              <div class="m-order-row__usd">
+                {{ pay.currency === 'USD' ? formatUsd(pay.amount) : formatKhr(pay.amount) }}
+              </div>
+              <div v-if="pay.change_usd > 0" class="m-order-row__khr">
+                {{ $t('orders.colChange') }} {{ formatUsd(pay.change_usd) }}
+              </div>
+              <div v-else-if="pay.change_khr > 0" class="m-order-row__khr">
+                {{ $t('orders.colChange') }} {{ formatKhr(pay.change_khr) }}
+              </div>
+              <div
+                v-if="pay.is_refunded"
+                class="m-order-row__status is-refunded"
+              >
+                {{ $t('orders.statusRefunded') }}
+              </div>
+              <div v-else class="m-order-row__status is-paid">
+                {{ $t('orders.statusPaid') }}
+              </div>
+            </div>
+
+            <i class="bi bi-chevron-right m-order-row__chev"></i>
+          </div>
         </div>
 
         <!-- Desktop Ledger Table (>= 768px) -->
@@ -871,54 +808,41 @@
       </div>
 
       <div v-else>
-        <!-- Bespoke Mobile Refunds Feed (< 768px) -->
-        <div class="m-docket-feed d-md-none">
-          <article
+        <!-- Clean Native Inset Grouped Refunds List (< 768px) -->
+        <div class="m-order-list d-md-none">
+          <div
             v-for="refItem in refundsList"
             :key="`m-ref-${refItem.id}`"
-            class="m-docket-card is-refunded"
+            class="m-order-row"
             @click="openOrderDetails(refItem.order_id)"
           >
-            <div class="m-docket-card__top">
-              <div class="m-docket-card__identity">
-                <span class="m-queue-badge is-refunded tabular">#{{ refItem.id }}</span>
-                <div class="min-w-0">
-                  <div class="m-docket-card__receipt tabular text-truncate">{{ refItem.receipt_no }}</div>
-                  <div class="m-docket-card__time tabular">
-                    {{ formatDateTime(refItem.refunded_at) }}
-                  </div>
-                </div>
+            <div class="m-order-row__left min-w-0">
+              <div class="m-order-row__title tabular text-truncate">{{ refItem.receipt_no }}</div>
+              <div v-if="refItem.reason" class="m-order-row__sub text-truncate">
+                {{ refItem.reason }}
               </div>
-
-              <div class="m-docket-card__amounts tabular">
-                <div class="m-docket-card__usd text-danger">
-                  -{{
-                    refItem.currency === 'USD'
-                      ? formatUsd(refItem.amount)
-                      : formatKhr(refItem.amount)
-                  }}
-                </div>
-                <div class="m-docket-card__khr">{{ formatUsd(refItem.amount_usd) }} USD</div>
+              <div class="m-order-row__time tabular text-truncate">
+                {{ formatDateTime(refItem.refunded_at).replace(' • ', ', ') }}
+                <template v-if="refItem.approver_name"> — {{ refItem.approver_name }}</template>
               </div>
             </div>
 
-            <div class="m-docket-card__bottom">
-              <div class="m-docket-card__meta flex-column align-items-start gap-1">
-                <div v-if="refItem.reason" class="m-refund-reason text-truncate w-100">
-                  {{ refItem.reason }}
-                </div>
-                <div class="d-flex align-items-center gap-1 flex-wrap">
-                  <span class="m-service-meta">{{ getMethodLabel(refItem.method) }}</span>
-                  <template v-if="refItem.approver_name">
-                    <span class="m-meta-sep">·</span>
-                    <span class="m-items-meta">{{ refItem.approver_name }}</span>
-                  </template>
-                </div>
+            <div class="m-order-row__right tabular">
+              <div class="m-order-row__usd text-danger">
+                -{{
+                  refItem.currency === 'USD'
+                    ? formatUsd(refItem.amount)
+                    : formatKhr(refItem.amount)
+                }}
               </div>
-
-              <i class="bi bi-chevron-right m-card-chevron ms-2"></i>
+              <div class="m-order-row__khr">{{ getMethodLabel(refItem.method) }}</div>
+              <div class="m-order-row__status is-refunded">
+                {{ $t('orders.statusRefunded') }}
+              </div>
             </div>
-          </article>
+
+            <i class="bi bi-chevron-right m-order-row__chev"></i>
+          </div>
         </div>
 
         <!-- Desktop Ledger Table (>= 768px) -->
@@ -1026,18 +950,167 @@
     <div v-if="showDetailModal && selectedOrder" class="modal-backdrop-custom" @click.self="showDetailModal = false">
       <div class="modal-card-custom modal-lg-custom">
         <div class="modal-header-custom no-print">
-          <div class="d-flex align-items-center gap-2">
+          <!-- Mobile Native Sheet Header (< 768px) -->
+          <div class="m-sheet-title-wrap d-md-none min-w-0">
+            <div class="m-sheet-receipt tabular text-truncate">{{ selectedOrder.receipt_no }}</div>
+            <span class="m-sheet-status" :class="`is-${selectedOrder.status.toLowerCase()}`">
+              {{ getOrderStatusLabel(selectedOrder.status) }}
+            </span>
+          </div>
+
+          <!-- Desktop Modal Header (>= 768px) -->
+          <div class="d-none d-md-flex align-items-center gap-2">
             <h6 class="mb-0 fw-bold">{{ $t('orders.orderTitle', { no: selectedOrder.receipt_no }) }}</h6>
             <span class="status-text" :class="selectedOrder.status.toLowerCase()">
               {{ getOrderStatusLabel(selectedOrder.status) }}
             </span>
           </div>
+
           <button type="button" class="btn-close-custom" @click="showDetailModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
 
-        <div class="modal-body-custom">
+        <!-- Clean Native Mobile Receipt Sheet Body (< 768px) -->
+        <div class="modal-body-custom m-rcp-sheet d-md-none no-print">
+          <!-- 1. Hero Amount & Context -->
+          <div class="m-rcp-hero tabular">
+            <div class="m-rcp-hero__amounts">
+              <strong class="m-rcp-hero__usd">{{ formatUsd(selectedOrder.total) }}</strong>
+              <span class="m-rcp-hero__sep"></span>
+              <span class="m-rcp-hero__khr">
+                {{
+                  formatKhr(
+                    usdToKhr(
+                      selectedOrder.total,
+                      selectedOrder.exchange_rate || selectedOrder.payments?.[0]?.khr_per_usd,
+                    ),
+                  )
+                }}
+              </span>
+            </div>
+            <div class="m-rcp-hero__meta">
+              <span class="m-rcp-hero__queue">#{{ selectedOrder.queue_no }}</span>
+              <span class="m-rcp-dot">/</span>
+              <span>
+                {{ selectedOrder.order_type === 'DINE_IN' ? $t('common.dineIn') : $t('common.takeaway') }}
+                <template v-if="selectedOrder.table_no"> #{{ selectedOrder.table_no }}</template>
+              </span>
+              <span class="m-rcp-dot">/</span>
+              <span>{{ formatDateTime(selectedOrder.created_at).replace(' • ', ', ') }}</span>
+            </div>
+          </div>
+
+          <!-- 2. Ordered Items List -->
+          <div class="m-rcp-items">
+            <div
+              v-for="item in selectedOrder.items"
+              :key="`m-rcp-item-${item.id}`"
+              class="m-rcp-item"
+            >
+              <div class="m-rcp-item__main">
+                <span class="m-rcp-item__qty tabular">{{ item.quantity }}×</span>
+                <div class="m-rcp-item__info min-w-0">
+                  <div class="m-rcp-item__name">
+                    {{ item.product_name }}
+                    <span v-if="item.variant_name" class="m-rcp-item__variant">
+                      ({{ item.variant_name }})
+                    </span>
+                  </div>
+                  <div
+                    v-if="item.sugar_level !== null || item.ice_level"
+                    class="m-rcp-item__mods"
+                  >
+                    <span v-if="item.sugar_level !== null">
+                      {{ $t('receipt.sugar') }} {{ item.sugar_level }}%
+                    </span>
+                    <span v-if="item.sugar_level !== null && item.ice_level">, </span>
+                    <span v-if="item.ice_level">{{ $t('receipt.ice') }} {{ item.ice_level }}</span>
+                  </div>
+                  <div
+                    v-for="addon in item.addons || []"
+                    :key="`m-addon-${addon.id}`"
+                    class="m-rcp-item__addon tabular"
+                  >
+                    <span>+ {{ addon.quantity }}× {{ addon.addon_name }}</span>
+                    <span>{{ formatUsd(addon.line_total) }}</span>
+                  </div>
+                </div>
+                <strong class="m-rcp-item__price tabular">{{ formatUsd(item.line_total) }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Discount Breakdown (Only when applicable) -->
+          <div v-if="selectedOrder.discount?.amount > 0" class="m-rcp-ledger tabular">
+            <div class="m-rcp-ledger__row">
+              <span class="m-rcp-ledger__lbl">{{ $t('receipt.subtotal') }}</span>
+              <span class="m-rcp-ledger__val">{{ formatUsd(selectedOrder.subtotal) }}</span>
+            </div>
+            <div class="m-rcp-ledger__row">
+              <span class="m-rcp-ledger__lbl">
+                {{ $t('common.discount') }}
+                <template v-if="selectedOrder.discount?.code">
+                  ({{ selectedOrder.discount.code }})
+                </template>
+              </span>
+              <span class="m-rcp-ledger__val text-success fw-semibold">
+                -{{ formatUsd(selectedOrder.discount.amount) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 4. Quiet Ledger Metadata (Cashier, Payment, Note) -->
+          <div class="m-rcp-ledger tabular">
+            <div v-if="selectedOrder.cashier?.name" class="m-rcp-ledger__row">
+              <span class="m-rcp-ledger__lbl">{{ $t('orders.colCashier') }}</span>
+              <span class="m-rcp-ledger__val">{{ selectedOrder.cashier.name }}</span>
+            </div>
+
+            <template v-if="selectedOrder.payments?.length > 0">
+              <template v-for="p in selectedOrder.payments" :key="`m-pay-meta-${p.id}`">
+                <div class="m-rcp-ledger__row">
+                  <span class="m-rcp-ledger__lbl">{{ $t('orders.colMethod') }}</span>
+                  <span class="m-rcp-ledger__val">
+                    {{ getMethodLabel(p.method) }}
+                    <template v-if="p.bank_name"> ({{ p.bank_name }})</template>
+                    · {{ p.currency }}
+                  </span>
+                </div>
+                <div class="m-rcp-ledger__row">
+                  <span class="m-rcp-ledger__lbl">{{ $t('orders.colReceived') }}</span>
+                  <span class="m-rcp-ledger__val fw-bold">
+                    {{ p.currency === 'USD' ? formatUsd(p.received_amount) : formatKhr(p.received_amount) }}
+                  </span>
+                </div>
+                <div v-if="p.change_usd > 0 || p.change_khr > 0" class="m-rcp-ledger__row">
+                  <span class="m-rcp-ledger__lbl">{{ $t('orders.colChange') }}</span>
+                  <span class="m-rcp-ledger__val text-success fw-semibold">
+                    {{ p.change_usd > 0 ? formatUsd(p.change_usd) : formatKhr(p.change_khr) }}
+                  </span>
+                </div>
+              </template>
+            </template>
+
+            <div v-if="selectedOrder.cancelled_at" class="m-rcp-ledger__row">
+              <span class="m-rcp-ledger__lbl">{{ $t('orders.cancelledBy') }}</span>
+              <span class="m-rcp-ledger__val text-danger">
+                {{ selectedOrder.cancelled_by?.name }}
+                <template v-if="selectedOrder.cancellation_reason">
+                  ({{ selectedOrder.cancellation_reason }})
+                </template>
+              </span>
+            </div>
+
+            <div v-if="selectedOrder.note" class="m-rcp-ledger__row">
+              <span class="m-rcp-ledger__lbl">{{ $t('common.note') }}</span>
+              <span class="m-rcp-ledger__val">{{ selectedOrder.note }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desktop Body + Print Host (>= 768px & @media print) -->
+        <div class="modal-body-custom d-none d-md-block d-print-receipt-host">
           <div class="row g-3">
             <!-- Left: Order Info & Actions -->
             <div class="col-md-6 no-print">
@@ -1255,7 +1328,53 @@
           </div>
         </div>
 
-        <div class="modal-footer-custom no-print">
+        <!-- Clean Balanced Mobile Action Footer (< 768px) -->
+        <div class="m-sheet-footer d-md-none no-print">
+          <template v-if="selectedOrder.status === 'OPEN'">
+            <div class="m-sheet-footer__grid">
+              <button
+                type="button"
+                class="m-sheet-btn is-danger-outline"
+                @click="showDetailModal = false; openCancelModal(selectedOrder)"
+              >
+                {{ $t('common.cancel') }}
+              </button>
+              <button type="button" class="m-sheet-btn is-neutral" @click="printCurrentReceipt">
+                <i class="bi bi-printer"></i>
+                <span>{{ $t('receipt.printReceipt') }}</span>
+              </button>
+            </div>
+            <button
+              type="button"
+              class="m-sheet-btn is-primary w-100"
+              @click="resumeInPos(selectedOrder.id)"
+            >
+              <span>{{ $t('orders.resumeInPos') }}</span>
+            </button>
+          </template>
+
+          <div v-else-if="selectedOrder.status === 'PAID'" class="m-sheet-footer__grid">
+            <button
+              type="button"
+              class="m-sheet-btn is-danger-outline"
+              @click="showDetailModal = false; openRefundModalFromOrder(selectedOrder.id)"
+            >
+              <span>{{ $t('orders.refundOrder').replace(' (Refund)', '') }}</span>
+            </button>
+            <button type="button" class="m-sheet-btn is-primary" @click="printCurrentReceipt">
+              <i class="bi bi-printer"></i>
+              <span>{{ $t('receipt.printReceipt') }}</span>
+            </button>
+          </div>
+
+          <button v-else type="button" class="m-sheet-btn is-primary w-100" @click="printCurrentReceipt">
+            <i class="bi bi-printer"></i>
+            <span>{{ $t('receipt.printReceipt') }}</span>
+          </button>
+        </div>
+
+        <!-- Desktop Footer (>= 768px) -->
+        <div class="modal-footer-custom d-none d-md-flex no-print">
           <button type="button" class="btn btn-light-coffee" @click="showDetailModal = false">
             {{ $t('common.close') }}
           </button>
@@ -1267,6 +1386,15 @@
             @click="resumeInPos(selectedOrder.id)"
           >
             <i class="bi bi-calculator me-1"></i>{{ $t('orders.resumeInPos') }}
+          </button>
+
+          <button
+            v-if="selectedOrder.status === 'OPEN'"
+            type="button"
+            class="btn btn-outline-danger"
+            @click="showDetailModal = false; openCancelModal(selectedOrder)"
+          >
+            <i class="bi bi-x-lg me-1"></i>{{ $t('common.cancel') }}
           </button>
 
           <button
@@ -1496,22 +1624,20 @@
                 </button>
               </div>
 
-              <div class="row g-2">
-                <div class="col-6">
-                  <label class="form-label-clean">{{ $t('common.date') }} (Start)</label>
+              <div>
+                <label class="form-label-clean">{{ $t('common.date') }}</label>
+                <div class="d-flex align-items-center gap-2">
                   <input
                     v-model="orderFilters.start_date"
                     type="date"
-                    class="form-control form-control-clean"
+                    class="form-control form-control-clean flex-grow-1"
                     @change="fetchOrders(1)"
                   />
-                </div>
-                <div class="col-6">
-                  <label class="form-label-clean">{{ $t('common.date') }} (End)</label>
+                  <span class="text-muted small fw-semibold">→</span>
                   <input
                     v-model="orderFilters.end_date"
                     type="date"
-                    class="form-control form-control-clean"
+                    class="form-control form-control-clean flex-grow-1"
                     @change="fetchOrders(1)"
                   />
                 </div>
@@ -2272,31 +2398,42 @@ onMounted(async () => {
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
-    margin-bottom: 0.55rem;
+    margin-bottom: 0.5rem;
   }
 
-  /* Equal 3-column Segmented Switcher — Zero Truncated Tab Labels */
+  /* Equal 3-column Centered Native Segmented Control */
   .orders-segmented-tabs {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
     width: 100%;
     overflow: hidden !important;
     padding: 3px !important;
-    border-radius: 12px !important;
-    background: #e7efea;
-    border-color: #dbe6df;
+    border-radius: 10px !important;
+    background: #e7eeea;
+    border: none !important;
   }
 
   .orders-segmented-tabs .seg-tab-btn {
-    padding: 0.42rem 0.25rem !important;
-    font-size: 0.75rem !important;
-    min-height: 36px;
-    gap: 0.28rem;
+    justify-content: center;
+    width: 100%;
+    padding: 0 0.3rem !important;
+    font-size: 0.76rem !important;
+    min-height: 34px;
+    border-radius: 8px !important;
     min-width: 0;
+    color: #53665b;
   }
 
-  .orders-segmented-tabs .seg-tab-btn i {
-    display: none;
+  .orders-segmented-tabs .seg-tab-btn.active {
+    color: #14211b;
+    font-weight: 700;
+    box-shadow: 0 1px 2px rgba(16, 28, 21, 0.07);
+  }
+
+  .orders-segmented-tabs .seg-tab-btn i,
+  .orders-segmented-tabs .seg-tab-count {
+    display: none !important;
   }
 
   .orders-segmented-tabs .seg-tab-btn span {
@@ -2305,29 +2442,7 @@ onMounted(async () => {
     white-space: nowrap;
   }
 
-  .status-pills {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 1px;
-    gap: 0.35rem;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .status-pills::-webkit-scrollbar {
-    display: none;
-  }
-
-  .status-pill {
-    flex-shrink: 0;
-    border-radius: 999px;
-    padding: 0.34rem 0.78rem;
-    font-size: 0.76rem;
-    border-width: 1px;
-  }
-
-  /* Transparent wrapper so bespoke cards float cleanly on the Porcelain canvas */
+  /* Transparent wrapper so native grouped list sits cleanly on the canvas */
   .orders-surface {
     background: transparent !important;
     border: none !important;
@@ -2338,17 +2453,17 @@ onMounted(async () => {
   .orders-surface > .empty-box,
   .orders-surface > .pagination-bar {
     background: #ffffff;
-    border: 1px solid #e2ece6;
-    border-radius: 16px;
+    border: 1px solid #e3ebe6;
+    border-radius: 14px;
   }
 
   .orders-surface > .pagination-bar {
-    margin-top: 0.65rem;
+    margin-top: 0.6rem;
   }
 
-  /* Compact Single-Row Search + Filter Trigger */
+  /* Clean Search + Filter Strip */
   .m-search-strip {
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.55rem;
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
@@ -2357,55 +2472,89 @@ onMounted(async () => {
   .m-search-row {
     display: flex;
     align-items: center;
-    gap: 0.42rem;
+    gap: 0.4rem;
   }
 
   .m-search-row .filter-input.search-input {
-    height: 41px !important;
-    border-radius: 12px !important;
-    border: 1px solid #dfeae3;
+    height: 38px !important;
+    border-radius: 10px !important;
+    border: 1px solid #e0e9e3;
     background: #ffffff;
-    box-shadow: 0 1px 2px rgba(20, 35, 26, 0.03);
+    box-shadow: none;
   }
 
   .m-icon-btn {
     position: relative;
-    width: 41px;
-    height: 41px;
-    border-radius: 12px;
-    border: 1px solid #dfeae3;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid #e0e9e3;
     background: #ffffff;
-    color: #354a3e;
+    color: #3d5145;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.94rem;
+    font-size: 0.9rem;
     flex-shrink: 0;
-    box-shadow: 0 1px 2px rgba(20, 35, 26, 0.03);
   }
 
   .m-icon-btn.is-active {
-    background: #eaf5ee;
-    border-color: #2d5a43;
-    color: #1e3f2f;
+    background: #f2f8f4;
+    border-color: #1f4d36;
+    color: #1f4d36;
   }
 
-  .m-filter-dot {
+  .m-filter-count {
     position: absolute;
     top: -4px;
     right: -4px;
-    min-width: 18px;
-    height: 18px;
+    min-width: 17px;
+    height: 17px;
     padding: 0 4px;
     border-radius: 999px;
-    background: #2d5a43;
+    background: #1f4d36;
     color: #ffffff;
-    font-size: 0.66rem;
-    font-weight: 800;
+    font-size: 0.64rem;
+    font-weight: 700;
     border: 1.5px solid #f4f7f5;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+
+  /* Dot-Free Clean Status Filter Chips */
+  .m-status-chips {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.36rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .m-status-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .m-status-filter-btn {
+    flex-shrink: 0;
+    height: 31px;
+    padding: 0 0.78rem;
+    border-radius: 8px;
+    border: 1px solid #e0e9e3;
+    background: #ffffff;
+    color: #4c6054;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .m-status-filter-btn.active {
+    background: #1f4d36;
+    border-color: #1f4d36;
+    color: #ffffff;
   }
 
   .m-active-chips {
@@ -2415,262 +2564,131 @@ onMounted(async () => {
   }
 
   .m-active-chip {
-    border: 1px solid #c6dfd0;
-    background: #eaf5ee;
-    color: #1b432e;
-    border-radius: 999px;
-    padding: 0.2rem 0.6rem;
+    border: 1px solid #d5e3db;
+    background: #ffffff;
+    color: #25382d;
+    border-radius: 8px;
+    padding: 0.16rem 0.52rem;
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
   }
 
-  /* Bespoke Native Docket Cards */
-  .m-docket-feed {
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-  }
-
-  .m-docket-card {
+  /* Clean Native Inset Grouped List */
+  .m-order-list {
     background: #ffffff;
-    border: 1px solid #e2ebe5;
-    border-radius: 16px;
-    padding: 0.78rem 0.88rem;
-    box-shadow: 0 1px 3px rgba(20, 35, 26, 0.035);
-    transition: transform 0.14s ease, border-color 0.14s ease;
-    cursor: pointer;
+    border: 1px solid #e3ebe6;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(16, 28, 21, 0.03);
   }
 
-  .m-docket-card:active {
-    transform: scale(0.985);
-    background: #fafcfb;
-  }
-
-  .m-docket-card__top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.65rem;
-  }
-
-  .m-docket-card__identity {
+  .m-order-row {
     display: flex;
     align-items: center;
-    gap: 0.62rem;
-    min-width: 0;
+    justify-content: space-between;
+    gap: 0.65rem;
+    padding: 0.76rem 0.95rem;
+    background: #ffffff;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+  }
+
+  .m-order-row + .m-order-row {
+    border-top: 1px solid #eef3f0;
+  }
+
+  .m-order-row:active {
+    background: #f6f9f7;
+  }
+
+  .m-order-row__left {
     flex: 1;
   }
 
-  .m-queue-badge,
-  .m-method-icon {
-    min-width: 36px;
-    height: 36px;
-    padding: 0 7px;
-    border-radius: 10px;
-    background: #edf5f0;
-    color: #1e3f2f;
-    font-size: 0.8rem;
-    font-weight: 800;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .m-queue-badge.is-open {
-    background: #fef3c7;
-    color: #b45309;
-  }
-
-  .m-queue-badge.is-cancelled {
-    background: #f1f5f9;
-    color: #64748b;
-  }
-
-  .m-queue-badge.is-refunded {
-    background: #fee2e2;
-    color: #b91c1c;
-  }
-
-  .m-docket-card__receipt {
-    font-size: 0.87rem;
-    font-weight: 800;
-    color: #15221b;
+  .m-order-row__title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #14211b;
     letter-spacing: -0.01em;
-    line-height: 1.22;
+    line-height: 1.25;
   }
 
-  .m-docket-card__time {
-    font-size: 0.72rem;
-    font-weight: 500;
-    color: #687b70;
+  .m-order-row__sub {
     margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #495d51;
+    line-height: 1.3;
   }
 
-  .m-docket-card__amounts {
+  .m-order-row__queue {
+    font-weight: 700;
+    color: #1f4d36;
+  }
+
+  .m-order-row__sep {
+    margin: 0 0.32rem;
+    color: #c2d0c7;
+    font-weight: 400;
+  }
+
+  .m-order-row__time {
+    margin-top: 2px;
+    font-size: 0.71rem;
+    font-weight: 400;
+    color: #76887d;
+  }
+
+  .m-order-row__right {
     text-align: right;
     flex-shrink: 0;
   }
 
-  .m-docket-card__usd {
-    font-size: 0.98rem;
-    font-weight: 800;
-    color: #183b29;
-    line-height: 1.2;
+  .m-order-row__usd {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #14211b;
+    line-height: 1.22;
   }
 
-  .m-docket-card__khr {
-    font-size: 0.71rem;
+  .m-order-row__khr {
+    margin-top: 1px;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: #74867b;
+  }
+
+  .m-order-row__status {
+    margin-top: 2px;
+    font-size: 0.72rem;
     font-weight: 600;
-    color: #6b7f73;
-    margin-top: 1px;
+    line-height: 1.25;
   }
 
-  .m-docket-card__change {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #15803d;
-    margin-top: 1px;
-  }
-
-  .m-docket-card__bottom {
-    margin-top: 0.58rem;
-    padding-top: 0.52rem;
-    border-top: 1px solid #eef3f0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-
-  .m-docket-card__meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.38rem;
-    min-width: 0;
-    flex: 1;
-    font-size: 0.75rem;
-    color: #4b5f53;
-  }
-
-  .m-status-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.14rem 0.52rem;
-    border-radius: 999px;
-    font-size: 0.71rem;
-    font-weight: 700;
-    line-height: 1.35;
-  }
-
-  .m-status-chip__dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-
-  .m-status-chip.is-paid {
-    background: #eaf7ef;
+  .m-order-row__status.is-paid {
     color: #15803d;
   }
 
-  .m-status-chip.is-open {
-    background: #fef3c7;
+  .m-order-row__status.is-open {
     color: #b45309;
   }
 
-  .m-status-chip.is-cancelled {
-    background: #f1f5f9;
-    color: #526358;
+  .m-order-row__status.is-cancelled {
+    color: #64748b;
   }
 
-  .m-status-chip.is-refunded {
-    background: #fee2e2;
-    color: #dc2626;
+  .m-order-row__status.is-refunded {
+    color: #b42318;
   }
 
-  .m-service-meta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.28rem;
-    font-weight: 600;
-    color: #2f4438;
-  }
-
-  .m-meta-sep {
-    color: #b4c4bb;
-  }
-
-  .m-items-meta {
-    font-weight: 600;
-    color: #5d7165;
-  }
-
-  .m-refund-reason {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #26382e;
-  }
-
-  .m-docket-card__actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.38rem;
+  .m-order-row__chev {
+    font-size: 0.72rem;
+    color: #b4c2ba;
     flex-shrink: 0;
-  }
-
-  .m-pill-btn {
-    height: 30px;
-    padding: 0 0.65rem;
-    border-radius: 8px;
-    border: none;
-    background: #2d5a43;
-    color: #ffffff;
-    font-size: 0.73rem;
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-
-  .m-sq-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    border: 1px solid #dfeae3;
-    background: #f8fbf9;
-    color: #465a4e;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.78rem;
-  }
-
-  .m-sq-btn.is-refund {
-    background: #fdf8f2;
-    border-color: #eedbc3;
-    color: #9a5b13;
-  }
-
-  .m-sq-btn.is-danger {
-    background: #fef2f2;
-    border-color: #fecaca;
-    color: #dc2626;
-  }
-
-  .m-card-chevron {
-    font-size: 0.78rem;
-    color: #9ab0a3;
-    margin-left: 2px;
+    margin-left: 0.1rem;
   }
 
   /* Filter Bottom Sheet Controls */
@@ -2697,8 +2715,8 @@ onMounted(async () => {
   }
 
   .m-sheet-pill.active {
-    background: #2d5a43;
-    border-color: #2d5a43;
+    background: #1f4d36;
+    border-color: #1f4d36;
     color: #ffffff;
     font-weight: 700;
   }
@@ -2719,12 +2737,287 @@ onMounted(async () => {
 
   .m-shift-toggle-row.active {
     background: #eaf5ee;
-    border-color: #2d5a43;
+    border-color: #1f4d36;
     color: #1b432e;
   }
 
-  .modal-footer-custom {
+  /* ================= NATIVE MOBILE BOTTOM SHEETS (ALL MODALS) ================= */
+  .modal-header-custom {
+    padding: 0.75rem 1.05rem !important;
+    border-bottom: 1px solid #eef3f0 !important;
+    background: #ffffff;
+  }
+
+  .btn-close-custom {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    background: #f1f5f2 !important;
+    color: #495d51 !important;
+    font-size: 0.76rem;
+    flex-shrink: 0;
+  }
+
+  .m-sheet-title-wrap {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex: 1;
+  }
+
+  .m-sheet-receipt {
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: #14211b;
+    letter-spacing: -0.01em;
+  }
+
+  .m-sheet-status {
+    font-size: 0.76rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .m-sheet-status.is-paid {
+    color: #15803d;
+  }
+
+  .m-sheet-status.is-open {
+    color: #b45309;
+  }
+
+  .m-sheet-status.is-cancelled {
+    color: #64748b;
+  }
+
+  .m-sheet-status.is-refunded {
+    color: #b42318;
+  }
+
+  /* Native Receipt Sheet Body */
+  .m-rcp-sheet {
+    padding: 0.95rem 1.05rem 1.05rem !important;
+  }
+
+  .m-rcp-hero {
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid #eef3f0;
+  }
+
+  .m-rcp-hero__amounts {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
     flex-wrap: wrap;
+  }
+
+  .m-rcp-hero__usd {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #111d17;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+
+  .m-rcp-hero__sep {
+    width: 1px;
+    height: 17px;
+    background: #d8e3dc;
+    align-self: center;
+  }
+
+  .m-rcp-hero__khr {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #264d39;
+  }
+
+  .m-rcp-hero__meta {
+    margin-top: 0.32rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #64776c;
+    line-height: 1.35;
+  }
+
+  .m-rcp-hero__queue {
+    font-weight: 700;
+    color: #1f4d36;
+  }
+
+  .m-rcp-dot {
+    margin: 0 0.32rem;
+    color: #c2d0c7;
+  }
+
+  /* Ordered Items List */
+  .m-rcp-items {
+    padding: 0.35rem 0;
+    border-bottom: 1px solid #eef3f0;
+  }
+
+  .m-rcp-item {
+    padding: 0.5rem 0;
+  }
+
+  .m-rcp-item + .m-rcp-item {
+    border-top: 1px solid #f5f8f6;
+  }
+
+  .m-rcp-item__main {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
+
+  .m-rcp-item__qty {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #1f4d36;
+    min-width: 22px;
+    padding-top: 1px;
+  }
+
+  .m-rcp-item__info {
+    flex: 1;
+  }
+
+  .m-rcp-item__name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #14211b;
+    line-height: 1.3;
+  }
+
+  .m-rcp-item__variant {
+    font-weight: 400;
+    color: #687b70;
+  }
+
+  .m-rcp-item__mods {
+    margin-top: 2px;
+    font-size: 0.73rem;
+    color: #728479;
+  }
+
+  .m-rcp-item__addon {
+    margin-top: 2px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.73rem;
+    color: #5b6e63;
+  }
+
+  .m-rcp-item__price {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #14211b;
+    flex-shrink: 0;
+  }
+
+  /* Quiet Ledger Metadata Rows */
+  .m-rcp-ledger {
+    padding: 0.38rem 0;
+  }
+
+  .m-rcp-ledger + .m-rcp-ledger {
+    border-top: 1px solid #eef3f0;
+  }
+
+  .m-rcp-ledger__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.32rem 0;
+    font-size: 0.78rem;
+  }
+
+  .m-rcp-ledger__lbl {
+    color: #6b7d72;
+    font-weight: 400;
+    flex-shrink: 0;
+  }
+
+  .m-rcp-ledger__val {
+    color: #14211b;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  /* Balanced Sticky Mobile Sheet Footer */
+  .m-sheet-footer {
+    padding: 0.75rem 1.05rem calc(0.85rem + var(--safe-bottom));
+    border-top: 1px solid #eef3f0;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .m-sheet-footer__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .m-sheet-btn {
+    height: 42px;
+    border-radius: 10px;
+    font-size: 0.81rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.38rem;
+    padding: 0 0.65rem;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .m-sheet-btn.is-primary {
+    background: #1f4d36;
+    border: 1px solid #1f4d36;
+    color: #ffffff;
+  }
+
+  .m-sheet-btn.is-neutral {
+    background: #ffffff;
+    border: 1px solid #dce6e0;
+    color: #26382e;
+  }
+
+  .m-sheet-btn.is-danger-outline {
+    background: #ffffff;
+    border: 1px solid #e3ceca;
+    color: #b42318;
+  }
+
+  /* Clean Cancel, Refund & Filter Sheet Footers */
+  .modal-body-custom .info-box {
+    background: #ffffff;
+    border: none;
+    border-bottom: 1px solid #eef3f0;
+    border-radius: 0;
+    padding: 0 0 0.75rem 0;
+  }
+
+  .modal-footer-custom:not(.d-none) {
+    background: #ffffff !important;
+    border-top: 1px solid #eef3f0 !important;
+    padding: 0.75rem 1.05rem calc(0.85rem + var(--safe-bottom)) !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 0.5rem !important;
+  }
+
+  .modal-footer-custom:not(.d-none) > button {
+    width: 100%;
+    height: 42px !important;
+    min-height: 42px !important;
+    border-radius: 10px !important;
+    margin: 0 !important;
   }
 }
 </style>

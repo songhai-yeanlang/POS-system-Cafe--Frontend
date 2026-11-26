@@ -257,6 +257,11 @@ body {
     visibility: hidden;
   }
 
+  .d-print-receipt-host {
+    display: block !important;
+    overflow: visible !important;
+  }
+
   #printable-receipt,
   #printable-receipt *,
   #printable-order-receipt,
