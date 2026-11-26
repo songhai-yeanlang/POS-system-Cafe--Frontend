@@ -142,7 +142,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="clean-table">
+        <table class="clean-table mobile-card-table">
           <thead>
             <tr>
               <th style="width: 72px">{{ $t('reports.colRank') }}</th>
@@ -157,27 +157,30 @@
           <tbody>
             <tr v-for="item in topProductsData.products" :key="item.variant_id">
               <td>
-                <span class="rank-text tabular" :class="{ 'is-top': item.rank <= 3 }">
+                <span class="cell-primary d-md-none">#{{ item.rank }} · {{ item.product_name }}</span>
+                <span class="rank-text tabular d-none d-md-inline" :class="{ 'is-top': item.rank <= 3 }">
                   #{{ item.rank }}
                 </span>
               </td>
-              <td>
+              <td class="d-none d-md-table-cell">
                 <span class="cell-primary">{{ item.product_name }}</span>
               </td>
-              <td>
+              <td :data-label="$t('reports.colVariant')">
                 <span class="cell-secondary">{{ item.variant_name }}</span>
               </td>
-              <td>
+              <td :data-label="$t('reports.colCategory')">
                 <span class="cell-secondary">{{ $tCategory(item.category_name) }}</span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colUnitsSold')" class="text-end">
                 <span class="cell-primary tabular">{{ item.total_quantity_sold }}</span>
               </td>
-              <td class="text-end">
-                <div class="cell-primary tabular">{{ formatUsd(item.total_revenue_usd) }}</div>
-                <div class="cell-sub tabular">{{ formatKhr(usdToKhr(item.total_revenue_usd)) }}</div>
+              <td :data-label="$t('reports.colRevenue')" class="text-end">
+                <div>
+                  <div class="cell-primary tabular">{{ formatUsd(item.total_revenue_usd) }}</div>
+                  <div class="cell-sub tabular">{{ formatKhr(usdToKhr(item.total_revenue_usd)) }}</div>
+                </div>
               </td>
-              <td>
+              <td :data-label="$t('reports.colRevenueShare')">
                 <div class="share-cell">
                   <div class="share-bar-track">
                     <div
@@ -231,7 +234,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="clean-table">
+        <table class="clean-table mobile-card-table">
           <thead>
             <tr>
               <th>{{ $t('inventory.colIngredient') }}</th>
@@ -246,12 +249,14 @@
           <tbody>
             <tr v-for="ing in inventoryUsageData.ingredients" :key="ing.ingredient_id">
               <td>
-                <div class="cell-primary">{{ ing.ingredient_name }}</div>
-                <div class="cell-sub tabular">
-                  {{ $t('inventory.colMinAlert') }}: {{ formatQty(ing.minimum_stock) }} {{ ing.unit }}
+                <div>
+                  <div class="cell-primary">{{ ing.ingredient_name }}</div>
+                  <div class="cell-sub tabular">
+                    {{ $t('inventory.colMinAlert') }}: {{ formatQty(ing.minimum_stock) }} {{ ing.unit }}
+                  </div>
                 </div>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('inventory.colCurrentStock')" class="text-end">
                 <span
                   class="cell-primary tabular"
                   :class="getStockColorClass(ing)"
@@ -259,27 +264,27 @@
                   {{ formatQty(ing.current_stock) }} {{ ing.unit }}
                 </span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colConsumedSales')" class="text-end">
                 <span class="cell-secondary tabular">
                   {{ Number(ing.total_consumed_sales) > 0 ? `${formatQty(ing.total_consumed_sales)} ${ing.unit}` : '0' }}
                 </span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colPurchased')" class="text-end">
                 <span class="tabular" :class="Number(ing.total_purchased) > 0 ? 'text-emerald fw-bold' : 'text-muted-dash'">
                   {{ Number(ing.total_purchased) > 0 ? `+${formatQty(ing.total_purchased)} ${ing.unit}` : '0' }}
                 </span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colWasted')" class="text-end">
                 <span class="tabular" :class="Number(ing.total_wasted) > 0 ? 'text-crimson fw-bold' : 'text-muted-dash'">
                   {{ Number(ing.total_wasted) > 0 ? `-${formatQty(ing.total_wasted)} ${ing.unit}` : '0' }}
                 </span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colReturned')" class="text-end">
                 <span class="cell-secondary tabular">
                   {{ Number(ing.total_returned) > 0 ? `+${formatQty(ing.total_returned)} ${ing.unit}` : '0' }}
                 </span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('common.status')" class="text-end">
                 <span class="status-text" :class="getStockColorClass(ing)">
                   {{ getStockStatusLabel(ing) }}
                 </span>
@@ -316,7 +321,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="clean-table">
+        <table class="clean-table mobile-card-table">
           <thead>
             <tr>
               <th>{{ $t('products.colCategoryName') }}</th>
@@ -331,16 +336,16 @@
               <td>
                 <span class="cell-primary">{{ $tCategory(cat.category_name) }}</span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colItemsSold')" class="text-end">
                 <span class="cell-primary tabular">{{ cat.total_items_sold }}</span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colTotalRevenueUsd')" class="text-end">
                 <span class="cell-primary tabular">{{ formatUsd(cat.total_revenue_usd) }}</span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colEquivalentKhr')" class="text-end">
                 <span class="cell-secondary tabular">{{ formatKhr(usdToKhr(cat.total_revenue_usd)) }}</span>
               </td>
-              <td>
+              <td :data-label="$t('reports.colShareOfRevenue')">
                 <div class="share-cell">
                   <div class="share-bar-track">
                     <div
@@ -394,7 +399,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="clean-table">
+        <table class="clean-table mobile-card-table">
           <thead>
             <tr>
               <th>{{ $t('orders.colMethod') }}</th>
@@ -411,26 +416,26 @@
               <td>
                 <span class="cell-primary">{{ formatMethodName(pm.method) }}</span>
               </td>
-              <td>
+              <td :data-label="$t('expenses.currencyLabel')">
                 <span class="cell-secondary tabular">{{ pm.currency }}</span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colTransactions')" class="text-end">
                 <span class="cell-primary tabular">{{ pm.transaction_count }}</span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colRawGross')" class="text-end">
                 <span class="cell-secondary tabular">
                   {{ pm.currency === 'USD' ? formatUsd(pm.gross_amount) : formatKhr(pm.gross_amount) }}
                 </span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colRefundedUsd')" class="text-end">
                 <span class="tabular" :class="Number(pm.refunded_amount_usd) > 0 ? 'text-crimson fw-bold' : 'text-muted-dash'">
                   {{ Number(pm.refunded_amount_usd) > 0 ? `-${formatUsd(pm.refunded_amount_usd)}` : '—' }}
                 </span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colNetRevenueUsd')" class="text-end">
                 <span class="cell-primary tabular">{{ formatUsd(pm.net_amount_usd) }}</span>
               </td>
-              <td>
+              <td :data-label="$t('reports.colNetShare')">
                 <div class="share-cell">
                   <div class="share-bar-track">
                     <div
@@ -466,7 +471,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="clean-table">
+        <table class="clean-table mobile-card-table">
           <thead>
             <tr>
               <th>{{ $t('reports.colStaffMember') }}</th>
@@ -481,29 +486,33 @@
           <tbody>
             <tr v-for="st in staffPerformanceData.staff" :key="st.staff_id">
               <td>
-                <div class="cell-primary">{{ st.staff_name }}</div>
-                <div class="cell-sub">{{ st.staff_email }}</div>
+                <div>
+                  <div class="cell-primary">{{ st.staff_name }}</div>
+                  <div class="cell-sub">{{ st.staff_email }}</div>
+                </div>
               </td>
-              <td>
+              <td :data-label="$t('reports.colRole')">
                 <span class="cell-secondary">{{ formatRoleName(st.role) }}</span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colShiftsOpened')" class="text-end">
                 <span class="cell-secondary tabular">{{ st.shifts_count }}</span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colPaidOrders')" class="text-end">
                 <span class="cell-primary tabular">{{ st.paid_orders_count }}</span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colAvgOrderValue')" class="text-end">
                 <span class="cell-secondary tabular">{{ formatUsd(st.average_order_value_usd) }}</span>
               </td>
-              <td class="text-end">
+              <td :data-label="$t('reports.colDiscountsGiven')" class="text-end">
                 <span class="tabular" :class="Number(st.total_discounts_usd) > 0 ? 'text-amber fw-bold' : 'text-muted-dash'">
                   {{ Number(st.total_discounts_usd) > 0 ? formatUsd(st.total_discounts_usd) : '$0.00' }}
                 </span>
               </td>
-              <td class="text-end">
-                <div class="cell-primary tabular">{{ formatUsd(st.total_sales_usd) }}</div>
-                <div class="cell-sub tabular">{{ formatKhr(usdToKhr(st.total_sales_usd)) }}</div>
+              <td :data-label="$t('reports.colTotalPaidSales')" class="text-end">
+                <div>
+                  <div class="cell-primary tabular">{{ formatUsd(st.total_sales_usd) }}</div>
+                  <div class="cell-sub tabular">{{ formatKhr(usdToKhr(st.total_sales_usd)) }}</div>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -896,5 +905,43 @@ onMounted(() => {
   color: var(--roast-ink);
   min-width: 48px;
   text-align: right;
+}
+
+@media (max-width: 767.98px) {
+  .reports-page {
+    gap: 0.75rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .reports-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .reports-top-bar__right {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .reports-top-bar__right .date-range-group {
+    flex: 1 1 200px;
+    height: 40px;
+    border-radius: 10px;
+    justify-content: space-between;
+  }
+
+  .reports-top-bar__right .toolbar-btn {
+    height: 40px;
+    width: 40px;
+    padding: 0;
+    border-radius: 10px;
+  }
+
+  .report-card-header {
+    padding: 0.78rem 0.9rem;
+  }
 }
 </style>

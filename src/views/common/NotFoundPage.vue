@@ -40,4 +40,12 @@ const authStore = useAuthStore()
   font-weight: 700;
   font-size: 13px;
 }
+
+@media (max-width: 575.98px) {
+  .not-found-card {
+    padding: 2rem 1.5rem !important;
+    border-radius: 22px;
+    box-shadow: 0 10px 30px rgba(20, 35, 26, 0.06);
+  }
+}
 </style>

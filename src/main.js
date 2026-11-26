@@ -11,6 +11,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import './assets/css/style.css'
 import './assets/css/shared-ui.css'
+import './assets/css/mobile-app.css'
 
 const app = createApp(App)
 
@@ -19,3 +20,9 @@ app.use(router)
 app.use(i18n)
 
 app.mount('#app')
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  })
+}

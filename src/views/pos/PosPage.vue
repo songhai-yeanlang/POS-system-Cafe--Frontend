@@ -64,9 +64,22 @@
                 @click="openPendingOrdersModal"
               >
                 <i class="bi bi-receipt-cutoff"></i>
-                <span>{{ $t('pos.openOrders') }}</span>
+                <span class="queue-trigger__label">{{ $t('pos.openOrders') }}</span>
                 <span v-if="openOrdersCount > 0" class="queue-trigger__count tabular">
                   {{ openOrdersCount }}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                class="icon-trigger mobile-docket-trigger d-lg-none"
+                :class="{ 'has-items': totalCartUnits > 0 || !!editingOrder }"
+                :aria-label="$t('nav.viewCart')"
+                @click="isMobileDocketOpen = true"
+              >
+                <i class="bi bi-bag-check"></i>
+                <span v-if="totalCartUnits > 0" class="mobile-docket-trigger__badge tabular">
+                  {{ totalCartUnits }}
                 </span>
               </button>
 
@@ -203,8 +216,20 @@
         </div>
       </section>
 
+      <!-- Mobile Docket Backdrop (< 992px) -->
+      <div
+        v-if="isMobileDocketOpen"
+        class="mobile-docket-backdrop d-lg-none"
+        @click="isMobileDocketOpen = false"
+      ></div>
+
       <!-- RIGHT ZONE: BARISTA ORDER DOCKET & REGISTER SLIP -->
-      <aside class="barista-docket" aria-label="Current order docket">
+      <aside
+        class="barista-docket"
+        :class="{ 'is-mobile-open': isMobileDocketOpen }"
+        aria-label="Current order docket"
+      >
+        <div class="mobile-docket-handle d-lg-none" aria-hidden="true"></div>
         <!-- Docket Top Header -->
         <header class="docket-head">
           <div class="docket-head__top">
@@ -221,15 +246,26 @@
               </span>
             </div>
 
-            <button
-              v-if="cartItems.length > 0 || editingOrder"
-              type="button"
-              class="docket-head__clear"
-              @click="resetCart"
-            >
-              <i class="bi bi-trash3"></i>
-              <span>{{ $t('common.clear') }}</span>
-            </button>
+            <div class="d-flex align-items-center gap-2">
+              <button
+                v-if="cartItems.length > 0 || editingOrder"
+                type="button"
+                class="docket-head__clear"
+                @click="resetCart"
+              >
+                <i class="bi bi-trash3"></i>
+                <span>{{ $t('common.clear') }}</span>
+              </button>
+
+              <button
+                type="button"
+                class="docket-mobile-close d-lg-none"
+                :aria-label="$t('common.close')"
+                @click="isMobileDocketOpen = false"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
           </div>
 
           <!-- Dining Mode & Table Assignment -->
@@ -493,6 +529,45 @@
         </footer>
       </aside>
     </div>
+
+    <!-- ================= MOBILE FLOATING CART BAR (< 992px) ================= -->
+    <Transition name="mobile-cart-pop">
+      <div
+        v-if="(cartItems.length > 0 || editingOrder) && !isMobileDocketOpen"
+        class="mobile-floating-cart d-lg-none"
+      >
+        <button
+          type="button"
+          class="mobile-floating-cart__summary"
+          @click="isMobileDocketOpen = true"
+        >
+          <span class="mobile-floating-cart__badge tabular">{{ totalCartUnits }}</span>
+          <span class="mobile-floating-cart__info">
+            <span class="mobile-floating-cart__title">
+              {{
+                editingOrder
+                  ? $t('pos.orderQueueTitle', { no: editingOrder.queue_no })
+                  : $t('nav.viewCart')
+              }}
+              <i class="bi bi-chevron-up ms-1"></i>
+            </span>
+            <span class="mobile-floating-cart__sub tabular">
+              {{ formatUsd(cartGrandTotal) }} · {{ formatKhr(usdToKhr(cartGrandTotal)) }}
+            </span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          class="mobile-floating-cart__pay tabular"
+          :disabled="cartItems.length === 0 || isSubmittingOrder || !appStore.hasOpenShift"
+          @click="openCheckoutModal"
+        >
+          <i class="bi bi-cash-coin"></i>
+          <span>{{ $t('pos.pay') }}</span>
+        </button>
+      </div>
+    </Transition>
 
     <!-- ================= MODAL 1: ITEM CUSTOMIZATION ================= -->
     <div
@@ -1831,6 +1906,7 @@ const selectCategory = (catId, event) => {
 const cartItems = ref([])
 const editingOrder = ref(null)
 const isSubmittingOrder = ref(false)
+const isMobileDocketOpen = ref(false)
 
 const orderForm = reactive({
   order_type: 'TAKEAWAY',
@@ -2713,6 +2789,7 @@ const resetCart = () => {
   cartItems.value = []
   editingOrder.value = null
   activeCheckoutOrder.value = null
+  isMobileDocketOpen.value = false
   orderForm.order_type = 'TAKEAWAY'
   orderForm.table_no = ''
   orderForm.note = ''
@@ -2917,6 +2994,9 @@ const loadOrderIntoCart = async (orderId) => {
     })
 
     showOpenOrdersModal.value = false
+    if (window.innerWidth < 992) {
+      isMobileDocketOpen.value = true
+    }
     toast.info(`Loaded Order #${ord.queue_no} (${ord.receipt_no})`)
   } catch (err) {
     toast.error(err.response?.data?.message || 'Failed to load open order')
@@ -3098,7 +3178,7 @@ onUnmounted(() => {
     height: auto;
   }
   .counter-stage {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -4180,7 +4260,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1055;
+  z-index: 1085;
   padding: 1rem;
 }
 
@@ -5381,6 +5461,440 @@ onUnmounted(() => {
   color: #166534;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* ==========================================================================
+   NATIVE MOBILE APP POS EXPERIENCE (< 992px)
+   ========================================================================== */
+.mobile-docket-trigger {
+  position: relative;
+}
+
+.mobile-docket-trigger.has-items {
+  border-color: var(--botanical-espresso);
+  background: #eaf5ee;
+  color: var(--botanical-espresso);
+}
+
+.mobile-docket-trigger__badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--botanical-espresso);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #ffffff;
+}
+
+.docket-mobile-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--ledger-line);
+  background: #f4f8f5;
+  color: #465a4e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 991.98px) {
+  .pos-shell {
+    height: auto !important;
+    min-height: 0 !important;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    gap: 0.55rem;
+  }
+
+  .counter-stage {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .shift-notice {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.75rem;
+    border-radius: 14px;
+    gap: 0.65rem;
+  }
+
+  .shift-notice__desc {
+    white-space: normal;
+  }
+
+  .shift-notice__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .shift-notice__actions .pos-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 40px;
+    border-radius: 10px;
+  }
+
+  .menu-board {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: visible !important;
+  }
+
+  .menu-board__header {
+    position: sticky;
+    top: calc(var(--safe-top, 0px) + var(--mobile-header-h, 54px));
+    z-index: 20;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    background: rgba(244, 247, 245, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    margin: 0;
+    padding: 0.25rem 0 0.55rem;
+    border-bottom: 1px solid #e3ece6;
+    gap: 0.5rem;
+  }
+
+  .menu-board__controls {
+    width: 100%;
+    min-width: 0;
+    gap: 0.42rem;
+  }
+
+  .search-well__input {
+    height: 40px;
+    border-radius: 12px;
+    border-color: #dfeae3;
+    background: #ffffff;
+    padding-left: 35px;
+    padding-right: 30px;
+  }
+
+  .queue-trigger,
+  .icon-trigger {
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .icon-trigger {
+    width: 40px;
+  }
+
+  .category-rail {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    gap: 0.38rem;
+  }
+
+  .category-rail__tab {
+    border-radius: 999px;
+    padding: 0.36rem 0.78rem;
+    font-size: 0.78rem;
+    border-color: #dfeae3;
+  }
+
+  /* Refined Craft Beverage Cards */
+  .menu-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    padding: 0.6rem 0 1rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: visible !important;
+  }
+
+  .menu-item {
+    background: #ffffff;
+    border: 1px solid #e4ece7;
+    border-radius: 16px;
+    padding: 6px;
+    box-shadow: 0 1px 3px rgba(20, 35, 26, 0.04);
+    min-width: 0;
+  }
+
+  .menu-item:hover {
+    box-shadow: 0 1px 3px rgba(20, 35, 26, 0.04);
+  }
+
+  .menu-item.in-docket {
+    border-color: #2d5a43;
+    background: #ffffff;
+    box-shadow: 0 0 0 1px #2d5a43, 0 4px 12px rgba(45, 90, 67, 0.1);
+  }
+
+  .menu-item:active {
+    transform: scale(0.97);
+  }
+
+  .menu-item__visual {
+    aspect-ratio: 1 / 0.92;
+    border-radius: 12px;
+    background: #f3f6f4;
+  }
+
+  .menu-item__visual::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgba(22, 36, 28, 0.06);
+    pointer-events: none;
+  }
+
+  /* Remove floating category tag over cup lid on mobile */
+  .menu-item__overlay-top {
+    display: none;
+  }
+
+  .menu-item__qty {
+    top: 7px;
+    right: 7px;
+    bottom: auto;
+    min-width: 24px;
+    height: 24px;
+    background: #1e3f2f;
+    border: 2px solid #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .menu-item__body {
+    padding: 0.5rem 0.32rem 0.28rem;
+    gap: 0.35rem;
+  }
+
+  .menu-item__title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #15221b;
+    line-height: 1.35;
+    min-height: 1.15rem;
+  }
+
+  .menu-item__pricing {
+    align-items: center;
+  }
+
+  .menu-item__usd {
+    font-size: 0.96rem;
+    font-weight: 800;
+    color: #1b432e;
+  }
+
+  .menu-item__khr {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #6b7f73;
+    margin-top: 1px;
+  }
+
+  .menu-item__action {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #2d5a43;
+    color: #ffffff;
+    font-size: 0.8rem;
+    box-shadow: 0 2px 6px rgba(45, 90, 67, 0.2);
+  }
+
+  /* Slide-Up Native Order Docket Sheet */
+  .mobile-docket-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(14, 24, 18, 0.52);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .barista-docket {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1055;
+    max-height: calc(89dvh - var(--safe-top, 0px));
+    border-radius: 22px 22px 0 0;
+    border: none;
+    box-shadow: 0 -14px 44px rgba(12, 22, 16, 0.25);
+    transform: translateY(105%);
+    pointer-events: none;
+    transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+    padding-bottom: var(--safe-bottom, 0px);
+  }
+
+  .barista-docket.is-mobile-open {
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .mobile-docket-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: #cbd8d0;
+    margin: 9px auto 2px;
+    flex-shrink: 0;
+  }
+
+  .docket-stream {
+    max-height: 40dvh;
+    overflow-y: auto;
+  }
+
+  /* Floating Native Cart Bar above Bottom Navigation */
+  .mobile-floating-cart {
+    position: fixed;
+    left: 0.7rem;
+    right: 0.7rem;
+    bottom: calc(var(--mobile-bottom-offset, 64px) + 0.55rem);
+    z-index: 1032;
+    background: linear-gradient(135deg, #244b37 0%, #173324 100%);
+    color: #ffffff;
+    border-radius: 16px;
+    padding: 0.48rem 0.52rem 0.48rem 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    box-shadow: 0 10px 28px rgba(16, 36, 25, 0.32);
+  }
+
+  .mobile-floating-cart__summary {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0;
+    text-align: left;
+  }
+
+  .mobile-floating-cart__badge {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    font-size: 0.88rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .mobile-floating-cart__info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.22;
+  }
+
+  .mobile-floating-cart__title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-floating-cart__sub {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #bde3cd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-floating-cart__pay {
+    height: 40px;
+    padding: 0 1rem;
+    border: none;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #193b29;
+    font-size: 0.84rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+
+  .mobile-floating-cart__pay:disabled {
+    opacity: 0.55;
+  }
+
+  .mobile-cart-pop-enter-active,
+  .mobile-cart-pop-leave-active {
+    transition: opacity 0.2s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .mobile-cart-pop-enter-from,
+  .mobile-cart-pop-leave-to {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+}
+
+@media (max-width: 639.98px) {
+  .menu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .queue-trigger {
+    padding: 0 0.62rem;
+  }
+
+  .queue-trigger__label {
+    display: none;
+  }
+
+  .open-queue-row {
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: 14px;
+  }
+
+  .open-queue-row__actions {
+    width: 100%;
+    justify-content: space-between;
+    padding-top: 0.45rem;
+    border-top: 1px solid var(--ledger-hairline);
+  }
+
+  .open-queue-row__totals {
+    text-align: left;
+    margin-right: auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

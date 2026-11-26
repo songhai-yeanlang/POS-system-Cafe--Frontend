@@ -352,7 +352,7 @@ const handleConfirmDelete = async () => {
 
       <!-- Users Table -->
       <div v-else class="table-responsive">
-        <table class="table align-middle mb-0 clean-table">
+        <table class="table align-middle mb-0 clean-table mobile-card-table">
           <thead>
             <tr>
               <th>{{ $t('users.colUser') }}</th>
@@ -382,7 +382,7 @@ const handleConfirmDelete = async () => {
                 </div>
               </td>
 
-              <td>
+              <td :data-label="$t('users.colRole')">
                 <span
                   class="role-text"
                   :class="u.role === 'OWNER' ? 'is-owner' : 'is-staff'"
@@ -391,13 +391,13 @@ const handleConfirmDelete = async () => {
                 </span>
               </td>
 
-              <td>
+              <td :data-label="$t('users.colLastLogin')">
                 <span class="datetime-text tabular">
                   {{ formatDateTime(u.last_login_at) }}
                 </span>
               </td>
 
-              <td>
+              <td :data-label="$t('common.status')">
                 <span
                   class="status-text"
                   :class="u.is_active ? 'active' : 'inactive'"
@@ -406,7 +406,7 @@ const handleConfirmDelete = async () => {
                 </span>
               </td>
 
-              <td class="text-end">
+              <td class="text-end mobile-card-actions">
                 <div class="action-group">
                   <button
                     type="button"
@@ -1008,6 +1008,22 @@ const handleConfirmDelete = async () => {
   font-size: 0.84rem;
   line-height: 1.55;
   color: var(--sage-muted);
+}
+
+@media (max-width: 767.98px) {
+  .users-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .btn-add-staff {
+    width: 100%;
+    justify-content: center;
+    height: 42px;
+    border-radius: 11px;
+  }
 }
 
 @media (max-width: 440px) {

@@ -167,7 +167,7 @@
       </div>
 
       <div v-else class="table-responsive">
-        <table class="table clean-table align-middle mb-0">
+        <table class="table clean-table mobile-card-table align-middle mb-0">
           <thead>
             <tr>
               <th>{{ $t('expenses.colDateShift') }}</th>
@@ -194,16 +194,18 @@
                   </span>
                 </div>
               </td>
-              <td>
+              <td :data-label="$t('expenses.colCategory')">
                 <span class="cat-text">{{ getCategoryLabel(exp.category, true) }}</span>
               </td>
-              <td>
-                <div class="desc-text">{{ exp.description }}</div>
-                <div v-if="exp.status === 'VOIDED' && exp.void_reason" class="void-reason-text">
-                  {{ $t('expenses.voided') }}: {{ exp.void_reason }}
+              <td :data-label="$t('expenses.colDescription')">
+                <div>
+                  <div class="desc-text">{{ exp.description }}</div>
+                  <div v-if="exp.status === 'VOIDED' && exp.void_reason" class="void-reason-text">
+                    {{ $t('expenses.voided') }}: {{ exp.void_reason }}
+                  </div>
                 </div>
               </td>
-              <td>
+              <td :data-label="$t('expenses.colMethod')">
                 <span class="method-text">
                   <i
                     :class="
@@ -217,7 +219,7 @@
                   <span>{{ getMethodLabel(exp.payment_method) }}</span>
                 </span>
               </td>
-              <td>
+              <td :data-label="$t('expenses.colAmount')">
                 <div
                   class="amount-cell tabular"
                   :class="{ 'is-voided': exp.status === 'VOIDED' }"
@@ -248,10 +250,10 @@
                   </span>
                 </div>
               </td>
-              <td>
+              <td :data-label="$t('expenses.colRecordedBy')">
                 <span class="recorder-name">{{ exp.created_by_name }}</span>
               </td>
-              <td>
+              <td :data-label="$t('common.status')">
                 <span
                   class="status-text"
                   :class="exp.status === 'ACTIVE' ? 'active' : 'voided'"
@@ -259,7 +261,7 @@
                   {{ exp.status === 'ACTIVE' ? $t('expenses.active') : $t('expenses.voided') }}
                 </span>
               </td>
-              <td class="text-end">
+              <td class="text-end mobile-card-actions">
                 <div v-if="exp.status === 'ACTIVE' && canManageExpense(exp)" class="action-group">
                   <button
                     type="button"
@@ -1108,5 +1110,36 @@ onMounted(async () => {
   color: #92400e;
   font-size: 0.78rem;
   font-weight: 500;
+}
+
+@media (max-width: 767.98px) {
+  .expenses-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .expenses-top-bar__right {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .expense-summary-pill {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    border-radius: 11px;
+    justify-content: center;
+  }
+
+  .btn-record-expense {
+    height: 42px;
+    border-radius: 11px;
+    justify-content: center;
+    flex-shrink: 0;
+  }
 }
 </style>

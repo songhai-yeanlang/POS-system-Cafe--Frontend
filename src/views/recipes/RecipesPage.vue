@@ -1,6 +1,6 @@
 <template>
   <div class="recipes-page">
-    <div class="recipes-layout">
+    <div class="recipes-layout" :class="{ 'is-mobile-detail': mobileRecipeDetailOpen }">
       <!-- ================= LEFT PANEL: PRODUCT DIRECTORY ================= -->
       <aside class="products-sidebar-card">
         <div class="sidebar-header">
@@ -56,7 +56,7 @@
             type="button"
             class="product-select-item"
             :class="{ active: selectedProduct?.id === prod.id }"
-            @click="selectProduct(prod)"
+            @click="selectProduct(prod, true)"
           >
             <div class="prod-thumb-sm">
               <img
@@ -79,6 +79,7 @@
             <span class="variant-pill-sm tabular">
               {{ $t('pos.sizesCount', { count: prod.variants?.length || 0 }) }}
             </span>
+            <i class="bi bi-chevron-right d-lg-none text-muted small"></i>
           </button>
         </div>
       </aside>
@@ -96,6 +97,18 @@
         </div>
 
         <div v-else class="surface-card recipe-sheet-card">
+          <!-- Mobile Back-to-Products Navigation Bar -->
+          <div class="mobile-recipe-backbar d-lg-none">
+            <button
+              type="button"
+              class="btn-mobile-back"
+              @click="mobileRecipeDetailOpen = false"
+            >
+              <i class="bi bi-arrow-left"></i>
+              <span>{{ $t('nav.backToList') }}</span>
+            </button>
+          </div>
+
           <!-- Integrated Product Header -->
           <header class="sheet-header">
             <div class="banner-product-info">
@@ -162,7 +175,7 @@
 
           <!-- Variants Recipe Table View -->
           <div v-else class="table-responsive">
-            <table class="clean-table recipe-ledger-table">
+            <table class="clean-table recipe-ledger-table mobile-card-table">
               <thead>
                 <tr>
                   <th style="width: 150px;">{{ $t('recipes.colVariant') }}</th>
@@ -182,12 +195,12 @@
                   </td>
 
                   <!-- Price -->
-                  <td>
+                  <td :data-label="$t('recipes.colPrice')">
                     <span class="price-val tabular">{{ formatUsd(v.price) }}</span>
                   </td>
 
                   <!-- Recipe Ingredients (Structured Non-Breaking Chips) -->
-                  <td>
+                  <td :data-label="$t('recipes.colRecipeIngredients')" class="recipe-ingredients-td">
                     <div v-if="!v.recipe || v.recipe.length === 0" class="no-recipe-wrap">
                       <span class="no-recipe-pill">{{ $t('recipes.noRecipeSet') }}</span>
                       <div v-if="getSiblingsWithRecipes(v).length > 0" class="copy-siblings-group">
@@ -237,7 +250,7 @@
                   </td>
 
                   <!-- Est. Yield -->
-                  <td>
+                  <td :data-label="$t('recipes.colEstYield')">
                     <template v-if="v.recipe && v.recipe.length > 0">
                       <span
                         class="yield-badge tabular"
@@ -251,7 +264,7 @@
                   </td>
 
                   <!-- Actions -->
-                  <td class="text-end text-nowrap">
+                  <td class="text-end text-nowrap mobile-card-actions">
                     <div v-if="authStore.isOwner" class="action-group">
                       <template v-if="v.recipe && v.recipe.length > 0">
                         <button
@@ -640,8 +653,13 @@ const fetchInitialData = async () => {
   }
 }
 
-const selectProduct = async (prod) => {
+const mobileRecipeDetailOpen = ref(false)
+
+const selectProduct = async (prod, fromUserClick = false) => {
   selectedProduct.value = prod
+  if (fromUserClick) {
+    mobileRecipeDetailOpen.value = true
+  }
   await fetchProductRecipes(prod.id)
 }
 
@@ -834,7 +852,7 @@ onMounted(async () => {
 
 @media (max-width: 992px) {
   .recipes-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1756,5 +1774,94 @@ onMounted(async () => {
   font-size: 0.83rem;
   font-weight: 600;
   box-shadow: none;
+}
+
+.mobile-recipe-backbar {
+  padding: 0.65rem 0.95rem;
+  background: #f5f9f6;
+  border-bottom: 1px solid var(--ledger-border-soft);
+}
+
+.btn-mobile-back {
+  border: none;
+  background: transparent;
+  color: var(--botanical-deep);
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+@media (max-width: 991.98px) {
+  .products-sidebar-card {
+    position: static;
+    max-height: none;
+    border-radius: 16px;
+  }
+
+  .recipes-layout:not(.is-mobile-detail) .variants-recipe-panel {
+    display: none;
+  }
+
+  .recipes-layout.is-mobile-detail .products-sidebar-card {
+    display: none;
+  }
+
+  .product-select-item {
+    padding: 0.72rem 0.75rem;
+    border-bottom: 1px solid #f0f5f2;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  table.mobile-card-table tbody td.recipe-ingredients-td {
+    flex-direction: column;
+    align-items: flex-start !important;
+    text-align: left !important;
+    gap: 0.45rem;
+  }
+
+  table.mobile-card-table tbody td.recipe-ingredients-td::before {
+    max-width: 100%;
+  }
+
+  .builder-cols-head {
+    display: none;
+  }
+
+  .builder-row {
+    flex-wrap: wrap;
+    background: #f8fbf9;
+    border: 1px solid #dfeae3;
+    border-radius: 12px;
+    padding: 0.65rem;
+    gap: 0.5rem;
+  }
+
+  .builder-ing-col {
+    flex: 1 0 100%;
+  }
+
+  .builder-qty-col {
+    flex: 1 1 120px;
+    width: auto;
+  }
+
+  .builder-sugar-col {
+    flex: 1 1 120px;
+    width: auto;
+  }
+
+  .btn-remove-plain {
+    width: 38px;
+    height: 38px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #dc2626;
+    border-radius: 9px;
+  }
 }
 </style>

@@ -21,18 +21,25 @@ const getIconClass = (type) => {
 
 <template>
   <Teleport to="body">
-    <div class="toast-stack position-fixed bottom-0 end-0 p-3">
+    <div class="toast-stack position-fixed p-3">
       <TransitionGroup name="toast-fade">
-        <div v-for="item in toasts.slice(-3)" :key="item.id"
+        <div
+          v-for="item in toasts.slice(-3)"
+          :key="item.id"
           class="toast-card d-flex align-items-center justify-content-between gap-3 bg-white px-3 py-2 mt-2"
-          role="status">
+          role="status"
+        >
           <div class="d-flex align-items-center gap-2">
             <i :class="['bi', getIconClass(item.type), 'fs-6']"></i>
             <span class="toast-message">{{ tToast(item.message) }}</span>
           </div>
 
-          <button type="button" class="btn-close-toast d-flex align-items-center justify-content-center"
-            aria-label="Close" @click="remove(item.id)">
+          <button
+            type="button"
+            class="btn-close-toast d-flex align-items-center justify-content-center"
+            aria-label="Close"
+            @click="remove(item.id)"
+          >
             <i class="bi bi-x"></i>
           </button>
         </div>
@@ -44,22 +51,36 @@ const getIconClass = (type) => {
 <style scoped>
 .toast-stack {
   z-index: 2000;
+  bottom: 0;
+  right: 0;
   max-width: 380px;
   width: 100%;
   pointer-events: none;
 }
 
+@media (max-width: 991.98px) {
+  .toast-stack {
+    top: calc(var(--safe-top, 0px) + 52px);
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    max-width: 440px;
+    padding: 0.5rem 0.75rem !important;
+  }
+}
+
 .toast-card {
   pointer-events: auto;
   min-height: 46px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--border-hairline, #e6e4e0);
-  box-shadow: 0 8px 24px -4px rgba(28, 27, 27, 0.08);
+  box-shadow: 0 10px 28px -4px rgba(20, 35, 26, 0.14);
 }
 
 .toast-message {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--on-surface, #1c1b1b);
   line-height: 1.4;
 }
@@ -88,11 +109,11 @@ const getIconClass = (type) => {
 
 .toast-fade-enter-from {
   opacity: 0;
-  transform: translateY(10px) scale(0.98);
+  transform: translateY(-10px) scale(0.98);
 }
 
 .toast-fade-leave-to {
   opacity: 0;
-  transform: translateX(20px);
+  transform: translateY(-8px) scale(0.96);
 }
 </style>

@@ -1,0 +1,493 @@
+/* ==========================================================================
+   Native Mobile App Experience Layer (< 992px & < 768px)
+   Crafted for BrewPOS Coffee: Ceramic surfaces, Botanical Espresso accents,
+   zero horizontal overflow, 2-column scannable data cards, and bottom sheets.
+   ========================================================================== */
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --mobile-header-h: 54px;
+  --mobile-tabbar-h: 64px;
+  --mobile-bottom-offset: calc(var(--mobile-tabbar-h) + var(--safe-bottom));
+}
+
+.min-w-0 {
+  min-width: 0 !important;
+}
+
+/* ── 1. Strict Mobile Viewport Containment & Touch Physics (< 992px) ── */
+@media (max-width: 991.98px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    background-color: #f4f7f5;
+  }
+
+  #app,
+  .app-shell,
+  .app-main,
+  .app-content {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  button,
+  a,
+  [role='button'],
+  .seg-tab-btn,
+  .toolbar-btn,
+  .btn-primary-action,
+  .btn-secondary-action,
+  .btn-action-icon {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  button:active:not(:disabled),
+  .btn-primary-action:active:not(:disabled),
+  .btn-secondary-action:active:not(:disabled),
+  .toolbar-btn:active:not(:disabled),
+  .btn-action-icon:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+}
+
+/* ── 2. Phone-Specific Design System (< 768px) ── */
+@media (max-width: 767.98px) {
+  /* Prevent iOS Safari & Mobile Chrome auto-zoom on form focus */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea,
+  .form-control,
+  .form-select,
+  .filter-input,
+  .clean-input,
+  .pos-input,
+  .ledger-input {
+    font-size: 16px !important;
+  }
+
+  input[type='date'].date-range-group__input,
+  input[type='date'].date-input {
+    font-size: 13.5px !important;
+  }
+
+  /* Ceramic Surface Container */
+  .clean-card {
+    border-radius: 16px;
+    border-color: #e3ece6;
+    box-shadow: 0 1px 3px rgba(20, 35, 26, 0.04);
+  }
+
+  /* When a clean-card wraps a mobile-card-table, let individual cards breathe on the app canvas */
+  .clean-card:has(.mobile-card-table) {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .clean-card:has(.mobile-card-table) > .filter-bar,
+  .clean-card:has(.mobile-card-table) > .report-card-header {
+    background: #ffffff;
+    border: 1px solid #e3ece6;
+    border-radius: 16px;
+    margin-bottom: 0.65rem;
+    box-shadow: 0 1px 3px rgba(20, 35, 26, 0.03);
+  }
+
+  .clean-card:has(.mobile-card-table) > .pagination-bar {
+    background: #ffffff;
+    border: 1px solid #e3ece6;
+    border-radius: 16px;
+    margin-top: 0.65rem;
+  }
+
+  .clean-card:has(.mobile-card-table) > .empty-box,
+  .clean-card:has(.mobile-card-table) > .empty-state {
+    background: #ffffff;
+    border: 1px solid #e3ece6;
+    border-radius: 16px;
+  }
+
+  /* Horizontal Swipeable Segmented Tabs */
+  .segmented-tabs,
+  .orders-segmented-tabs,
+  .expenses-segmented-tabs,
+  .products-segmented-tabs,
+  .discounts-segmented-tabs,
+  .inventory-segmented-tabs,
+  .users-segmented-tabs,
+  .segmented-nav {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px !important;
+    padding: 4px !important;
+  }
+
+  .segmented-tabs::-webkit-scrollbar,
+  .orders-segmented-tabs::-webkit-scrollbar,
+  .expenses-segmented-tabs::-webkit-scrollbar,
+  .products-segmented-tabs::-webkit-scrollbar,
+  .discounts-segmented-tabs::-webkit-scrollbar,
+  .inventory-segmented-tabs::-webkit-scrollbar,
+  .users-segmented-tabs::-webkit-scrollbar,
+  .segmented-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .segmented-tabs .seg-tab-btn,
+  .orders-segmented-tabs .seg-tab-btn,
+  .expenses-segmented-tabs .seg-tab-btn,
+  .products-segmented-tabs .seg-tab-btn,
+  .discounts-segmented-tabs .seg-tab-btn,
+  .inventory-segmented-tabs .seg-tab-btn,
+  .users-segmented-tabs .seg-tab-btn,
+  .segmented-nav .seg-btn {
+    flex: 1 0 auto;
+    justify-content: center;
+    white-space: nowrap;
+    min-height: 38px;
+    border-radius: 9px !important;
+  }
+
+  /* Mobile Filter Bars */
+  .filter-bar {
+    padding: 0.75rem !important;
+    gap: 0.5rem !important;
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .filter-bar__left,
+  .filter-bar__controls {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filter-bar__left .search-wrap,
+  .filter-bar__controls .search-wrap {
+    grid-column: 1 / -1;
+    min-width: 0 !important;
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  .filter-bar__left .date-range-group,
+  .filter-bar__controls .date-range-group {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 0.7rem;
+    border-radius: 10px;
+  }
+
+  .date-range-group__input,
+  .date-input {
+    flex: 1;
+    min-width: 0;
+    width: auto !important;
+  }
+
+  .filter-input {
+    height: 40px !important;
+    border-radius: 10px !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filter-bar__right,
+  .filter-bar__actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.45rem;
+  }
+
+  .filter-bar__right .toolbar-btn {
+    flex: 1;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  .filter-bar__right .toolbar-btn--icon {
+    flex: 0 0 40px;
+    width: 40px;
+  }
+
+  /* Mobile Pagination Bar */
+  .pagination-bar {
+    padding: 0.75rem !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.55rem !important;
+  }
+
+  .pagination-info {
+    text-align: center;
+    font-size: 0.78rem;
+  }
+
+  .pagination-bar > .d-flex,
+  .pagination-controls {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pagination-bar > .d-flex .toolbar-btn {
+    flex: 1;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  /* ── 3. Architectural 2-Column Mobile Card-Table Engine ── */
+  .table-responsive:has(.mobile-card-table) {
+    overflow-x: visible !important;
+    background: transparent;
+    padding: 0;
+  }
+
+  table.mobile-card-table,
+  table.mobile-card-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  table.mobile-card-table thead {
+    display: none !important;
+  }
+
+  table.mobile-card-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  table.mobile-card-table tbody tr {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.58rem 0.75rem;
+    background: #ffffff;
+    border: 1px solid #e3ece6;
+    border-radius: 16px;
+    padding: 0.88rem 0.95rem;
+    box-shadow: 0 1px 3px rgba(20, 35, 26, 0.04);
+    transition: transform 0.14s ease, border-color 0.14s ease;
+    position: relative;
+  }
+
+  table.mobile-card-table tbody tr.clickable-row:active,
+  table.mobile-card-table tbody tr.audit-row:active {
+    transform: scale(0.985);
+    border-color: #bdd4c6;
+  }
+
+  /* Card Header Row (td:first-child spans full width) */
+  table.mobile-card-table tbody td:first-child {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between;
+    gap: 0.65rem;
+    padding: 0 0 0.58rem 0 !important;
+    border-bottom: 1px solid #edf3ef !important;
+    text-align: left !important;
+    font-weight: 700;
+  }
+
+  table.mobile-card-table tbody td:first-child::before {
+    display: none !important;
+  }
+
+  /* Middle Data Cells: Clean Left-Aligned 2-Col Blocks (No Dashed Clutter) */
+  table.mobile-card-table tbody td:not(:first-child):not(.mobile-card-actions) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start !important;
+    justify-content: flex-start;
+    gap: 2px;
+    padding: 0 !important;
+    border: none !important;
+    text-align: left !important;
+    font-size: 0.84rem;
+    min-width: 0;
+    white-space: normal !important;
+  }
+
+  table.mobile-card-table tbody td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #6b7f73;
+    line-height: 1.35;
+    text-align: left;
+  }
+
+  /* Full-width span for rich controls (variant dropdowns, share bars, chips, long summaries) */
+  table.mobile-card-table tbody td:has(.variant-dropdown-wrap),
+  table.mobile-card-table tbody td:has(.share-cell),
+  table.mobile-card-table tbody td:has(.summary-text),
+  table.mobile-card-table tbody td:has(.desc-text),
+  table.mobile-card-table tbody td.recipe-ingredients-td {
+    grid-column: 1 / -1;
+  }
+
+  table.mobile-card-table .variant-dropdown-wrap,
+  table.mobile-card-table .share-cell,
+  table.mobile-card-table .summary-text {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  table.mobile-card-table .summary-text {
+    white-space: normal !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  /* Normalize inner cell alignments to crisp left axis */
+  table.mobile-card-table .amount-cell,
+  table.mobile-card-table .cost-cell,
+  table.mobile-card-table .date-cell,
+  table.mobile-card-table .time-cell,
+  table.mobile-card-table .cashier-cell,
+  table.mobile-card-table .actor-cell,
+  table.mobile-card-table .module-cell,
+  table.mobile-card-table .usage-cell,
+  table.mobile-card-table .validity-cell {
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
+
+  /* Card Footer Action Row */
+  table.mobile-card-table tbody td.mobile-card-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end;
+    padding: 0.55rem 0 0 0 !important;
+    margin-top: 0.1rem;
+    border-top: 1px solid #edf3ef !important;
+    border-bottom: none !important;
+  }
+
+  table.mobile-card-table tbody td.mobile-card-actions::before {
+    display: none !important;
+  }
+
+  table.mobile-card-table .action-group {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 0.45rem;
+  }
+
+  table.mobile-card-table .btn-action-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    font-size: 0.88rem !important;
+    background: #f7faf8;
+  }
+
+  /* Inside nested panel-cards (like Dashboard Top Products & Low Stock), give gentle inset */
+  .panel-card .table-responsive:has(.mobile-card-table) {
+    padding: 0.65rem;
+    background: #f6f9f7;
+  }
+
+  /* ── 4. Universal Native Bottom-Sheet Modals ── */
+  @keyframes mobileBottomSheetIn {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .modal-backdrop-custom,
+  .pos-dialog-backdrop,
+  .logout-modal-backdrop,
+  .confirm-backdrop {
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    background-color: rgba(15, 24, 19, 0.52) !important;
+    backdrop-filter: blur(4px) !important;
+  }
+
+  .modal-card,
+  .modal-card-custom,
+  .modal-sheet,
+  .pos-dialog,
+  .logout-modal-card,
+  .confirm-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(92dvh - var(--safe-top)) !important;
+    border-radius: 22px 22px 0 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    margin: 0 !important;
+    box-shadow: 0 -12px 40px rgba(12, 22, 16, 0.22) !important;
+    animation: mobileBottomSheetIn 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    padding-bottom: var(--safe-bottom);
+  }
+
+  .modal-card::before,
+  .modal-card-custom::before,
+  .modal-sheet::before,
+  .pos-dialog::before,
+  .logout-modal-card::before,
+  .confirm-dialog::before {
+    content: '';
+    display: block;
+    width: 38px;
+    height: 4px;
+    border-radius: 999px;
+    background: #cdd9d2;
+    margin: 8px auto 2px;
+    flex-shrink: 0;
+  }
+
+  .modal-card.p-4 {
+    padding-top: 0.65rem !important;
+    padding-bottom: calc(1.1rem + var(--safe-bottom)) !important;
+  }
+
+  .modal-footer-custom,
+  .pos-dialog__foot,
+  .modal-actions {
+    padding-bottom: calc(0.9rem + var(--safe-bottom)) !important;
+  }
+
+  .modal-footer-custom > button,
+  .pos-dialog__foot > button {
+    min-height: 44px !important;
+    border-radius: 12px !important;
+  }
+}

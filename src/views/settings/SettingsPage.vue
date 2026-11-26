@@ -1486,8 +1486,82 @@ onMounted(async () => {
 @media (max-width: 992px) {
   .settings-grid,
   .account-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .settings-top-bar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.6rem !important;
+  }
+
+  .top-actions {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    background: #ffffff;
+    border: 1px solid #dfeae3;
+    border-radius: 12px;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .top-actions .save-state-label {
+    flex: 1 0 100%;
+    margin-bottom: 0.15rem;
+  }
+
+  .top-actions .btn-action-secondary,
+  .top-actions .btn-action-primary {
+    flex: 1;
+    height: 40px;
+    border-radius: 10px;
+    justify-content: center;
+  }
+
+  .panel-section {
+    padding: 1rem 1rem;
+  }
+
+  .logo-row {
+    flex-wrap: wrap;
+  }
+
+  .logo-actions {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .logo-actions > button {
+    flex: 1;
+    height: 38px;
+    justify-content: center;
+    border-radius: 9px;
+  }
+
+  .rate-input-box,
+  .paper-segmented {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .section-footer > button {
+    width: 100%;
+    height: 42px;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .session-bar .btn-danger-outline {
+    width: 100%;
+    height: 40px;
+    border-radius: 10px;
   }
 }
 

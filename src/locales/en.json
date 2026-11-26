@@ -88,7 +88,17 @@
     "logoutNo": "No, Cancel",
     "toggleNav": "Toggle navigation",
     "exchangeRateTitle": "Current Shop Exchange Rate",
-    "manageShiftTitle": "Click to manage shift & cash drawer"
+    "manageShiftTitle": "Click to manage shift & cash drawer",
+    "tabPos": "POS",
+    "tabOrders": "Orders",
+    "tabShifts": "Shifts",
+    "tabDashboard": "Home",
+    "tabExpenses": "Expenses",
+    "tabMore": "Menu",
+    "moreMenuTitle": "Workspace Menu",
+    "viewCart": "View Order",
+    "backToList": "Back to List",
+    "filters": "Filters"
   },
   "routeTitles": {
     "login": "Sign In",

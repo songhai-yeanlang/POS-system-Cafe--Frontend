@@ -502,7 +502,7 @@ const handleConfirmDelete = async () => {
 
       <!-- Data Table -->
       <div v-else class="table-responsive">
-        <table class="table align-middle mb-0 clean-table">
+        <table class="table align-middle mb-0 clean-table mobile-card-table">
           <thead>
             <tr>
               <th>{{ $t('discountCodes.colCodeName') }}</th>
@@ -546,7 +546,7 @@ const handleConfirmDelete = async () => {
               </td>
 
               <!-- 2. Discount Value -->
-              <td>
+              <td :data-label="$t('discountCodes.colDiscount')">
                 <div class="value-cell tabular">
                   <div class="value-cell__main">
                     <strong class="value-cell__amount">
@@ -568,7 +568,7 @@ const handleConfirmDelete = async () => {
               </td>
 
               <!-- 3. Usage -->
-              <td>
+              <td :data-label="$t('discountCodes.colUsage')">
                 <div class="usage-cell tabular">
                   <template v-if="item.max_uses !== null">
                     <div class="usage-cell__count">
@@ -593,7 +593,7 @@ const handleConfirmDelete = async () => {
               </td>
 
               <!-- 4. Validity Period -->
-              <td>
+              <td :data-label="$t('discountCodes.colValidity')">
                 <div class="validity-cell tabular">
                   <div v-if="item.starts_at || item.expires_at" class="validity-range">
                     <span>{{ item.starts_at ? formatDisplayDate(item.starts_at) : '—' }}</span>
@@ -610,7 +610,7 @@ const handleConfirmDelete = async () => {
               </td>
 
               <!-- 5. Status -->
-              <td>
+              <td :data-label="$t('common.status')">
                 <span class="status-text" :class="`is-${getStatusInfo(item).key}`">
                   <span class="status-dot"></span>
                   <span>{{ getStatusInfo(item).label }}</span>
@@ -618,7 +618,7 @@ const handleConfirmDelete = async () => {
               </td>
 
               <!-- 6. Actions (Owner Only) -->
-              <td v-if="isOwner" class="text-end">
+              <td v-if="isOwner" class="text-end mobile-card-actions">
                 <div class="action-group">
                   <label
                     class="switch-control"
@@ -1242,5 +1242,26 @@ const handleConfirmDelete = async () => {
 .custom-check:checked {
   background-color: #2d5a43;
   border-color: #2d5a43;
+}
+
+@media (max-width: 767.98px) {
+  .discounts-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .discounts-top-bar__right,
+  .discounts-top-bar__right .btn-primary-action {
+    width: 100%;
+    justify-content: center;
+    height: 42px;
+    border-radius: 11px;
+  }
+
+  .usage-track {
+    margin-left: auto;
+  }
 }
 </style>
